@@ -135,7 +135,7 @@ function renderHeader() {
       <button class="btn btn-ghost btn-sm" data-action="logout">Logout</button>`;
   } else {
     el.innerHTML = `
-      <button class="btn btn-ghost btn-sm" data-action="admin-login">🔐 Admin Login</button>`;
+      <button class="btn btn-gold btn-sm" data-action="admin-login">🔐 Admin Login</button>`;
   }
 }
 
