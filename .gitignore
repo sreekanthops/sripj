@@ -1,0 +1,7 @@
+node_modules/
+diary.db
+diary.db-shm
+diary.db-wal
+.env
+public/uploads/
+*.log

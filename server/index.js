@@ -1,0 +1,22 @@
+require('dotenv').config();
+const express = require('express');
+const cors    = require('cors');
+const morgan  = require('morgan');
+const path    = require('path');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use(morgan('dev'));
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
+app.use('/api/notes', require('./routes/notes'));
+app.use('/api/auth',  require('./routes/auth'));
+
+// SPA fallback
+app.get('/{*splat}', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Diary running → http://localhost:${PORT}`));
