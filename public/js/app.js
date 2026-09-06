@@ -130,14 +130,19 @@ function renderHeader() {
 
   if (isAdmin) {
     el.innerHTML = `
-      <span class="admin-badge">🔐 Admin</span>
-      <button class="btn btn-gold btn-sm" data-action="new-note">+ New Note</button>
-      <button class="btn btn-ghost btn-sm" data-action="logout">Logout</button>`;
+      <span class="admin-badge">✦ Admin</span>
+      <button class="btn btn-primary btn-sm" data-action="new-note">+ New Entry</button>
+      <button class="btn btn-ghost btn-sm" data-action="logout">Sign out</button>`;
   } else {
     el.innerHTML = `
-      <button class="btn btn-gold btn-sm" data-action="admin-login">🔐 Admin Login</button>`;
+      <button class="btn btn-ghost btn-sm" data-action="admin-login">Sign in</button>`;
   }
 }
+
+// scroll shadow on topbar
+window.addEventListener('scroll', () => {
+  document.getElementById('topbar')?.classList.toggle('scrolled', window.scrollY > 8);
+}, { passive: true });
 
 // single delegated listener on the header actions container (survives innerHTML replacement)
 document.getElementById('headerActions').addEventListener('click', e => {
@@ -299,8 +304,8 @@ async function loadNotes() {
 async function loadAndRender() {
   try { await loadNotes(); renderGrid(); }
   catch { document.getElementById('notesGrid').innerHTML =
-    `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--c-txt3);font-family:var(--font-sans)">
-      <div style="font-size:40px;margin-bottom:12px">⚠️</div>
+    `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--ink4);font-family:var(--sans)">
+      <div style="font-size:32px;margin-bottom:12px;color:var(--accent);opacity:.5">⚠</div>
       Could not connect to server. Run: <code>node server/index.js</code>
     </div>`; }
 }
@@ -595,13 +600,15 @@ function buildVideoControls(v, item, noteId) {
 function renderGrid() {
   const grid = document.getElementById('notesGrid');
   document.getElementById('swipeHint').textContent =
-    notes.length > 1 ? '← swipe notes to navigate ←' : '';
+    notes.length > 1 ? '← swipe to navigate ←' : '';
+  const countEl = document.getElementById('noteCount');
+  if (countEl) countEl.textContent = notes.length ? `${notes.length} entr${notes.length===1?'y':'ies'}` : '';
 
   if (!notes.length) {
     grid.innerHTML = `
-      <div style="grid-column:1/-1;text-align:center;padding:70px 20px;color:var(--c-txt3);font-family:var(--font-sans)">
-        <div style="font-size:44px;margin-bottom:12px">✒</div>
-        ${isAdmin ? 'Tap <b style="color:var(--c-gold)">+ New Note</b> to write your first entry.'
+      <div style="grid-column:1/-1;text-align:center;padding:70px 20px;color:var(--ink4);font-family:var(--sans)">
+        <div style="font-size:36px;margin-bottom:12px;color:var(--accent);opacity:.5">✦</div>
+        ${isAdmin ? 'Tap <b style="color:var(--accent)">+ New Entry</b> to write your first entry.'
                   : 'No diary entries yet — check back soon.'}
       </div>`;
     return;
@@ -644,7 +651,7 @@ function renderGrid() {
       // footer
       const reacts = Object.entries(n.reactions||{}).filter(([,v])=>v>0)
         .map(([e,c]) => `<span class="react-chip">${e} ${c}</span>`).join('') ||
-        `<span style="font-size:11px;color:var(--c-txt3);font-family:var(--font-sans)">No reactions</span>`;
+        `<span style="font-size:11px;color:var(--ink4);font-family:var(--sans)">No reactions</span>`;
 
       const chips = [
         n.musicUrl ? `<span class="chip">♫ Music</span>` : '',
@@ -687,7 +694,7 @@ async function openDetail(id) {
     playMusic(note);
   } catch (err) {
     document.getElementById('detailContent').innerHTML =
-      `<p style="color:var(--c-red);font-family:var(--font-sans)">Error: ${esc(err.message)}</p>`;
+      `<p style="color:var(--red);font-family:var(--sans)">Error: ${esc(err.message)}</p>`;
   }
 }
 
@@ -703,7 +710,7 @@ function renderDetail(note) {
 
   const reactHtml = Object.entries(note.reactions||{}).filter(([,v])=>v>0)
     .map(([e,c]) => `<span class="rcnt">${e} <b>${c}</b></span>`).join('') ||
-    `<span style="color:var(--c-txt3);font-size:12px;font-family:var(--font-sans)">Be the first to react!</span>`;
+    `<span style="color:var(--ink4);font-size:12px;font-family:var(--sans)">Be the first to react!</span>`;
 
   const repliesHtml = (note.replies||[]).map(r => `
     <div class="reply-item" data-rid="${r.id}">
@@ -718,7 +725,7 @@ function renderDetail(note) {
         <button class="btn btn-red  btn-xs btn-rdel"  data-nid="${note.id}" data-rid="${r.id}">🗑 Del</button>
       </div>` : ''}
     </div>`).join('') ||
-    `<p style="color:var(--c-txt3);font-size:12px;font-style:italic;font-family:var(--font-sans)">No replies yet.</p>`;
+    `<p style="color:var(--ink4);font-size:12px;font-style:italic;font-family:var(--sans)">No replies yet.</p>`;
 
   const cont = document.getElementById('detailContent');
   cont.className = 'fade-enter';
@@ -732,7 +739,7 @@ function renderDetail(note) {
       ${note.editedAt ? `<span>✏️ Edited ${fmtDate(note.editedAt)}</span>` : ''}
       <span>💬 ${(note.replies||[]).length} ${(note.replies||[]).length===1?'reply':'replies'}</span>
     </div>
-    ${note.musicUrl ? `<div style="font-size:12px;color:var(--c-gold);margin-bottom:12px;font-style:italic;font-family:var(--font-sans)">♫ Background music is playing</div>` : ''}
+    ${note.musicUrl ? `<div style="font-size:12px;color:var(--accent);margin-bottom:12px;font-style:italic;font-family:var(--sans)">♫ Background music is playing</div>` : ''}
     <div id="mediaMount" style="margin-bottom:${note.media?.length?'18px':'0'}"></div>
     <div class="detail-body" style="font-family:${esc(note.font)};font-size:${note.fontSize||14}px;${fsCss};border-left-color:${p.accent}">${esc(note.body)}</div>
     <hr class="sep">
@@ -829,7 +836,7 @@ function renderDetail(note) {
       const ta = document.createElement('textarea');
       ta.className = 'reply-edit-ta';
       ta.value = cur;
-      ta.style.cssText = 'width:100%;padding:7px 10px;border:1px solid var(--c-border);border-radius:8px;background:var(--c-bg3);color:var(--c-txt);font-family:var(--font-serif);font-size:13px;resize:vertical;min-height:60px;margin-top:6px;';
+      ta.style.cssText = 'width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg);color:var(--ink);font-family:var(--serif);font-size:13px;resize:vertical;min-height:60px;margin-top:6px;';
       const saveBtn = document.createElement('button');
       saveBtn.className = 'btn btn-gold btn-xs';
       saveBtn.textContent = 'Save';
@@ -913,12 +920,12 @@ document.getElementById('btnMPP').onclick = () => {
 };
 document.getElementById('btnMute').onclick = () => {
   audio.muted = !audio.muted;
-  document.getElementById('btnMute').textContent = audio.muted ? '🔇' : '🔊';
+  document.getElementById('btnMute').textContent = audio.muted ? '✕' : '♪';
 };
 document.getElementById('musicVol').oninput = e => {
   audio.volume = parseFloat(e.target.value);
   audio.muted  = false;
-  document.getElementById('btnMute').textContent = '🔊';
+  document.getElementById('btnMute').textContent = '♪';
 };
 
 // ── INIT ───────────────────────────────────────────────────────────────────
