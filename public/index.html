@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>My Diary</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📓</text></svg>">
 </head>
 <body>
 
-<!-- ── HEADER ─────────────────────────────────────────────── -->
+<!-- ══ HEADER ══════════════════════════════════════════════ -->
 <header id="header">
   <div class="header-inner">
     <a class="logo" href="/">
@@ -19,32 +19,32 @@
     <div id="headerActions"></div>
   </div>
   <div id="musicBar">
-    <span>♪</span>
+    <span style="color:var(--c-gold)">♫</span>
     <span class="music-title" id="musicTitle">—</span>
     <div class="music-controls">
-      <button id="btnMPP" title="Play / Pause">▶</button>
-      <button id="btnMute" title="Mute / Unmute">🔊</button>
+      <button id="btnMPP" title="Play/Pause">▶</button>
+      <button id="btnMute" title="Mute">🔊</button>
       <input type="range" id="musicVol" min="0" max="1" step="0.05" value="0.6">
     </div>
   </div>
 </header>
 
-<!-- ── TOOLBAR ────────────────────────────────────────────── -->
+<!-- ══ TOOLBAR ═════════════════════════════════════════════ -->
 <div id="toolbar">
-  <span class="toolbar-label">Filter by date:</span>
-  <input type="date" class="date-input" id="filterFrom">
-  <span class="toolbar-label">to</span>
-  <input type="date" class="date-input" id="filterTo">
+  <span class="toolbar-label">Filter:</span>
+  <input type="date" class="date-input" id="filterFrom" title="From date">
+  <span class="toolbar-label">→</span>
+  <input type="date" class="date-input" id="filterTo" title="To date">
   <button id="btnClearFilter">✕ Clear</button>
 </div>
 
-<!-- ── NOTES GRID ─────────────────────────────────────────── -->
+<!-- ══ NOTES ═══════════════════════════════════════════════ -->
 <section id="notesSection">
   <p id="swipeHint"></p>
   <div id="notesGrid"></div>
 </section>
 
-<!-- ── DETAIL MODAL ───────────────────────────────────────── -->
+<!-- ══ DETAIL MODAL ════════════════════════════════════════ -->
 <div class="overlay" id="detailOverlay">
   <div class="modal" id="detailModal">
     <button class="modal-close" id="detailClose">✕</button>
@@ -52,7 +52,7 @@
   </div>
 </div>
 
-<!-- ── NOTE FORM MODAL ────────────────────────────────────── -->
+<!-- ══ NOTE FORM MODAL ═════════════════════════════════════ -->
 <div class="overlay center" id="formOverlay">
   <div class="modal" id="formModal">
     <button class="modal-close" id="formClose">✕</button>
@@ -74,12 +74,12 @@
           <option value="Verdana,sans-serif">Verdana</option>
           <option value="'Comic Sans MS',cursive">Comic Sans</option>
         </select>
-        <input type="number" id="fSize" value="14" min="10" max="28" title="Font size (px)">
+        <input type="number" id="fSize" value="14" min="10" max="28" title="Font size px">
         <select id="fWeight">
           <option value="normal">Normal</option>
           <option value="bold">Bold</option>
           <option value="italic">Italic</option>
-          <option value="bold italic">Bold + Italic</option>
+          <option value="bold italic">Bold+Italic</option>
         </select>
       </div>
       <label style="margin-bottom:6px">Colour Theme</label>
@@ -94,16 +94,27 @@
     <div class="field" id="musicField" style="display:none">
       <label>Background Music URL (.mp3)</label>
       <input type="text" id="fMusic" placeholder="https://…/song.mp3">
-      <small style="color:var(--mut);font-size:11px">Plays automatically when readers open this note.</small>
     </div>
 
-    <button class="btn btn-primary" id="fSave" style="width:100%;justify-content:center;margin-top:8px">
+    <div class="field" id="mediaField" style="display:none">
+      <label>Photos &amp; Videos</label>
+      <div class="exist-media-row" id="existMediaRow"></div>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fFiles" accept="video/*,image/*" multiple>
+        <span class="uz-icon">🎬</span>
+        <div>Drag &amp; drop or <b>tap to choose</b></div>
+        <small>MP4 · MOV · WebM · JPG · PNG · GIF · up to 200 MB</small>
+      </div>
+      <div class="upload-previews" id="uploadPreviews"></div>
+    </div>
+
+    <button class="btn btn-gold" id="fSave" style="width:100%;justify-content:center;margin-top:8px">
       💾 Save Note
     </button>
   </div>
 </div>
 
-<!-- ── ADMIN LOGIN MODAL ───────────────────────────────────── -->
+<!-- ══ LOGIN MODAL ═════════════════════════════════════════ -->
 <div class="overlay center" id="loginOverlay">
   <div class="modal" id="loginModal">
     <button class="modal-close" id="loginClose">✕</button>
@@ -112,16 +123,15 @@
       <label>Password</label>
       <input type="password" id="loginPwd" placeholder="Enter admin password">
     </div>
-    <button class="btn btn-primary" id="loginBtn" style="width:100%;justify-content:center">Login</button>
-    <p style="font-size:11px;color:var(--mut);margin-top:8px;text-align:center">Default: <b>admin123</b></p>
+    <button class="btn btn-gold" id="loginBtn" style="width:100%;justify-content:center">Login</button>
+    <p style="font-size:11px;color:var(--c-txt3);margin-top:10px;text-align:center;font-family:var(--font-sans)">Default: <b style="color:var(--c-gold)">admin123</b></p>
   </div>
 </div>
 
-<!-- ── TOAST ──────────────────────────────────────────────── -->
 <div id="toast"></div>
 <audio id="bgAudio" loop></audio>
 
-<footer>Made with IBM Bob &nbsp;|&nbsp; My Diary v1.0</footer>
+<footer>Made with IBM Bob &nbsp;·&nbsp; My Diary v2.0</footer>
 
 <script src="/js/app.js"></script>
 </body>

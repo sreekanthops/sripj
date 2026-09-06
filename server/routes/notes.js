@@ -7,6 +7,7 @@ const { verifyToken, optionalAuth } = require('../auth');
 function buildNote(row) {
   const reactions = db.prepare('SELECT emoji, count FROM reactions WHERE note_id = ? ORDER BY count DESC').all(row.id);
   const replies   = db.prepare('SELECT * FROM replies WHERE note_id = ? ORDER BY created_at ASC').all(row.id);
+  const media     = db.prepare('SELECT id, filename, mimetype FROM media WHERE note_id = ? ORDER BY sort_order ASC').all(row.id);
   return {
     id:         row.id,
     title:      row.title,
@@ -21,6 +22,7 @@ function buildNote(row) {
     editedAt:   row.edited_at,
     reactions:  Object.fromEntries(reactions.map(r => [r.emoji, r.count])),
     replies:    replies.map(r => ({ id: r.id, name: r.name, text: r.text, createdAt: r.created_at })),
+    media:      media.map(m => ({ id: m.id, url: '/uploads/' + m.filename, mimetype: m.mimetype })),
   };
 }
 
