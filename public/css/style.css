@@ -689,3 +689,22 @@ footer {
   .modal { padding: 20px 16px 36px; }
   .detail-title { font-size: 20px; }
 }
+
+/* ── Admin note action bar — appears at very bottom, admin only ── */
+.admin-note-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 18px; padding: 10px 14px;
+  background: rgba(224,85,85,.06);
+  border: 1px dashed rgba(224,85,85,.25);
+  border-radius: var(--radius-sm);
+}
+.admin-bar-label {
+  font-size: 10px; font-family: var(--font-sans); font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--c-red); opacity: .7; margin-right: 4px;
+}
+
+/* ── Per-reply admin buttons ── */
+.reply-admin-btns {
+  display: flex; gap: 6px; margin-top: 8px;
+}

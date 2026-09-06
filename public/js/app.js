@@ -131,25 +131,32 @@ function renderHeader() {
   if (isAdmin) {
     el.innerHTML = `
       <span class="admin-badge">🔐 Admin</span>
-      <button class="btn btn-gold btn-sm" id="btnNewNote">+ New Note</button>
-      <button class="btn btn-ghost btn-sm" id="btnLogout">Logout</button>`;
-    document.getElementById('btnNewNote').onclick = openNewForm;
-    document.getElementById('btnLogout').onclick  = () => {
-      token = null; isAdmin = false;
-      sessionStorage.removeItem('diary_token');
-      document.body.classList.remove('is-admin');
-      renderHeader(); renderGrid(); toast('Logged out');
-    };
+      <button class="btn btn-gold btn-sm" data-action="new-note">+ New Note</button>
+      <button class="btn btn-ghost btn-sm" data-action="logout">Logout</button>`;
   } else {
     el.innerHTML = `
-      <button class="btn btn-ghost btn-sm" id="btnAdminLogin">🔐 Admin Login</button>`;
-    document.getElementById('btnAdminLogin').onclick = () => {
-      document.getElementById('loginPwd').value = '';
-      openOv('loginOverlay');
-      setTimeout(() => document.getElementById('loginPwd').focus(), 100);
-    };
+      <button class="btn btn-ghost btn-sm" data-action="admin-login">🔐 Admin Login</button>`;
   }
 }
+
+// single delegated listener on the header actions container (survives innerHTML replacement)
+document.getElementById('headerActions').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  if (action === 'admin-login') {
+    document.getElementById('loginPwd').value = '';
+    openOv('loginOverlay');
+    setTimeout(() => document.getElementById('loginPwd').focus(), 100);
+  } else if (action === 'new-note') {
+    openNewForm();
+  } else if (action === 'logout') {
+    token = null; isAdmin = false;
+    sessionStorage.removeItem('diary_token');
+    document.body.classList.remove('is-admin');
+    renderHeader(); renderGrid(); toast('Logged out');
+  }
+});
 
 // ── SWATCHES ───────────────────────────────────────────────────────────────
 function buildSwatches(selIdx = 0) {
@@ -611,15 +618,7 @@ function renderGrid() {
       card.dataset.id = n.id;
       card.style.setProperty('--card-accent', p.accent);
 
-      // admin btns
-      if (isAdmin) {
-        const adm = document.createElement('div');
-        adm.className = 'card-admin-btns';
-        adm.innerHTML = `
-          <button class="btn btn-gold btn-xs btn-cedit" data-id="${n.id}">✏️</button>
-          <button class="btn btn-red  btn-xs btn-cdel"  data-id="${n.id}">🗑</button>`;
-        card.appendChild(adm);
-      }
+      // no edit/del on cards — admin controls are inside the note detail only
 
       // media slider (card size)
       if (n.media && n.media.length) {
@@ -666,19 +665,8 @@ function renderGrid() {
     // events
     grid.querySelectorAll('.note-card').forEach(card => {
       card.onclick = e => {
-        if (e.target.closest('.card-admin-btns') || e.target.closest('.slider-root')) return;
+        if (e.target.closest('.slider-root')) return;
         openDetail(card.dataset.id);
-      };
-    });
-    grid.querySelectorAll('.btn-cedit').forEach(b => {
-      b.onclick = e => { e.stopPropagation(); openEditForm(notes.find(n=>n.id===b.dataset.id)); };
-    });
-    grid.querySelectorAll('.btn-cdel').forEach(b => {
-      b.onclick = async e => {
-        e.stopPropagation();
-        if (!confirm('Delete this note?')) return;
-        try { await api('DELETE', `/notes/${b.dataset.id}`); toast('Deleted 🗑'); await loadAndRender(); }
-        catch (err) { toast('Error: ' + err.message); }
       };
     });
   });
@@ -718,13 +706,17 @@ function renderDetail(note) {
     `<span style="color:var(--c-txt3);font-size:12px;font-family:var(--font-sans)">Be the first to react!</span>`;
 
   const repliesHtml = (note.replies||[]).map(r => `
-    <div class="reply-item">
+    <div class="reply-item" data-rid="${r.id}">
       <div class="reply-author">
         <span>👤 ${esc(r.name||'Anonymous')}</span>
         <small>${fmtDate(r.createdAt)} ${fmtTime(r.createdAt)}</small>
       </div>
-      <div class="reply-text">${esc(r.text)}</div>
-      <button class="reply-del-btn btn-rdel" data-nid="${note.id}" data-rid="${r.id}">🗑</button>
+      <div class="reply-text" id="rtxt-${r.id}">${esc(r.text)}</div>
+      ${isAdmin ? `
+      <div class="reply-admin-btns">
+        <button class="btn btn-dark btn-xs btn-redit" data-nid="${note.id}" data-rid="${r.id}">✏️ Edit</button>
+        <button class="btn btn-red  btn-xs btn-rdel"  data-nid="${note.id}" data-rid="${r.id}">🗑 Del</button>
+      </div>` : ''}
     </div>`).join('') ||
     `<p style="color:var(--c-txt3);font-size:12px;font-style:italic;font-family:var(--font-sans)">No replies yet.</p>`;
 
@@ -733,10 +725,6 @@ function renderDetail(note) {
   cont.innerHTML = `
     <div class="detail-header">
       <h2 class="detail-title" style="font-family:${esc(note.font)};color:${p.accent}">${esc(note.title)}</h2>
-      <div class="detail-acts">
-        ${isAdmin ? `<button class="btn btn-gold btn-sm btn-dedit" data-id="${note.id}">✏️ Edit</button>` : ''}
-        ${isAdmin ? `<button class="btn btn-red  btn-sm btn-ddel"  data-id="${note.id}">🗑</button>` : ''}
-      </div>
     </div>
     <div class="detail-meta">
       <span>📅 ${fmtDate(note.createdAt)} · ${fmtTime(note.createdAt)}</span>
@@ -762,7 +750,13 @@ function renderDetail(note) {
     <div class="swipe-nav">
       ${prevId ? `<button class="btn btn-dark btn-sm btn-prev" data-id="${prevId}">← Prev</button>` : '<span></span>'}
       ${nextId ? `<button class="btn btn-dark btn-sm btn-next" data-id="${nextId}">Next →</button>` : '<span></span>'}
-    </div>`;
+    </div>
+    ${isAdmin ? `
+    <div class="admin-note-bar">
+      <span class="admin-bar-label">Admin</span>
+      <button class="btn btn-ghost btn-sm btn-dedit" data-id="${note.id}">✏️ Edit Post</button>
+      <button class="btn btn-red   btn-sm btn-ddel"  data-id="${note.id}">🗑 Delete Post</button>
+    </div>` : ''}`;
 
   // inject media slider (detail size)
   if (note.media?.length) {
@@ -812,12 +806,57 @@ function renderDetail(note) {
 
   cont.querySelectorAll('.btn-rdel').forEach(btn => {
     btn.onclick = async () => {
+      if (!confirm('Delete this reply?')) return;
       try {
         await api('DELETE', `/notes/${btn.dataset.nid}/replies/${btn.dataset.rid}`);
         const up = await api('GET', `/notes/${btn.dataset.nid}`);
         const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
         renderDetail(up); renderGrid(); toast('Reply deleted');
       } catch (err) { toast('Error: ' + err.message); }
+    };
+  });
+
+  cont.querySelectorAll('.btn-redit').forEach(btn => {
+    btn.onclick = () => {
+      const rid  = btn.dataset.rid;
+      const nid  = btn.dataset.nid;
+      const item = cont.querySelector(`.reply-item[data-rid="${rid}"]`);
+      if (!item) return;
+      const txtEl = item.querySelector(`#rtxt-${rid}`);
+      const cur   = txtEl.textContent;
+      // swap text div for textarea
+      txtEl.style.display = 'none';
+      const ta = document.createElement('textarea');
+      ta.className = 'reply-edit-ta';
+      ta.value = cur;
+      ta.style.cssText = 'width:100%;padding:7px 10px;border:1px solid var(--c-border);border-radius:8px;background:var(--c-bg3);color:var(--c-txt);font-family:var(--font-serif);font-size:13px;resize:vertical;min-height:60px;margin-top:6px;';
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'btn btn-gold btn-xs';
+      saveBtn.textContent = 'Save';
+      saveBtn.style.marginTop = '6px';
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'btn btn-dark btn-xs';
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.style.marginTop = '6px';
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:6px;margin-top:4px;';
+      row.append(saveBtn, cancelBtn);
+      item.append(ta, row);
+      ta.focus();
+
+      cancelBtn.onclick = () => {
+        ta.remove(); row.remove(); txtEl.style.display = '';
+      };
+      saveBtn.onclick = async () => {
+        const newText = ta.value.trim();
+        if (!newText) { toast('Reply cannot be empty'); return; }
+        try {
+          await api('PUT', `/notes/${nid}/replies/${rid}`, { text: newText });
+          const up = await api('GET', `/notes/${nid}`);
+          const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
+          renderDetail(up); renderGrid(); toast('Reply updated ✅');
+        } catch (err) { toast('Error: ' + err.message); }
+      };
     };
   });
 

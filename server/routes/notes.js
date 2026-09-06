@@ -120,4 +120,14 @@ router.delete('/:noteId/replies/:replyId', verifyToken, (req, res) => {
   res.json({ success: true });
 });
 
+// PUT /api/notes/:noteId/replies/:replyId  (admin only)
+router.put('/:noteId/replies/:replyId', verifyToken, (req, res) => {
+  const { text } = req.body;
+  if (!text?.trim()) return res.status(400).json({ error: 'text required' });
+  const row = db.prepare('SELECT id FROM replies WHERE id = ? AND note_id = ?').get(req.params.replyId, req.params.noteId);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  db.prepare('UPDATE replies SET text = ? WHERE id = ?').run(text.trim(), req.params.replyId);
+  res.json({ success: true });
+});
+
 module.exports = router;
