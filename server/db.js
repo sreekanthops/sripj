@@ -67,6 +67,29 @@ function hasColumn(table, col) {
   return db.prepare(`PRAGMA table_info(${table})`).all().some(r => r.name === col);
 }
 
+function hasTable(name) {
+  return !!db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`).get(name);
+}
+
+// users table may be missing on very old DBs
+if (!hasTable('users')) {
+  db.exec(`
+    CREATE TABLE users (
+      id            TEXT PRIMARY KEY,
+      username      TEXT NOT NULL UNIQUE,
+      display_name  TEXT NOT NULL DEFAULT '',
+      bio           TEXT NOT NULL DEFAULT '',
+      password_hash TEXT NOT NULL,
+      created_at    TEXT NOT NULL
+    )
+  `);
+}
+
+// users columns
+if (!hasColumn('users', 'display_name'))  db.exec(`ALTER TABLE users ADD COLUMN display_name  TEXT NOT NULL DEFAULT ''`);
+if (!hasColumn('users', 'bio'))           db.exec(`ALTER TABLE users ADD COLUMN bio           TEXT NOT NULL DEFAULT ''`);
+if (!hasColumn('users', 'password_hash')) db.exec(`ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''`);
+
 // notes.user_id
 if (!hasColumn('notes', 'user_id')) {
   db.exec(`ALTER TABLE notes ADD COLUMN user_id TEXT NOT NULL DEFAULT ''`);
