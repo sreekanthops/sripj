@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-  <title>My Diary</title>
+  <title>Diary</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
@@ -12,63 +12,113 @@
 </head>
 <body>
 
-<!-- ══ SIDEBAR ══════════════════════════════════════════════ -->
-<aside id="sidebar">
-  <div class="sidebar-logo">
-    <span class="logo-mark">✦</span>
-    <div>
-      <div class="logo-name">My Diary</div>
-      <div class="logo-tagline">Personal Notes</div>
+<!-- ══ AUTH SCREEN ══════════════════════════════════════════════ -->
+<div id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="logo-mark" style="font-size:32px">✦</span>
+      <div class="logo-name" style="font-size:26px">Diary</div>
+      <div class="logo-tagline">Your private space to write</div>
     </div>
-  </div>
 
-  <nav class="sidebar-nav">
-    <div id="headerActions"></div>
-  </nav>
-
-  <div id="musicBar">
-    <div class="music-indicator" id="musicIndicator">
-      <span class="music-dot"></span>
-      <span class="music-dot"></span>
-      <span class="music-dot"></span>
+    <!-- tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Sign In</button>
+      <button class="auth-tab" data-tab="signup">Create Account</button>
     </div>
-    <span class="music-title" id="musicTitle">No music</span>
-    <div class="music-controls">
-      <button id="btnMPP" title="Play/Pause">▶</button>
-      <button id="btnMute" title="Mute">♪</button>
-      <input type="range" id="musicVol" min="0" max="1" step="0.05" value="0.6">
-    </div>
-  </div>
-</aside>
 
-<!-- ══ MAIN CONTENT ══════════════════════════════════════════ -->
-<main id="mainContent">
-
-  <!-- Top bar -->
-  <div id="topbar">
-    <div class="topbar-inner">
-      <div class="page-title">
-        <span class="page-title-text">Journal</span>
-        <span id="noteCount" class="note-count"></span>
+    <!-- login -->
+    <div class="auth-panel" id="panelLogin">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="loginUser" placeholder="your username" autocomplete="username">
       </div>
-      <div class="topbar-right">
-        <div class="filter-group">
-          <input type="date" class="date-input" id="filterFrom" title="From date">
-          <span class="filter-sep">—</span>
-          <input type="date" class="date-input" id="filterTo" title="To date">
-          <button id="btnClearFilter" class="clear-btn">Clear</button>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="loginPwd" placeholder="password" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary btn-lg" id="loginBtn" style="width:100%;justify-content:center">Sign In</button>
+      <p id="loginErr" class="auth-err"></p>
+    </div>
+
+    <!-- signup -->
+    <div class="auth-panel hidden" id="panelSignup">
+      <div class="field">
+        <label>Username <span class="auth-hint">(letters, numbers, _ — min 3)</span></label>
+        <input type="text" id="signupUser" placeholder="choose a username" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Display Name <span class="auth-hint">(shown to others)</span></label>
+        <input type="text" id="signupName" placeholder="Your Name">
+      </div>
+      <div class="field">
+        <label>Password <span class="auth-hint">(min 4 characters)</span></label>
+        <input type="password" id="signupPwd" placeholder="choose a password" autocomplete="new-password">
+      </div>
+      <button class="btn btn-primary btn-lg" id="signupBtn" style="width:100%;justify-content:center">Create Account</button>
+      <p id="signupErr" class="auth-err"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DIARY APP ════════════════════════════════════════════════ -->
+<div id="appScreen" class="hidden">
+
+  <!-- ── SIDEBAR ── -->
+  <aside id="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-mark">✦</span>
+      <div>
+        <div class="logo-name" id="sidebarTitle">My Diary</div>
+        <div class="logo-tagline" id="sidebarSub">Personal Notes</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div id="headerActions"></div>
+    </nav>
+
+    <div id="musicBar">
+      <div class="music-indicator" id="musicIndicator">
+        <span class="music-dot"></span>
+        <span class="music-dot"></span>
+        <span class="music-dot"></span>
+      </div>
+      <span class="music-title" id="musicTitle">No music</span>
+      <div class="music-controls">
+        <button id="btnMPP" title="Play/Pause">▶</button>
+        <button id="btnMute" title="Mute">♪</button>
+        <input type="range" id="musicVol" min="0" max="1" step="0.05" value="0.6">
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN CONTENT ── -->
+  <main id="mainContent">
+    <div id="topbar">
+      <div class="topbar-inner">
+        <div class="page-title">
+          <span class="page-title-text" id="pageTitle">Journal</span>
+          <span id="noteCount" class="note-count"></span>
+        </div>
+        <div class="topbar-right">
+          <div class="filter-group">
+            <input type="date" class="date-input" id="filterFrom" title="From date">
+            <span class="filter-sep">—</span>
+            <input type="date" class="date-input" id="filterTo" title="To date">
+            <button id="btnClearFilter" class="clear-btn">Clear</button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Notes -->
-  <section id="notesSection">
-    <p id="swipeHint"></p>
-    <div id="notesGrid"></div>
-  </section>
+    <section id="notesSection">
+      <p id="swipeHint"></p>
+      <div id="notesGrid"></div>
+    </section>
+  </main>
 
-</main>
+</div>
 
 <!-- ══ DETAIL MODAL ════════════════════════════════════════ -->
 <div class="overlay" id="detailOverlay">
@@ -121,12 +171,12 @@
       <textarea id="fBody" class="lined" placeholder="Write your thoughts here…"></textarea>
     </div>
 
-    <div class="field" id="musicField" style="display:none">
+    <div class="field" id="musicField">
       <label>Background Music URL (.mp3)</label>
       <input type="text" id="fMusic" placeholder="https://…/song.mp3">
     </div>
 
-    <div class="field" id="mediaField" style="display:none">
+    <div class="field" id="mediaField">
       <label>Photos &amp; Videos</label>
       <div class="exist-media-row" id="existMediaRow"></div>
       <div class="upload-zone" id="uploadZone">
@@ -144,26 +194,28 @@
   </div>
 </div>
 
-<!-- ══ LOGIN MODAL ═════════════════════════════════════════ -->
-<div class="overlay center" id="loginOverlay">
-  <div class="modal" id="loginModal">
-    <button class="modal-close" id="loginClose">
+<!-- ══ PROFILE MODAL ════════════════════════════════════════ -->
+<div class="overlay center" id="profileOverlay">
+  <div class="modal" id="profileModal">
+    <button class="modal-close" id="profileClose">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
     </button>
-    <div class="modal-title">Sign In</div>
+    <div class="modal-title">Edit Profile</div>
     <div class="field">
-      <label>Password</label>
-      <input type="password" id="loginPwd" placeholder="Enter admin password">
+      <label>Display Name</label>
+      <input type="text" id="profName" placeholder="Your Name">
     </div>
-    <button class="btn btn-primary" id="loginBtn" style="width:100%;justify-content:center">Continue</button>
-    <p class="login-hint">Default: <b>admin123</b></p>
+    <div class="field">
+      <label>Bio <span class="auth-hint">(optional, shown on your public page)</span></label>
+      <textarea id="profBio" placeholder="Tell the world a little about yourself…" style="min-height:80px"></textarea>
+    </div>
+    <button class="btn btn-primary" id="profSave" style="width:100%;justify-content:center">Save</button>
   </div>
 </div>
 
 <div id="toast"></div>
 <audio id="bgAudio" loop></audio>
-
-<footer>My Diary v3.0</footer>
+<footer>My Diary v4.0</footer>
 
 <script src="/js/app.js"></script>
 </body>
