@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Eye, Music, Video, MessageCircle } from "lucide-react";
+import { Bookmark, Music, MessageCircle, Camera } from "lucide-react";
 import type { Note } from "@/lib/api";
-import { PALETTE, fmtDate } from "@/lib/api";
+import { fmtDate } from "@/lib/api";
 
 interface Props {
   note: Note;
+  index: number;
+  total: number;
   isOwner: boolean;
   onClick: () => void;
   onReact?: (noteId: string, emoji: string) => void;
@@ -15,9 +17,18 @@ interface Props {
   activeTag?: string | null;
 }
 
-export default function NoteCard({ note, isOwner, onClick, onReact, onTagClick, activeTag }: Props) {
-  const p = PALETTE[note.colorIdx || 0];
-  const reactions = Object.entries(note.reactions||{}).filter(([,v])=>v>0).slice(0,4);
+export default function NoteCard({ note, index, total, isOwner, onClick, onReact, onTagClick, activeTag }: Props) {
+  // Determine a consistent "mood" label from the note — fall back to "Memory"
+  const moodLabel = note.tags?.[0]
+    ? note.tags[0].charAt(0).toUpperCase() + note.tags[0].slice(1)
+    : note.media?.length > 0 ? "Memory" : "Read";
+
+  const moodIcon = note.media?.length > 0
+    ? <Camera size={12}/>
+    : <Bookmark size={12}/>;
+
+  // Format index as "01 / 12"
+  const numStr = `${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`;
 
   return (
     <motion.article
@@ -26,13 +37,9 @@ export default function NoteCard({ note, isOwner, onClick, onReact, onTagClick, 
       animate={{ opacity:1, y:0 }}
       exit={{ opacity:0, scale:0.97 }}
       transition={{ duration:0.3 }}
-      whileHover={{ y:-3, boxShadow:"0 16px 40px rgba(0,0,0,.1)" }}
       onClick={onClick}
       className="note-card"
     >
-      {/* Accent stripe */}
-      <div className="card-accent-stripe" style={{ background: p.accent }} />
-
       {/* Media */}
       {note.media?.length > 0 && (
         <CardMediaSlider media={note.media} />
@@ -41,72 +48,24 @@ export default function NoteCard({ note, isOwner, onClick, onReact, onTagClick, 
       {/* Body */}
       <div className="card-body">
         <div className="card-meta">
-          <span className="card-date"><Calendar size={10}/>{fmtDate(note.createdAt)}</span>
-          {isOwner && <span className="card-views"><Eye size={10}/>{note.views}</span>}
+          <span className="card-date">{fmtDate(note.createdAt)}</span>
+          <span className="card-num">{numStr}</span>
         </div>
-        <h3 className="card-title" style={{ color: p.accent, fontFamily: note.font }}>{note.title}</h3>
+
+        {/* Title in handwriting script */}
+        <h3
+          className="card-title"
+          style={{ fontFamily: "var(--font-script)" }}
+        >
+          {note.title}
+        </h3>
+
+        {/* Body excerpt — only shown when no media */}
         {!note.media?.length && note.body && (
-          <p className="card-excerpt" style={{ fontFamily:note.font, fontSize:Math.min(note.fontSize||14,13) }}>
+          <p className="card-excerpt">
             {note.body}
           </p>
         )}
-      </div>
-
-      {/* Quick Emojis Bar on Card */}
-      <div className="card-quick-react" onClick={e => e.stopPropagation()} style={{ display:"flex", alignItems:"center", gap:4, padding:"6px 20px 0" }}>
-        {["❤️", "😂", "🔥", "😍", "👏"].map(e => {
-          const isUserReacted = note.userReactions?.includes(e);
-          return (
-            <motion.button key={e} whileTap={{ scale:0.8 }}
-              onClick={(ev) => {
-                ev.stopPropagation();
-                onReact?.(note.id, e);
-              }}
-              style={{
-                background: isUserReacted ? "var(--c-accent-light)" : "none",
-                border: isUserReacted ? "1px solid var(--c-accent-ring)" : "1px solid transparent",
-                cursor: "pointer",
-                fontSize: 14,
-                padding: "2px 5px",
-                borderRadius: 6,
-                transform: isUserReacted ? "scale(1.15)" : "none",
-              }}
-              title={isUserReacted ? `Remove ${e}` : `React ${e}`}>
-              {e}
-            </motion.button>
-          );
-        })}
-      </div>
-
-      {/* Footer */}
-      <div className="card-footer">
-        <div className="card-reactions">
-          {reactions.length > 0
-            ? reactions.map(([emoji,count]) => {
-                const isUserReacted = note.userReactions?.includes(emoji);
-                return (
-                  <span
-                    key={emoji}
-                    className="react-chip"
-                    onClick={(e) => { e.stopPropagation(); onReact?.(note.id, emoji); }}
-                    style={{
-                      background: isUserReacted ? "var(--c-accent-light)" : "var(--c-paper)",
-                      borderColor: isUserReacted ? "var(--c-accent-ring)" : "var(--c-border)",
-                      fontWeight: isUserReacted ? "700" : "400",
-                    }}
-                    title={isUserReacted ? `Click to remove ${emoji}` : `Click to react ${emoji}`}
-                  >
-                    {emoji} {count}
-                  </span>
-                );
-              })
-            : <span style={{ fontSize:11, color:"var(--c-ink4)" }}>No reactions</span>}
-        </div>
-        <div className="card-chips">
-          {note.musicUrl && <Chip icon={<Music size={9}/>} label="Music" accent={p.accent}/>}
-          {note.media?.length > 0 && <Chip icon={<Video size={9}/>} label={`${note.media.length}`} accent={p.accent}/>}
-          {note.replies?.length > 0 && <Chip icon={<MessageCircle size={9}/>} label={`${note.replies.length}`} accent={p.accent}/>}
-        </div>
       </div>
 
       {/* Tags */}
@@ -123,6 +82,43 @@ export default function NoteCard({ note, isOwner, onClick, onReact, onTagClick, 
           ))}
         </div>
       )}
+
+      {/* Footer — mood label + bookmark */}
+      <div className="card-footer" onClick={e => e.stopPropagation()}>
+        <div className="card-mood-label">
+          {moodIcon}
+          <span>{moodLabel}</span>
+          {/* chips for media/music/replies */}
+          {note.musicUrl && <><Music size={10} style={{marginLeft:6}}/> Music</>}
+          {note.replies?.length > 0 && <><MessageCircle size={10} style={{marginLeft:6}}/>{note.replies.length}</>}
+        </div>
+
+        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          {/* Quick emoji reactions */}
+          <div style={{ display:"flex", gap:2 }}>
+            {["❤️","🔥","😍"].map(e => {
+              const isReacted = note.userReactions?.includes(e);
+              return (
+                <motion.button key={e} whileTap={{ scale:0.8 }}
+                  onClick={(ev) => { ev.stopPropagation(); onReact?.(note.id, e); }}
+                  style={{
+                    background: isReacted ? "var(--c-accent-light)" : "none",
+                    border: isReacted ? "1px solid var(--c-accent-ring)" : "1px solid transparent",
+                    cursor: "pointer", fontSize:13,
+                    padding:"1px 4px", borderRadius:5,
+                  }}>
+                  {e}
+                </motion.button>
+              );
+            })}
+          </div>
+
+          {/* Bookmark icon */}
+          <button className="card-bookmark-btn" title="Bookmark">
+            <Bookmark size={14} strokeWidth={1.5}/>
+          </button>
+        </div>
+      </div>
     </motion.article>
   );
 }
@@ -143,37 +139,17 @@ function CardMediaSlider({ media }: { media: Note["media"] }) {
           <button
             type="button"
             className="sl-arrow sl-prev"
-            style={{ width: 30, height: 30, fontSize: 16, left: 8, zIndex: 30 }}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setCur((prev) => (prev > 0 ? prev - 1 : media.length - 1));
-            }}
-          >
-            ‹
-          </button>
+            style={{ width:30, height:30, fontSize:16, left:8, zIndex:30 }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCur(prev => prev > 0 ? prev - 1 : media.length - 1); }}
+          >‹</button>
           <button
             type="button"
             className="sl-arrow sl-next"
-            style={{ width: 30, height: 30, fontSize: 16, right: 8, zIndex: 30 }}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setCur((prev) => (prev < media.length - 1 ? prev + 1 : 0));
-            }}
-          >
-            ›
-          </button>
+            style={{ width:30, height:30, fontSize:16, right:8, zIndex:30 }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCur(prev => prev < media.length - 1 ? prev + 1 : 0); }}
+          >›</button>
         </>
       )}
     </div>
-  );
-}
-
-function Chip({ icon, label, accent }: { icon:React.ReactNode; label:string; accent:string }) {
-  return (
-    <span className="card-chip" style={{ color:accent, borderColor:`${accent}44`, background:`${accent}11`, border:`1px solid ${accent}44` }}>
-      {icon} {label}
-    </span>
   );
 }
