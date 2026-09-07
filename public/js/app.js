@@ -497,8 +497,16 @@ function buildSlider(items, size, noteId) {
       nextBtn.disabled = cur === items.length-1;
     }
 
-    prevBtn.onclick = e => { e.stopPropagation(); goTo(cur - 1); };
-    nextBtn.onclick = e => { e.stopPropagation(); goTo(cur + 1); };
+    prevBtn.onclick = e => {
+      e.preventDefault();
+      e.stopPropagation();
+      goTo(cur - 1);
+    };
+    nextBtn.onclick = e => {
+      e.preventDefault();
+      e.stopPropagation();
+      goTo(cur + 1);
+    };
     root.appendChild(prevBtn); root.appendChild(nextBtn);
 
     // touch swipe
@@ -607,13 +615,22 @@ function renderGrid() {
       card.appendChild(body);
 
       const reacts = Object.entries(n.reactions||{}).filter(([,v])=>v>0)
-        .map(([e,c]) => `<span class="react-chip">${e} ${c}</span>`).join('') ||
+        .map(([e,c]) => `<span class="react-chip btn-card-react" data-nid="${n.id}" data-em="${e}">${e} ${c}</span>`).join('') ||
         `<span style="font-size:11px;color:var(--ink4);font-family:var(--sans)">No reactions</span>`;
       const chips = [
         n.musicUrl ? `<span class="chip">♫ Music</span>` : '',
         n.media?.length ? `<span class="chip">🎬 ${n.media.length}</span>` : '',
         (n.replies||[]).length ? `<span class="chip">💬 ${n.replies.length}</span>` : '',
       ].filter(Boolean).join('');
+
+      // quick emojis bar
+      const quickBar = document.createElement('div');
+      quickBar.className = 'card-quick-bar';
+      quickBar.style.cssText = 'display:flex;align-items:center;gap:4px;padding:6px 20px 0;';
+      quickBar.innerHTML = ['❤️', '😂', '🔥', '😍', '👏']
+        .map(e => `<button class="btn-card-react" data-nid="${n.id}" data-em="${e}" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;border-radius:4px" title="React ${e}">${e}</button>`)
+        .join('');
+      card.appendChild(quickBar);
 
       const foot = document.createElement('div');
       foot.className = 'card-footer';
@@ -626,8 +643,23 @@ function renderGrid() {
 
     grid.querySelectorAll('.note-card').forEach(card => {
       card.onclick = e => {
-        if (e.target.closest('.slider-root')) return;
+        if (e.target.closest('.slider-root') || e.target.closest('.btn-card-react')) return;
         openDetail(card.dataset.id);
+      };
+    });
+
+    grid.querySelectorAll('.btn-card-react').forEach(btn => {
+      btn.onclick = async e => {
+        e.stopPropagation();
+        try {
+          const reactions = await api('POST', `/notes/${btn.dataset.nid}/react`, { emoji: btn.dataset.em });
+          const n = notes.find(x => x.id === btn.dataset.nid);
+          if (n) {
+            n.reactions = reactions;
+            renderGrid();
+          }
+          toast('Reacted ' + btn.dataset.em);
+        } catch (err) { toast('Error: ' + err.message); }
       };
     });
   });
@@ -668,6 +700,11 @@ function renderDetail(note) {
   const repliesHtml = (note.replies||[]).map(r => {
     // can delete own reply (if logged in as author) OR owner can delete any reply
     const canEdit = currentUser && (r.userId === currentUser.userId || isOwner);
+    const replyReacts = Object.entries(r.reactions||{}).filter(([,v])=>v>0)
+      .map(([e,c]) => `<span class="react-chip btn-reply-react" data-nid="${note.id}" data-rid="${r.id}" data-em="${e}" style="font-size:11px;padding:2px 7px">${e} ${c}</span>`).join('');
+    const quickReplyReacts = ['❤️','😂','🔥','😍','👏']
+      .map(e => `<button class="btn-reply-react" data-nid="${note.id}" data-rid="${r.id}" data-em="${e}" style="background:none;border:none;cursor:pointer;font-size:13px;padding:1px 3px;border-radius:4px" title="React ${e}">${e}</button>`).join('');
+
     return `
     <div class="reply-item" data-rid="${r.id}">
       <div class="reply-author">
@@ -675,8 +712,12 @@ function renderDetail(note) {
         <small>${fmtDate(r.createdAt)} ${fmtTime(r.createdAt)}</small>
       </div>
       <div class="reply-text" id="rtxt-${r.id}">${esc(r.text)}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:6px;border-top:1px solid var(--border)">
+        <div style="display:flex;flex-wrap:wrap;gap:4px">${replyReacts}</div>
+        <div style="display:flex;gap:2px">${quickReplyReacts}</div>
+      </div>
       ${canEdit ? `
-      <div class="reply-admin-btns">
+      <div class="reply-admin-btns" style="margin-top:6px">
         <button class="btn btn-dark btn-xs btn-redit" data-nid="${note.id}" data-rid="${r.id}">✏️ Edit</button>
         <button class="btn btn-red  btn-xs btn-rdel"  data-nid="${note.id}" data-rid="${r.id}">🗑 Del</button>
       </div>` : ''}
@@ -763,6 +804,17 @@ function renderDetail(note) {
         const n = notes.find(x => x.id === btn.dataset.id);
         if (n) { n.reactions = reactions; renderGrid(); }
         toast('Reacted ' + btn.dataset.em);
+      } catch (err) { toast('Error: ' + err.message); }
+    };
+  });
+
+  cont.querySelectorAll('.btn-reply-react').forEach(btn => {
+    btn.onclick = async () => {
+      try {
+        const reactions = await api('POST', `/notes/${btn.dataset.nid}/replies/${btn.dataset.rid}/react`, { emoji: btn.dataset.em });
+        const up = await api('GET', `/notes/${btn.dataset.nid}`);
+        const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
+        renderDetail(up); renderGrid(); toast('Reacted ' + btn.dataset.em);
       } catch (err) { toast('Error: ' + err.message); }
     };
   });

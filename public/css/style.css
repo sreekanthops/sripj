@@ -494,17 +494,20 @@ body {
 /* Arrows */
 .sl-arrow {
   position: absolute; top: 50%; transform: translateY(-50%);
-  width: 32px; height: 32px; border-radius: 50%; border: none;
-  background: rgba(255,255,255,.12); backdrop-filter: blur(6px);
-  color: #fff; font-size: 16px; cursor: pointer; z-index: 9;
+  width: 34px; height: 34px; border-radius: 50%; border: none;
+  background: rgba(0,0,0,.45); backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #fff; font-size: 20px; font-weight: bold; cursor: pointer; z-index: 20;
   display: flex; align-items: center; justify-content: center;
-  transition: background .15s, transform .2s var(--spring);
+  transition: background .15s, transform .2s var(--spring), opacity .15s;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  pointer-events: auto;
 }
-.sl-arrow:hover { background: rgba(255,255,255,.25); }
+.sl-arrow:hover { background: rgba(0,0,0,.7); }
 .sl-arrow:active { transform: translateY(-50%) scale(.88); }
-.sl-arrow.prev { left: 10px; }
-.sl-arrow.next { right: 10px; }
-.sl-arrow:disabled { opacity: .2; pointer-events: none; }
+.sl-arrow.prev, .sl-arrow.sl-prev { left: 10px; }
+.sl-arrow.next, .sl-arrow.sl-next { right: 10px; }
+.sl-arrow:disabled { opacity: 0; pointer-events: none; }
 
 /* Dots */
 .sl-dots {

@@ -124,7 +124,16 @@ function DiaryPage() {
             <div className="notes-grid">
               <AnimatePresence>
                 {notes.map(n => (
-                  <NoteCard key={n.id} note={n} isOwner={isOwner} onClick={() => setOpenNoteId(n.id)}/>
+                  <NoteCard
+                    key={n.id}
+                    note={n}
+                    isOwner={isOwner}
+                    onClick={() => setOpenNoteId(n.id)}
+                    onReact={async (noteId, emoji) => {
+                      const reactions = await api.post<Record<string, number>>(`/notes/${noteId}/react`, { emoji });
+                      setNotes(prev => prev.map(x => x.id === noteId ? { ...x, reactions } : x));
+                    }}
+                  />
                 ))}
               </AnimatePresence>
             </div>

@@ -8,6 +8,19 @@ function buildNote(row) {
   const reactions = db.prepare('SELECT emoji, count FROM reactions WHERE note_id = ? ORDER BY count DESC').all(row.id);
   const replies   = db.prepare('SELECT * FROM replies WHERE note_id = ? ORDER BY created_at ASC').all(row.id);
   const media     = db.prepare('SELECT id, filename, mimetype FROM media WHERE note_id = ? ORDER BY sort_order ASC').all(row.id);
+  
+  const repliesWithReactions = replies.map(r => {
+    const rReacts = db.prepare('SELECT emoji, count FROM reply_reactions WHERE reply_id = ? ORDER BY count DESC').all(r.id);
+    return {
+      id: r.id,
+      userId: r.user_id,
+      name: r.name,
+      text: r.text,
+      createdAt: r.created_at,
+      reactions: Object.fromEntries(rReacts.map(x => [x.emoji, x.count])),
+    };
+  });
+
   return {
     id:         row.id,
     userId:     row.user_id,
@@ -22,7 +35,7 @@ function buildNote(row) {
     createdAt:  row.created_at,
     editedAt:   row.edited_at,
     reactions:  Object.fromEntries(reactions.map(r => [r.emoji, r.count])),
-    replies:    replies.map(r => ({ id: r.id, userId: r.user_id, name: r.name, text: r.text, createdAt: r.created_at })),
+    replies:    repliesWithReactions,
     media:      media.map(m => ({ id: m.id, url: '/uploads/' + m.filename, mimetype: m.mimetype })),
   };
 }
@@ -159,6 +172,20 @@ router.put('/:noteId/replies/:replyId', verifyToken, (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   db.prepare('UPDATE replies SET text = ? WHERE id = ?').run(text.trim(), req.params.replyId);
   res.json({ success: true });
+});
+
+// POST /api/notes/:noteId/replies/:replyId/react  (anyone)
+router.post('/:noteId/replies/:replyId/react', optionalAuth, (req, res) => {
+  const { emoji } = req.body;
+  if (!emoji) return res.status(400).json({ error: 'emoji required' });
+  const reply = db.prepare('SELECT id FROM replies WHERE id = ? AND note_id = ?').get(req.params.replyId, req.params.noteId);
+  if (!reply) return res.status(404).json({ error: 'Reply not found' });
+  db.prepare(`
+    INSERT INTO reply_reactions (id, reply_id, emoji, count) VALUES (?, ?, ?, 1)
+    ON CONFLICT(reply_id, emoji) DO UPDATE SET count = count + 1
+  `).run(uuidv4(), req.params.replyId, emoji);
+  const reactions = db.prepare('SELECT emoji, count FROM reply_reactions WHERE reply_id = ? ORDER BY count DESC').all(req.params.replyId);
+  res.json(Object.fromEntries(reactions.map(r => [r.emoji, r.count])));
 });
 
 module.exports = router;

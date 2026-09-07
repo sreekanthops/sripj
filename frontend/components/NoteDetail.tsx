@@ -152,6 +152,7 @@ export default function NoteDetail({ noteId, notes, isOwner, currentUser, onClos
             {note.replies?.length
               ? note.replies.map(r => {
                   const canDel = currentUser && (r.userId===currentUser.userId || isOwner);
+                  const replyReacts = Object.entries(r.reactions||{}).filter(([,v])=>v>0);
                   return (
                     <div key={r.id} className="reply-item">
                       <div className="reply-author">
@@ -164,6 +165,33 @@ export default function NoteDetail({ noteId, notes, isOwner, currentUser, onClos
                         </div>
                       </div>
                       <p className="reply-text">{r.text}</p>
+                      
+                      {/* Reply Reactions */}
+                      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:8, paddingTop:6, borderTop:"1px solid var(--c-border)" }}>
+                        <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+                          {replyReacts.length > 0 && replyReacts.map(([e,c]) => (
+                            <span key={e} className="react-chip" style={{ fontSize:11, padding:"2px 7px" }}>{e} {c}</span>
+                          ))}
+                        </div>
+                        <div style={{ display:"flex", gap:3 }}>
+                          {EMOJIS.slice(0, 5).map(e => (
+                            <motion.button key={e} whileTap={{ scale:0.8 }}
+                              onClick={async () => {
+                                const reacts = await api.post<Record<string,number>>(`/notes/${note.id}/replies/${r.id}/react`, { emoji: e });
+                                const updated = {
+                                  ...note,
+                                  replies: note.replies.map(x => x.id === r.id ? { ...x, reactions: reacts } : x),
+                                };
+                                setNote(updated);
+                                onNotesUpdate(notes.map(x => x.id===updated.id ? updated : x));
+                              }}
+                              style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, padding:"2px 4px", borderRadius:4 }}
+                              title={`React ${e}`}>
+                              {e}
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   );
                 })

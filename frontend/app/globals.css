@@ -361,15 +361,15 @@ body {
 
 .media-slider { position:relative; width:100%; border-radius:14px; overflow:hidden; background:#000; margin-bottom:20px; aspect-ratio:9/16; max-height:min(72vh,560px); }
 .media-slider img, .media-slider video { width:100%; height:100%; object-fit:contain; display:block; }
-.sl-counter { position:absolute; top:8px; right:12px; background:rgba(0,0,0,.5); color:#fff; font-size:10px; padding:2px 9px; border-radius:99px; }
-.sl-arrow { position:absolute; top:50%; transform:translateY(-50%); width:32px; height:32px; border-radius:50%; border:none; background:rgba(255,255,255,.2); backdrop-filter:blur(6px); color:#fff; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s; }
-.sl-arrow:hover { background:rgba(255,255,255,.35); }
+.sl-counter { position:absolute; top:8px; right:12px; background:rgba(0,0,0,.5); color:#fff; font-size:10px; padding:2px 9px; border-radius:99px; z-index:20; }
+.sl-arrow { position:absolute; top:50%; transform:translateY(-50%); width:34px; height:34px; border-radius:50%; border:none; background:rgba(0,0,0,.45); backdrop-filter:blur(6px); color:#fff; font-size:20px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s, opacity .15s; z-index:20; pointer-events:auto; }
+.sl-arrow:hover { background:rgba(0,0,0,.7); }
 .sl-prev { left:10px; }
 .sl-next { right:10px; }
-.sl-dots { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:5px; }
+.sl-dots { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:5px; z-index:20; }
 .sl-dot { width:6px; height:6px; border-radius:99px; background:rgba(255,255,255,.4); border:none; cursor:pointer; transition:width .2s, background .2s; padding:0; }
 .sl-dot.active { width:16px; background:#fff; }
-.slide-del-btn { position:absolute; top:8px; left:8px; background:rgba(192,57,43,.85); color:#fff; border:none; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; }
+.slide-del-btn { position:absolute; top:8px; left:8px; background:rgba(192,57,43,.85); color:#fff; border:none; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; z-index:20; }
 
 /* ════════ AUTH SCREEN ════════ */
 .auth-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--c-paper); padding:24px 16px; }

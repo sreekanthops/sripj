@@ -1,21 +1,29 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Eye, Music, Video, MessageCircle } from "lucide-react";
 import type { Note } from "@/lib/api";
 import { PALETTE, fmtDate } from "@/lib/api";
 
-interface Props { note: Note; isOwner: boolean; onClick: () => void; }
+interface Props {
+  note: Note;
+  isOwner: boolean;
+  onClick: () => void;
+  onReact?: (noteId: string, emoji: string) => void;
+}
 
-export default function NoteCard({ note, isOwner, onClick }: Props) {
+export default function NoteCard({ note, isOwner, onClick, onReact }: Props) {
   const p = PALETTE[note.colorIdx || 0];
   const reactions = Object.entries(note.reactions||{}).filter(([,v])=>v>0).slice(0,4);
 
   return (
     <motion.article
       layout
-      initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
-      exit={{ opacity:0, scale:0.97 }} transition={{ duration:0.3 }}
+      initial={{ opacity:0, y:16 }}
+      animate={{ opacity:1, y:0 }}
+      exit={{ opacity:0, scale:0.97 }}
+      transition={{ duration:0.3 }}
       whileHover={{ y:-3, boxShadow:"0 16px 40px rgba(0,0,0,.1)" }}
       onClick={onClick}
       className="note-card"
@@ -25,13 +33,7 @@ export default function NoteCard({ note, isOwner, onClick }: Props) {
 
       {/* Media */}
       {note.media?.length > 0 && (
-        <div className="card-media">
-          {note.media[0].mimetype.startsWith("video/")
-            ? <video src={note.media[0].url} muted playsInline loop />
-            // eslint-disable-next-line @next/next/no-img-element
-            : <img src={note.media[0].url} alt="" />}
-          {note.media.length > 1 && <span className="card-media-count">+{note.media.length-1}</span>}
-        </div>
+        <CardMediaSlider media={note.media} />
       )}
 
       {/* Body */}
@@ -48,11 +50,30 @@ export default function NoteCard({ note, isOwner, onClick }: Props) {
         )}
       </div>
 
+      {/* Quick Emojis Bar on Card */}
+      <div className="card-quick-react" onClick={e => e.stopPropagation()} style={{ display:"flex", alignItems:"center", gap:4, padding:"6px 20px 0" }}>
+        {["❤️", "😂", "🔥", "😍", "👏"].map(e => (
+          <motion.button key={e} whileTap={{ scale:0.8 }}
+            onClick={(ev) => {
+              ev.stopPropagation();
+              onReact?.(note.id, e);
+            }}
+            style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, padding:"2px 4px", borderRadius:4 }}
+            title={`React ${e}`}>
+            {e}
+          </motion.button>
+        ))}
+      </div>
+
       {/* Footer */}
       <div className="card-footer">
         <div className="card-reactions">
           {reactions.length > 0
-            ? reactions.map(([emoji,count]) => <span key={emoji} className="react-chip">{emoji} {count}</span>)
+            ? reactions.map(([emoji,count]) => (
+                <span key={emoji} className="react-chip" onClick={(e) => { e.stopPropagation(); onReact?.(note.id, emoji); }}>
+                  {emoji} {count}
+                </span>
+              ))
             : <span style={{ fontSize:11, color:"var(--c-ink4)" }}>No reactions</span>}
         </div>
         <div className="card-chips">
@@ -62,6 +83,44 @@ export default function NoteCard({ note, isOwner, onClick }: Props) {
         </div>
       </div>
     </motion.article>
+  );
+}
+
+function CardMediaSlider({ media }: { media: Note["media"] }) {
+  const [cur, setCur] = useState(0);
+
+  return (
+    <div className="card-media" onClick={e => e.stopPropagation()} style={{ position:"relative" }}>
+      {media[cur].mimetype.startsWith("video/")
+        ? <video src={media[cur].url} muted playsInline loop />
+        // eslint-disable-next-line @next/next/no-img-element
+        : <img src={media[cur].url} alt="" />}
+      {media.length > 1 && (
+        <>
+          <span className="card-media-count">{cur + 1} / {media.length}</span>
+          <button
+            className="sl-arrow sl-prev"
+            style={{ width: 26, height: 26, fontSize: 14, left: 6 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCur((prev) => (prev > 0 ? prev - 1 : media.length - 1));
+            }}
+          >
+            ‹
+          </button>
+          <button
+            className="sl-arrow sl-next"
+            style={{ width: 26, height: 26, fontSize: 14, right: 6 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCur((prev) => (prev < media.length - 1 ? prev + 1 : 0));
+            }}
+          >
+            ›
+          </button>
+        </>
+      )}
+    </div>
   );
 }
 

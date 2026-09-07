@@ -51,6 +51,14 @@ db.exec(`
     created_at TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS reply_reactions (
+    id         TEXT PRIMARY KEY,
+    reply_id   TEXT NOT NULL REFERENCES replies(id) ON DELETE CASCADE,
+    emoji      TEXT NOT NULL,
+    count      INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(reply_id, emoji)
+  );
+
   CREATE TABLE IF NOT EXISTS media (
     id         TEXT PRIMARY KEY,
     note_id    TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,

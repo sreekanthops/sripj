@@ -18,6 +18,7 @@ export interface Reply {
   name: string;
   text: string;
   createdAt: string;
+  reactions?: Record<string, number>;
 }
 
 export interface Note {
