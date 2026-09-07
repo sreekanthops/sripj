@@ -237,6 +237,35 @@ footer {
 }
 
 /* ══════════════════════════════════════════════════════
+   PAGE HERO
+══════════════════════════════════════════════════════ */
+.page-hero {
+  padding: 32px 0 4px;
+}
+.hero-quote {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--ink);
+  margin-bottom: 10px;
+  letter-spacing: -.2px;
+}
+@media(max-width:768px){ .hero-quote { font-size: 20px; } }
+.hero-sub {
+  font-size: 12.5px;
+  color: var(--ink3);
+  letter-spacing: .4px;
+  margin-bottom: 14px;
+}
+.hero-accent-line {
+  width: 48px; height: 2.5px;
+  background: var(--accent);
+  border-radius: 99px;
+}
+
+/* ══════════════════════════════════════════════════════
    TIME FILTER BAR — pill tabs
 ══════════════════════════════════════════════════════ */
 .tf-bar {
@@ -330,51 +359,69 @@ footer {
 @keyframes shimmer { to { background-position: -200% 0; } }
 
 /* ══════════════════════════════════════════════════════
-   NOTE CARD — parchment paper with torn bottom
+   NOTE CARD — torn paper image background + rotation
 ══════════════════════════════════════════════════════ */
+
+/* Grid allows slight card rotation */
+#notesGrid { perspective: 1200px; }
+
 .note-card {
-  background: linear-gradient(160deg, #faf6f0 0%, #f2ede4 100%);
-  border-radius: 6px 6px 0 0;
-  border: 1px solid rgba(120,100,70,.18);
-  border-bottom: none;
-  box-shadow: 0 3px 14px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.04);
-  cursor: pointer; overflow: visible;
+  /* Parchment paper texture — torn edges + daisy decoration */
+  background-image: url('/img/paper-card.svg');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  /* Fallback while loading */
+  background-color: #f0ebe0;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 0 4px 18px rgba(0,0,0,.14), 0 1px 4px rgba(0,0,0,.08),
+              2px 2px 0 rgba(0,0,0,.04);
+  cursor: pointer;
+  overflow: hidden;
   display: flex; flex-direction: column;
-  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+  transition: transform .28s var(--ease), box-shadow .28s var(--ease);
   position: relative;
+  /* slight default tilt — overridden per card via JS */
+  transform: rotate(-0.5deg);
+  transform-origin: center bottom;
 }
 
-/* Torn paper bottom edge */
-.note-card::after {
-  content: '';
-  display: block;
-  position: relative;
-  height: 16px;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 16' preserveAspectRatio='none'%3E%3Cpath d='M0,0 C13,0 13,16 27,16 C40,16 40,0 53,0 C67,0 67,16 80,16 C93,16 93,0 107,0 C120,0 120,16 133,16 C147,16 147,0 160,0 C173,0 173,16 187,16 C200,16 200,0 213,0 C227,0 227,16 240,16 C253,16 253,0 267,0 C280,0 280,16 293,16 C307,16 307,0 320,0 C333,0 333,16 347,16 C360,16 360,0 373,0 C387,0 387,16 400,16 L400,16 L0,16 Z'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 16' preserveAspectRatio='none'%3E%3Cpath d='M0,0 C13,0 13,16 27,16 C40,16 40,0 53,0 C67,0 67,16 80,16 C93,16 93,0 107,0 C120,0 120,16 133,16 C147,16 147,0 160,0 C173,0 173,16 187,16 C200,16 200,0 213,0 C227,0 227,16 240,16 C253,16 253,0 267,0 C280,0 280,16 293,16 C307,16 307,0 320,0 C333,0 333,16 347,16 C360,16 360,0 373,0 C387,0 387,16 400,16 L400,16 L0,16 Z'/%3E%3C/svg%3E");
-  -webkit-mask-size: 100% 16px;
-  mask-size: 100% 16px;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  background-color: #f2ede4;
-  filter: drop-shadow(0 4px 6px rgba(0,0,0,.09));
-}
+/* Rotation variants — assigned by JS */
+.note-card.rot-0  { transform: rotate(-1.2deg); }
+.note-card.rot-1  { transform: rotate( 0.8deg); }
+.note-card.rot-2  { transform: rotate(-0.4deg); }
+.note-card.rot-3  { transform: rotate( 1.4deg); }
+.note-card.rot-4  { transform: rotate(-0.9deg); }
+.note-card.rot-5  { transform: rotate( 0.3deg); }
 
 .note-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 14px 40px rgba(0,0,0,.12), 0 3px 10px rgba(0,0,0,.06);
+  transform: rotate(0deg) translateY(-6px) scale(1.015) !important;
+  box-shadow: 0 20px 50px rgba(0,0,0,.18), 0 4px 12px rgba(0,0,0,.08);
+  z-index: 10;
 }
 
-/* has-media → no torn edge needed, card shows image flush */
-.note-card.has-media { border-radius: 6px 6px 0 0; }
-.note-card.has-media .card-media {
-  border-radius: 5px 5px 0 0;
+/* Subtle inner shadow to make paper look real */
+.note-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg,
+    rgba(255,255,255,.18) 0%,
+    transparent 40%,
+    rgba(0,0,0,.04) 100%);
+  pointer-events: none; z-index: 1;
+  border-radius: inherit;
 }
-.note-card.has-media .card-media::after { display: none; }
+
+/* Daisy decoration — bottom right, from the paper image itself */
+
+/* has-media cards: stack image on top of paper */
+.note-card.has-media { overflow: hidden; }
+.note-card.has-media .card-media { border-radius: 0; }
 
 /* ── Media inside card ── */
 .card-media {
-  width: 100%; aspect-ratio: 4/3; max-height: 220px;
+  width: 100%; aspect-ratio: 4/3; max-height: 200px;
   overflow: hidden; position: relative;
   background: #2c241a;
 }
@@ -383,42 +430,55 @@ footer {
 }
 
 /* ── Card body section ── */
-.card-body-section { padding: 18px 20px 0; }
+.card-body-section {
+  padding: 20px 24px 6px;
+  position: relative; z-index: 2;
+  flex: 1;
+}
 
 .card-meta-row {
   display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 .card-date {
-  font-size: 10px; color: var(--ink4); font-weight: 500;
-  letter-spacing: .5px; text-transform: uppercase;
+  font-size: 9.5px; color: var(--ink4); font-weight: 600;
+  letter-spacing: .8px; text-transform: uppercase;
   display: flex; align-items: center; gap: 4px;
+}
+.card-num {
+  font-size: 9.5px; color: var(--ink4); font-weight: 400;
+  letter-spacing: .4px;
 }
 .card-views { font-size: 10px; color: var(--ink4); display: flex; align-items: center; gap: 3px; }
 
-/* Title — italic handwriting Caveat */
+/* Title — big italic Caveat handwriting on paper */
 .card-title {
   font-family: var(--script);
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 26px;
+  font-weight: 700;
   font-style: italic;
-  line-height: 1.2;
-  color: var(--ink);
-  margin-bottom: 10px;
-  letter-spacing: -.2px;
+  line-height: 1.15;
+  color: #2c2416;
+  margin-bottom: 12px;
+  letter-spacing: -.3px;
+  /* subtle underline like a pen stroke */
+  border-bottom: 1px solid rgba(100,80,50,.2);
+  padding-bottom: 10px;
 }
 
 .card-excerpt {
-  font-size: 13.5px; color: var(--ink2); line-height: 1.8;
+  font-family: var(--sans);
+  font-size: 13px; color: #3d3220; line-height: 1.75;
   overflow: hidden; display: -webkit-box;
-  -webkit-line-clamp: 5; -webkit-box-orient: vertical;
-  padding-bottom: 4px;
+  -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+  padding-bottom: 6px;
 }
 
 /* ── Emoji quick-react row inside card ── */
 .card-quick-bar {
   display: flex; align-items: center; gap: 5px;
-  padding: 12px 20px 4px;
+  padding: 12px 24px 4px;
+  position: relative; z-index: 2;
 }
 .card-react-btn {
   background: none; border: 1px solid transparent;
@@ -427,7 +487,7 @@ footer {
   display: flex; align-items: center;
   transition: transform .12s, background .12s, border-color .12s;
 }
-.card-react-btn:hover  { background: rgba(120,100,70,.10); transform: scale(1.18); }
+.card-react-btn:hover  { background: rgba(120,100,70,.12); transform: scale(1.18); }
 .card-react-btn:active { transform: scale(.82); }
 .card-react-btn.active { background: var(--accent-bg); border-color: var(--accent-ring); }
 .card-react-cnt { font-size: 10px; color: var(--ink3); font-weight: 600; }
@@ -436,7 +496,8 @@ footer {
 .card-footer {
   display: flex; align-items: center; justify-content: space-between;
   flex-wrap: wrap; gap: 6px;
-  padding: 8px 20px 14px;
+  padding: 8px 24px 20px;
+  position: relative; z-index: 2;
 }
 .card-reactions { display: flex; flex-wrap: wrap; gap: 4px; }
 .react-chip {
@@ -461,7 +522,8 @@ footer {
 /* ── Card tags ── */
 .card-tags-row {
   display: flex; flex-wrap: wrap; gap: 5px;
-  padding: 4px 20px 14px;
+  padding: 4px 24px 16px;
+  position: relative; z-index: 2;
 }
 
 /* ══════════════════════════════════════════════════════

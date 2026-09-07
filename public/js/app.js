@@ -715,16 +715,19 @@ function renderGrid() {
 
   requestAnimationFrame(() => {
     grid.innerHTML = '';
+    _rotIdx = 0; // reset rotation cycle each render
+    const totalCards = toRender.length;
+    let cardIdx = 0;
     if (shouldGroup && groups.length) {
       groups.forEach(([wk, weekNotes]) => {
         const lbl = document.createElement('div');
         lbl.className = 'week-group-label';
         lbl.textContent = weekLabel(wk);
         grid.appendChild(lbl);
-        weekNotes.forEach(n => grid.appendChild(buildNoteCard(n)));
+        weekNotes.forEach(n => grid.appendChild(buildNoteCard(n, cardIdx++, totalCards)));
       });
     } else {
-      toRender.forEach(n => grid.appendChild(buildNoteCard(n)));
+      toRender.forEach((n, i) => grid.appendChild(buildNoteCard(n, i, totalCards)));
     }
 
     grid.querySelectorAll('.note-card').forEach(card => {
@@ -753,12 +756,18 @@ function renderGrid() {
 }
 
 // ── BUILD A SINGLE NOTE CARD ELEMENT ──────────────────────────────────────
-function buildNoteCard(n) {
-  const p    = PALETTE[n.colorIdx || 0];
+// Rotation cycle for paper-tilt effect
+const ROT_CLASSES = ['rot-0','rot-1','rot-2','rot-3','rot-4','rot-5'];
+let _rotIdx = 0;
+
+function buildNoteCard(n, index, total) {
   const card = document.createElement('article');
-  card.className = 'note-card fade-enter';
+  // Paper rotation — cycles through 6 angles
+  const rotClass = ROT_CLASSES[_rotIdx % ROT_CLASSES.length];
+  _rotIdx++;
+  card.className = `note-card fade-enter ${rotClass}`;
   card.dataset.id = n.id;
-  card.style.setProperty('--card-accent', p.accent);
+  if (n.media && n.media.length) card.classList.add('has-media');
 
   if (n.media && n.media.length) {
     const mediaWrap = document.createElement('div');
@@ -768,16 +777,21 @@ function buildNoteCard(n) {
     card.appendChild(mediaWrap);
   }
 
+  // Entry counter e.g. "01 / 12"
+  const numStr = total > 0
+    ? `${String(index + 1).padStart(2,'0')} / ${String(total).padStart(2,'0')}`
+    : '';
+
   const body = document.createElement('div');
   body.className = 'card-body-section';
   body.innerHTML = `
     <div class="card-meta-row">
       <span class="card-date">📅 ${fmtDate(n.createdAt)}</span>
-      ${isOwner ? `<span class="card-views">👁 ${n.views}</span>` : ''}
+      <span class="card-num">${numStr}</span>
     </div>
-    <div class="card-title" style="font-family:${esc(n.font)};color:${p.accent}">${esc(n.title)}</div>
-    ${!n.media?.length
-      ? `<div class="card-excerpt" style="font-family:${esc(n.font)};font-size:${Math.min(n.fontSize||14,13)}px">${esc(n.body)}</div>`
+    <div class="card-title">${esc(n.title)}</div>
+    ${!n.media?.length && n.body
+      ? `<div class="card-excerpt">${esc(n.body)}</div>`
       : ''}`;
   card.appendChild(body);
 
