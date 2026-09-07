@@ -20,14 +20,10 @@
       <div class="logo-name" style="font-size:26px">Diary</div>
       <div class="logo-tagline">Your private space to write</div>
     </div>
-
-    <!-- tabs -->
     <div class="auth-tabs">
       <button class="auth-tab active" data-tab="login">Sign In</button>
       <button class="auth-tab" data-tab="signup">Create Account</button>
     </div>
-
-    <!-- login -->
     <div class="auth-panel" id="panelLogin">
       <div class="field">
         <label>Username</label>
@@ -40,8 +36,6 @@
       <button class="btn btn-primary btn-lg" id="loginBtn" style="width:100%;justify-content:center">Sign In</button>
       <p id="loginErr" class="auth-err"></p>
     </div>
-
-    <!-- signup -->
     <div class="auth-panel hidden" id="panelSignup">
       <div class="field">
         <label>Username <span class="auth-hint">(letters, numbers, _ — min 3)</span></label>
@@ -81,18 +75,6 @@
       <div id="headerActions"></div>
     </nav>
 
-    <!-- date filters inside sidebar -->
-    <div class="sidebar-filters">
-      <div class="sidebar-filter-label">Filter by date</div>
-      <input type="date" class="date-input" id="filterFrom" title="From date">
-      <span class="filter-sep">—</span>
-      <input type="date" class="date-input" id="filterTo" title="To date">
-      <button id="btnClearFilter" class="clear-btn">Clear</button>
-    </div>
-
-    <!-- entry count -->
-    <div class="sidebar-count" id="noteCount"></div>
-
     <div id="musicBar">
       <div class="music-indicator" id="musicIndicator">
         <span class="music-dot"></span>
@@ -108,20 +90,63 @@
     </div>
   </aside>
 
-  <!-- ── TINDER STAGE (full screen card view) ── -->
-  <div id="tinderStage"></div>
+  <!-- ── MAIN CONTENT ── -->
+  <main id="mainContent">
+    <!-- Topbar -->
+    <div id="topbar">
+      <div class="topbar-inner">
+        <div class="topbar-left">
+          <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="3" y1="6"  x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+          <div class="page-title">
+            <span class="page-title-text" id="pageTitle">Journal</span>
+            <span id="noteCount" class="note-count"></span>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-primary btn-sm" id="quickNewBtn" style="display:none">+ New Entry</button>
+          <div class="filter-group">
+            <input type="date" class="date-input" id="filterFrom" title="From date">
+            <span class="filter-sep">—</span>
+            <input type="date" class="date-input" id="filterTo" title="To date">
+            <button id="btnClearFilter" class="clear-btn">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes grid -->
+    <section id="notesSection">
+      <div id="notesGrid"></div>
+    </section>
+  </main>
 
 </div>
 
 <!-- ── SIDEBAR BACKDROP ── -->
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-<!-- ══ DETAIL MODAL (Tinder / Immersive) ═════════════════════ -->
+<!-- ══ DETAIL OVERLAY  — Tinder swipe card ════════════════════ -->
 <div class="overlay tinder-mode" id="detailOverlay">
+  <!-- Story progress bars + close sit outside the scrollable card body -->
   <div class="tinder-card-container" id="detailModal">
-    <button class="modal-close tinder-close" id="detailClose" aria-label="Close">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+    <button class="tinder-close" id="detailClose" aria-label="Close">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="3" y1="3" x2="13" y2="13"/>
+        <line x1="13" y1="3" x2="3" y2="13"/>
+      </svg>
     </button>
+    <!-- story progress bars injected here by renderDetail -->
+    <div class="td-story-bars" id="detailBars"></div>
+    <!-- left / right tap zones for swipe between notes -->
+    <div class="td-tap td-tap-left"  id="detailTapLeft">‹</div>
+    <div class="td-tap td-tap-right" id="detailTapRight">›</div>
+    <!-- scrollable body -->
     <div class="tinder-card-body" id="detailContent"></div>
   </div>
 </div>
@@ -133,12 +158,10 @@
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
     </button>
     <div class="modal-title" id="formTitle">New Entry</div>
-
     <div class="field">
       <label>Title</label>
       <input type="text" id="fTitle" placeholder="Give your entry a title…">
     </div>
-
     <div class="field">
       <label>Appearance</label>
       <div class="style-row">
@@ -161,17 +184,14 @@
       <label style="margin-bottom:6px">Colour Theme</label>
       <div class="swatches" id="swatches"></div>
     </div>
-
     <div class="field">
       <label>Content</label>
       <textarea id="fBody" class="lined" placeholder="Write your thoughts here…"></textarea>
     </div>
-
     <div class="field" id="musicField">
       <label>Background Music URL (.mp3)</label>
       <input type="text" id="fMusic" placeholder="https://…/song.mp3">
     </div>
-
     <div class="field" id="mediaField">
       <label>Photos &amp; Videos</label>
       <div class="exist-media-row" id="existMediaRow"></div>
@@ -183,10 +203,7 @@
       </div>
       <div class="upload-previews" id="uploadPreviews"></div>
     </div>
-
-    <button class="btn btn-primary" id="fSave" style="width:100%;justify-content:center;margin-top:8px">
-      Save Entry
-    </button>
+    <button class="btn btn-primary" id="fSave" style="width:100%;justify-content:center;margin-top:8px">Save Entry</button>
   </div>
 </div>
 
@@ -211,6 +228,7 @@
 
 <div id="toast"></div>
 <audio id="bgAudio" loop></audio>
+<footer>My Diary v6.0</footer>
 
 <script src="/js/app.js"></script>
 </body>

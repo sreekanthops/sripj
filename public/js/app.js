@@ -1,4 +1,4 @@
-/* ── app.js  v5  — Tinder-style diary ──────────────────────────────────── */
+/* ── app.js  v6  — grid home + tinder detail ───────────────────────────── */
 'use strict';
 
 // ── CONFIG ─────────────────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ let isOwner      = false;
 let notes        = [];
 let editId       = null;
 let pendingFiles = [];
-let tinderIdx    = 0;   // current card index in tinder home view
+let detailIdx    = 0;   // current note index inside the tinder detail overlay
 
 const audio = document.getElementById('bgAudio');
 
@@ -80,16 +80,16 @@ async function apiUpload(noteId, files) {
 }
 
 // ── SCREEN SWITCHING ───────────────────────────────────────────────────────
-function showAuth()  {
+function showAuth() {
   document.getElementById('authScreen').classList.remove('hidden');
   document.getElementById('appScreen').classList.add('hidden');
 }
-function showApp()   {
+function showApp() {
   document.getElementById('authScreen').classList.add('hidden');
   document.getElementById('appScreen').classList.remove('hidden');
 }
 
-// ── AUTH SCREEN ────────────────────────────────────────────────────────────
+// ── AUTH ───────────────────────────────────────────────────────────────────
 document.querySelectorAll('.auth-tab').forEach(tab => {
   tab.onclick = () => {
     document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
@@ -113,7 +113,9 @@ document.getElementById('loginBtn').onclick = async () => {
     await enterOwnDiary();
   } catch (e) { errEl.textContent = e.message; }
 };
-document.getElementById('loginPwd').onkeydown = e => { if (e.key==='Enter') document.getElementById('loginBtn').click(); };
+document.getElementById('loginPwd').onkeydown = e => {
+  if (e.key === 'Enter') document.getElementById('loginBtn').click();
+};
 
 document.getElementById('signupBtn').onclick = async () => {
   const username    = document.getElementById('signupUser').value.trim();
@@ -129,7 +131,9 @@ document.getElementById('signupBtn').onclick = async () => {
     await enterOwnDiary();
   } catch (e) { errEl.textContent = e.message; }
 };
-document.getElementById('signupPwd').onkeydown = e => { if (e.key==='Enter') document.getElementById('signupBtn').click(); };
+document.getElementById('signupPwd').onkeydown = e => {
+  if (e.key === 'Enter') document.getElementById('signupBtn').click();
+};
 
 // ── OVERLAYS ───────────────────────────────────────────────────────────────
 function openOv(id)  { document.getElementById(id).classList.add('open'); }
@@ -144,7 +148,7 @@ document.getElementById('detailClose').onclick  = () => closeOv('detailOverlay')
 document.getElementById('formClose').onclick    = () => closeOv('formOverlay');
 document.getElementById('profileClose').onclick = () => closeOv('profileOverlay');
 
-// ── SIDEBAR DRAWER (hamburger) ─────────────────────────────────────────────
+// ── SIDEBAR DRAWER ─────────────────────────────────────────────────────────
 function openSidebar() {
   document.getElementById('sidebar').classList.add('open');
   document.getElementById('sidebarBackdrop').classList.add('active');
@@ -153,29 +157,33 @@ function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarBackdrop').classList.remove('active');
 }
-// hamburgerBtn is rendered inside each tinder card (thHamburger); wired in renderTinder()
+document.getElementById('hamburgerBtn').onclick    = openSidebar;
 document.getElementById('sidebarCloseBtn').onclick = closeSidebar;
 document.getElementById('sidebarBackdrop').onclick = closeSidebar;
 
-// ── HEADER / SIDEBAR ACTIONS ───────────────────────────────────────────────
+// ── HEADER ─────────────────────────────────────────────────────────────────
 function renderHeader() {
-  const el = document.getElementById('headerActions');
+  const el  = document.getElementById('headerActions');
+  const fab = document.getElementById('quickNewBtn');
   if (isOwner) {
     el.innerHTML = `
       <span class="owner-badge">✦ ${esc(currentUser.displayName)}</span>
-      <button class="btn btn-primary btn-sm" data-action="new-note">+ New Entry</button>
       <button class="btn btn-ghost btn-sm" data-action="share">🔗 Share</button>
       <button class="btn btn-ghost btn-sm" data-action="profile">✏️ Profile</button>
       <button class="btn btn-ghost btn-sm" data-action="logout">Sign out</button>`;
+    if (fab) { fab.style.display = 'flex'; fab.onclick = () => { closeSidebar(); openNewForm(); }; }
   } else if (currentUser && viewingUser) {
     el.innerHTML = `
       <span class="owner-badge">👤 ${esc(currentUser.displayName)}</span>
       <button class="btn btn-ghost btn-sm" data-action="go-home">My Diary</button>`;
+    if (fab) fab.style.display = 'none';
   } else if (!currentUser && viewingUser) {
     el.innerHTML = `
       <button class="btn btn-ghost btn-sm" data-action="go-login">Sign In / Sign Up</button>`;
+    if (fab) fab.style.display = 'none';
   } else {
     el.innerHTML = '';
+    if (fab) fab.style.display = 'none';
   }
 }
 
@@ -184,9 +192,7 @@ document.getElementById('headerActions').addEventListener('click', e => {
   if (!btn) return;
   closeSidebar();
   const action = btn.dataset.action;
-  if (action === 'new-note') {
-    openNewForm();
-  } else if (action === 'share') {
+  if (action === 'share') {
     const url = `${location.origin}/u/${currentUser.username}`;
     navigator.clipboard?.writeText(url).then(() => toast('Link copied! 🔗')).catch(() => toast(url));
   } else if (action === 'profile') {
@@ -205,6 +211,11 @@ document.getElementById('headerActions').addEventListener('click', e => {
     showAuth();
   }
 });
+
+// scroll shadow on topbar
+window.addEventListener('scroll', () => {
+  document.getElementById('topbar')?.classList.toggle('scrolled', window.scrollY > 8);
+}, { passive: true });
 
 // ── PROFILE MODAL ──────────────────────────────────────────────────────────
 document.getElementById('profSave').onclick = async () => {
@@ -227,6 +238,7 @@ async function enterOwnDiary() {
   document.body.classList.add('is-owner');
   document.getElementById('sidebarTitle').textContent = currentUser.displayName || currentUser.username;
   document.getElementById('sidebarSub').textContent   = '@' + currentUser.username;
+  document.getElementById('pageTitle').textContent    = 'My Journal';
   history.replaceState({}, '', '/u/' + currentUser.username);
   renderHeader();
   buildSwatches(0);
@@ -240,19 +252,19 @@ async function enterPublicDiary(username) {
     const data = await api('GET', `/notes/user/${username}`);
     viewingUser = data.user;
     isOwner = currentUser?.userId === viewingUser.id;
-    if (isOwner) {
-      document.body.classList.add('is-owner');
-    } else {
-      document.body.classList.remove('is-owner');
-    }
+    if (isOwner) document.body.classList.add('is-owner');
+    else         document.body.classList.remove('is-owner');
     notes = data.notes;
     document.getElementById('sidebarTitle').textContent = viewingUser.displayName || viewingUser.username;
     document.getElementById('sidebarSub').textContent   = '@' + viewingUser.username;
+    document.getElementById('pageTitle').textContent    = isOwner
+      ? 'My Journal'
+      : (viewingUser.displayName || viewingUser.username) + "'s Diary";
     renderHeader();
     buildSwatches(0);
     setupUploadZone();
     showApp();
-    renderTinder();
+    renderGrid();
   } catch {
     if (!currentUser) { showAuth(); } else { toast('Diary not found'); await enterOwnDiary(); }
   }
@@ -304,7 +316,7 @@ function addFiles(files) {
     el.src = URL.createObjectURL(f);
     if (isVid(f.type)) { el.muted = true; el.playsInline = true; }
     const del  = document.createElement('button'); del.className = 'up-prev-del'; del.textContent = '×';
-    del.onclick = () => { pendingFiles.splice(pendingFiles.indexOf(f),1); wrap.remove(); };
+    del.onclick = () => { pendingFiles.splice(pendingFiles.indexOf(f), 1); wrap.remove(); };
     wrap.appendChild(el); wrap.appendChild(del);
     prev.appendChild(wrap);
   });
@@ -322,8 +334,7 @@ function renderExistMedia(note) {
     del.onclick = async () => {
       try {
         await api('DELETE', `/upload/${note.id}/${m.id}`);
-        wrap.remove();
-        toast('Removed');
+        wrap.remove(); toast('Removed');
       } catch (e) { toast('Error: ' + e.message); }
     };
     wrap.appendChild(el); wrap.appendChild(del); row.appendChild(wrap);
@@ -390,10 +401,9 @@ async function loadNotes() {
   if (!viewingUser) return;
   const from = document.getElementById('filterFrom').value;
   const to   = document.getElementById('filterTo').value;
-  const p = new URLSearchParams();
+  const p    = new URLSearchParams();
   if (from) p.set('from', from);
   if (to)   p.set('to', to);
-
   if (isOwner) {
     notes = await api('GET', '/notes' + (p.toString() ? '?'+p : ''));
   } else {
@@ -404,13 +414,12 @@ async function loadNotes() {
 async function loadAndRender() {
   try {
     await loadNotes();
-    tinderIdx = 0;
-    renderTinder();
+    renderGrid();
   } catch {
-    document.getElementById('tinderStage').innerHTML =
-      `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--ink4);flex-direction:column;gap:12px;font-family:var(--sans)">
-        <div style="font-size:32px;color:var(--accent);opacity:.5">⚠</div>
-        <div>Could not load entries.</div>
+    document.getElementById('notesGrid').innerHTML =
+      `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--ink4);font-family:var(--sans)">
+        <div style="font-size:32px;margin-bottom:12px;color:var(--accent);opacity:.5">⚠</div>
+        Could not load entries.
        </div>`;
   }
 }
@@ -424,203 +433,124 @@ document.getElementById('btnClearFilter').onclick = () => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════
-//  TINDER HOME VIEW
+//  GRID  —  home / dashboard view
 // ══════════════════════════════════════════════════════════════════════════
-function renderTinder() {
-  const stage = document.getElementById('tinderStage');
-  const noteCount = document.getElementById('noteCount');
-
-  if (noteCount) noteCount.textContent = notes.length ? `${notes.length} entr${notes.length===1?'y':'ies'}` : '';
+function renderGrid() {
+  const grid    = document.getElementById('notesGrid');
+  const countEl = document.getElementById('noteCount');
+  if (countEl) countEl.textContent = notes.length
+    ? `${notes.length} entr${notes.length === 1 ? 'y' : 'ies'}` : '';
 
   if (!notes.length) {
-    stage.innerHTML = `
-      <div class="tinder-empty">
-        <div class="tinder-empty-icon">✦</div>
-        <div class="tinder-empty-msg">
-          ${isOwner ? 'Open the menu and tap <b>+ New Entry</b> to write your first entry.' : 'No diary entries yet — check back soon.'}
-        </div>
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:70px 20px;color:var(--ink4);font-family:var(--sans)">
+        <div style="font-size:36px;margin-bottom:12px;color:var(--accent);opacity:.5">✦</div>
+        ${isOwner
+          ? 'Tap <b style="color:var(--accent)">+ New Entry</b> to write your first entry.'
+          : 'No diary entries yet — check back soon.'}
       </div>`;
     return;
   }
 
-  // clamp index
-  if (tinderIdx < 0) tinderIdx = 0;
-  if (tinderIdx >= notes.length) tinderIdx = notes.length - 1;
+  // skeleton flash
+  grid.innerHTML = notes.map(() => '<div class="skeleton"></div>').join('');
 
-  const note = notes[tinderIdx];
-  const p    = PALETTE[note.colorIdx || 0];
+  requestAnimationFrame(() => {
+    grid.innerHTML = '';
+    notes.forEach(n => {
+      const p    = PALETTE[n.colorIdx || 0];
+      const card = document.createElement('article');
+      card.className = 'note-card fade-enter';
+      card.dataset.id = n.id;
+      card.style.setProperty('--card-accent', p.accent);
 
-  // story progress bars
-  const barsHtml = notes.map((_,i) =>
-    `<div class="th-bar ${i === tinderIdx ? 'active' : (i < tinderIdx ? 'done' : '')}"></div>`
-  ).join('');
+      // media thumbnail
+      if (n.media && n.media.length) {
+        const mediaWrap = document.createElement('div');
+        mediaWrap.className = 'card-media';
+        const sl = buildSlider(n.media, 'card', n.id);
+        if (sl) mediaWrap.appendChild(sl);
+        card.appendChild(mediaWrap);
+      }
 
-  // media: show first image/video cover
-  let coverHtml = '';
-  if (note.media && note.media.length) {
-    const m = note.media[0];
-    if (isVid(m.mimetype)) {
-      coverHtml = `<video src="${esc(m.url)}" autoplay muted loop playsinline class="th-cover-media"></video>`;
-    } else {
-      coverHtml = `<img src="${esc(m.url)}" alt="" class="th-cover-media" draggable="false">`;
-    }
-    if (note.media.length > 1) {
-      coverHtml += `<span class="th-media-count">1/${note.media.length}</span>`;
-    }
-  } else {
-    // text-only card — use palette bg
-    coverHtml = `<div class="th-cover-textbg" style="background:${p.bg}">
-      <div class="th-cover-title" style="color:${p.accent};font-family:${esc(note.font)}">
-        ${esc(note.title)}
-      </div>
-    </div>`;
-  }
-
-  // quick reactions
-  const quickReacts = ['❤️','😂','🔥','😍','👏'].map(e => {
-    const cnt = (note.reactions || {})[e] || 0;
-    const isU = (note.userReactions||[]).includes(e);
-    return `<button class="th-react-btn ${isU?'active':''}" data-nid="${note.id}" data-em="${e}">
-      <span class="th-react-em">${e}</span>${cnt > 0 ? `<span class="th-react-cnt">${cnt}</span>` : ''}
-    </button>`;
-  }).join('');
-
-  const replyCnt = (note.replies||[]).length;
-
-  stage.innerHTML = `
-    <div class="th-card" data-id="${note.id}">
-      <!-- media cover -->
-      <div class="th-cover" style="${!(note.media&&note.media.length)?'':'background:#000'}">
-        ${coverHtml}
-
-        <!-- story progress bars -->
-        <div class="th-bars">${barsHtml}</div>
-
-        <!-- hamburger top-left -->
-        <button class="th-hamburger" id="thHamburger" aria-label="Open menu">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-            <line x1="3" y1="6"  x2="21" y2="6"/>
-            <line x1="3" y1="12" x2="21" y2="12"/>
-            <line x1="3" y1="18" x2="21" y2="18"/>
-          </svg>
-        </button>
-
-        <!-- new entry FAB (owner only) -->
-        ${isOwner ? `<button class="th-fab-new" id="thFabNew" title="New Entry">+</button>` : ''}
-
-        <!-- tap zones -->
-        <div class="th-tap left"  id="thTapLeft"  aria-label="Previous entry">
-          <div class="th-tap-arrow">‹</div>
+      // body
+      const body = document.createElement('div');
+      body.className = 'card-body-section';
+      body.innerHTML = `
+        <div class="card-meta-row">
+          <span class="card-date">📅 ${fmtDate(n.createdAt)}</span>
+          ${isOwner ? `<span class="card-views">👁 ${n.views}</span>` : ''}
         </div>
-        <div class="th-tap right" id="thTapRight" aria-label="Next entry">
-          <div class="th-tap-arrow">›</div>
-        </div>
+        <div class="card-title" style="font-family:${esc(n.font)};color:${p.accent}">${esc(n.title)}</div>
+        ${!n.media?.length
+          ? `<div class="card-excerpt" style="font-family:${esc(n.font)};font-size:${Math.min(n.fontSize||14,13)}px">${esc(n.body)}</div>`
+          : ''}`;
+      card.appendChild(body);
 
-        <!-- overlay gradient for bottom info -->
-        <div class="th-grad"></div>
+      // quick reaction bar
+      const quickBar = document.createElement('div');
+      quickBar.className = 'card-quick-bar';
+      quickBar.innerHTML = ['❤️','😂','🔥','😍','👏'].map(e => {
+        const isUser = (n.userReactions||[]).includes(e);
+        const cnt    = (n.reactions||{})[e] || 0;
+        return `<button class="card-react-btn ${isUser?'active':''}" data-nid="${n.id}" data-em="${e}">
+          ${e}${cnt > 0 ? `<span class="card-react-cnt">${cnt}</span>` : ''}
+        </button>`;
+      }).join('');
+      card.appendChild(quickBar);
 
-        <!-- author + date on image -->
-        <div class="th-overlay-info">
-          <div class="th-overlay-date">${fmtDate(note.createdAt)}</div>
-        </div>
-      </div>
+      // footer chips
+      const reacts = Object.entries(n.reactions||{}).filter(([,v])=>v>0)
+        .map(([e,c]) => {
+          const isUser = (n.userReactions||[]).includes(e);
+          return `<span class="react-chip" style="${isUser?'background:var(--accent-bg);border-color:var(--accent-border);font-weight:700':''}">${e} ${c}</span>`;
+        }).join('') || `<span style="font-size:11px;color:var(--ink4);font-family:var(--sans)">No reactions</span>`;
+      const chips = [
+        n.musicUrl      ? `<span class="chip">♫</span>` : '',
+        n.media?.length ? `<span class="chip">🎬 ${n.media.length}</span>` : '',
+        (n.replies||[]).length ? `<span class="chip">💬 ${n.replies.length}</span>` : '',
+      ].filter(Boolean).join('');
 
-      <!-- info section below cover -->
-      <div class="th-info">
-        <div class="th-title" style="color:${p.accent};font-family:${esc(note.font)}">${esc(note.title)}</div>
-        ${note.body ? `<div class="th-excerpt" style="font-family:${esc(note.font)}">${esc(note.body.slice(0,120))}${note.body.length>120?'…':''}</div>` : ''}
-        <div class="th-action-row">
-          <div class="th-reacts">${quickReacts}</div>
-          <button class="th-comment-btn" data-nid="${note.id}">
-            💬 ${replyCnt > 0 ? replyCnt : ''} <span class="th-comment-label">Comments</span>
-          </button>
-        </div>
-        ${isOwner ? `<div class="th-owner-row">
-          <button class="btn btn-ghost btn-xs th-edit-btn" data-id="${note.id}">✏️ Edit</button>
-          <button class="btn btn-danger btn-xs th-del-btn" data-id="${note.id}">🗑 Delete</button>
-        </div>` : ''}
-      </div>
-    </div>`;
+      const foot = document.createElement('div');
+      foot.className = 'card-footer';
+      foot.innerHTML = `<div class="card-reactions">${reacts}</div><div class="card-chips">${chips}</div>`;
+      card.appendChild(foot);
 
-  // ── wire up events ──
-  document.getElementById('thHamburger').onclick = openSidebar;
+      grid.appendChild(card);
+    });
 
-  if (isOwner) {
-    document.getElementById('thFabNew')?.addEventListener('click', openNewForm);
-  }
+    // card click → open tinder detail
+    grid.querySelectorAll('.note-card').forEach(card => {
+      card.onclick = e => {
+        if (e.target.closest('.slider-root') || e.target.closest('.card-react-btn')) return;
+        detailIdx = notes.findIndex(n => n.id === card.dataset.id);
+        openDetail(card.dataset.id);
+      };
+    });
 
-  document.getElementById('thTapLeft').onclick = e => {
-    e.stopPropagation();
-    if (tinderIdx > 0) { tinderIdx--; renderTinder(); }
-  };
-  document.getElementById('thTapRight').onclick = e => {
-    e.stopPropagation();
-    if (tinderIdx < notes.length - 1) { tinderIdx++; renderTinder(); }
-  };
-
-  // tap on info → open full detail
-  stage.querySelector('.th-info').addEventListener('click', e => {
-    if (e.target.closest('.th-reacts') || e.target.closest('.th-owner-row')) return;
-    openDetail(note.id);
+    // quick react on card
+    grid.querySelectorAll('.card-react-btn').forEach(btn => {
+      btn.onclick = async e => {
+        e.stopPropagation();
+        try {
+          const noteObj = notes.find(x => x.id === btn.dataset.nid);
+          const hadReacted = (noteObj?.userReactions||[]).includes(btn.dataset.em);
+          const res = await api('POST', `/notes/${btn.dataset.nid}/react`, { emoji: btn.dataset.em });
+          if (noteObj) {
+            noteObj.reactions     = res.reactions;
+            noteObj.userReactions = res.userReactions;
+          }
+          const isAdded = res.isReacted !== undefined ? res.isReacted : !hadReacted;
+          toast(isAdded ? 'Reacted ' + btn.dataset.em : 'Removed ' + btn.dataset.em);
+          renderGrid();
+        } catch (err) { toast('Error: ' + err.message); }
+      };
+    });
   });
-  stage.querySelector('.th-comment-btn')?.addEventListener('click', () => openDetail(note.id));
-
-  // quick react buttons
-  stage.querySelectorAll('.th-react-btn').forEach(btn => {
-    btn.onclick = async e => {
-      e.stopPropagation();
-      try {
-        const noteObj = notes.find(x => x.id === btn.dataset.nid);
-        const hadReacted = (noteObj?.userReactions||[]).includes(btn.dataset.em);
-        const res = await api('POST', `/notes/${btn.dataset.nid}/react`, { emoji: btn.dataset.em });
-        if (noteObj) {
-          noteObj.reactions     = res.reactions;
-          noteObj.userReactions = res.userReactions;
-        }
-        const isAdded = res.isReacted !== undefined ? res.isReacted : !hadReacted;
-        toast(isAdded ? 'Reacted ' + btn.dataset.em : 'Removed ' + btn.dataset.em);
-        renderTinder();
-      } catch (err) { toast('Error: ' + err.message); }
-    };
-  });
-
-  // owner edit / delete
-  stage.querySelector('.th-edit-btn')?.addEventListener('click', async e => {
-    e.stopPropagation();
-    const full = await api('GET', `/notes/${e.currentTarget.dataset.id}`);
-    openEditForm(full);
-  });
-  stage.querySelector('.th-del-btn')?.addEventListener('click', async e => {
-    e.stopPropagation();
-    if (!confirm('Delete this entry permanently?')) return;
-    try {
-      await api('DELETE', `/notes/${e.currentTarget.dataset.id}`);
-      toast('Deleted 🗑'); await loadAndRender();
-    } catch (err) { toast('Error: ' + err.message); }
-  });
-
-  // keyboard & touch swipe
-  stage._thTouchX = 0;
-  stage.ontouchstart = e => { stage._thTouchX = e.touches[0].clientX; };
-  stage.ontouchend   = e => {
-    const dx = e.changedTouches[0].clientX - stage._thTouchX;
-    if (Math.abs(dx) > 50) {
-      if (dx < 0 && tinderIdx < notes.length - 1) { tinderIdx++; renderTinder(); }
-      else if (dx > 0 && tinderIdx > 0)            { tinderIdx--; renderTinder(); }
-    }
-  };
 }
 
-// keyboard arrows for tinder nav
-document.addEventListener('keydown', e => {
-  if (document.getElementById('detailOverlay').classList.contains('open')) return;
-  if (document.getElementById('formOverlay').classList.contains('open')) return;
-  if (e.key === 'ArrowRight' && tinderIdx < notes.length - 1) { tinderIdx++; renderTinder(); }
-  if (e.key === 'ArrowLeft'  && tinderIdx > 0)                { tinderIdx--; renderTinder(); }
-});
-
 // ══════════════════════════════════════════════════════════════════════════
-//  MEDIA SLIDER (used in detail view)
+//  MEDIA SLIDER  (used inside grid cards and detail view)
 // ══════════════════════════════════════════════════════════════════════════
 function buildSlider(items, size, noteId) {
   if (!items || !items.length) return null;
@@ -633,7 +563,7 @@ function buildSlider(items, size, noteId) {
   let cur = 0;
   const slides = [];
 
-  items.forEach((item, idx) => {
+  items.forEach(item => {
     const slide = document.createElement('div');
     slide.className = 'slide-item';
 
@@ -675,7 +605,7 @@ function buildSlider(items, size, noteId) {
     dotsEl.className = 'sl-dots';
     items.forEach((_, i) => {
       const d = document.createElement('button');
-      d.className = 'sl-dot' + (i===0?' active':'');
+      d.className = 'sl-dot' + (i === 0 ? ' active' : '');
       d.onclick = e => { e.stopPropagation(); goTo(i); };
       dotsEl.appendChild(d); dots.push(d);
     });
@@ -687,40 +617,30 @@ function buildSlider(items, size, noteId) {
     root.appendChild(counter);
 
     const prevBtn = document.createElement('button');
-    prevBtn.className = 'sl-arrow prev'; prevBtn.innerHTML = '&#8249;'; prevBtn.disabled = true;
+    prevBtn.className = 'sl-arrow prev'; prevBtn.innerHTML = '&#8249;';
     const nextBtn = document.createElement('button');
     nextBtn.className = 'sl-arrow next'; nextBtn.innerHTML = '&#8250;';
 
     function goTo(n) {
-      cur = Math.max(0, Math.min(n, items.length-1));
+      cur = Math.max(0, Math.min(n, items.length - 1));
       track.style.transform = `translateX(-${cur * 100}%)`;
-      dots.forEach((d,i) => d.classList.toggle('active', i===cur));
-      counter.textContent = `${cur+1} / ${items.length}`;
+      dots.forEach((d, i) => d.classList.toggle('active', i === cur));
+      counter.textContent = `${cur + 1} / ${items.length}`;
       prevBtn.disabled = cur === 0;
-      nextBtn.disabled = cur === items.length-1;
+      nextBtn.disabled = cur === items.length - 1;
     }
 
-    function handlePrev(e) {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
-      goTo(cur > 0 ? cur - 1 : items.length - 1);
-    }
-    function handleNext(e) {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
-      goTo(cur < items.length - 1 ? cur + 1 : 0);
-    }
-
-    prevBtn.onclick = handlePrev;
-    nextBtn.onclick = handleNext;
-    prevBtn.disabled = false;
-    nextBtn.disabled = false;
+    prevBtn.onclick = e => { e.preventDefault(); e.stopPropagation(); goTo(cur - 1); };
+    nextBtn.onclick = e => { e.preventDefault(); e.stopPropagation(); goTo(cur + 1); };
+    prevBtn.disabled = false; nextBtn.disabled = false;
     root.appendChild(prevBtn); root.appendChild(nextBtn);
 
-    let tx=0, dragging=false;
-    root.addEventListener('touchstart', e => { tx = e.touches[0].clientX; dragging=true; }, {passive:true});
-    root.addEventListener('touchend',   e => {
-      if (!dragging) return; dragging=false;
+    let tx = 0, dragging = false;
+    root.addEventListener('touchstart', e => { tx = e.touches[0].clientX; dragging = true; }, { passive: true });
+    root.addEventListener('touchend', e => {
+      if (!dragging) return; dragging = false;
       const dx = e.changedTouches[0].clientX - tx;
-      if (Math.abs(dx) > 40) { if (dx < 0) goTo(cur+1); else goTo(cur-1); }
+      if (Math.abs(dx) > 40) { if (dx < 0) goTo(cur + 1); else goTo(cur - 1); }
     });
   }
 
@@ -728,23 +648,18 @@ function buildSlider(items, size, noteId) {
 }
 
 function buildVideoControls(v, item, noteId) {
-  const ctrl = document.createElement('div');
-  ctrl.className = 'vid-controls';
-
-  const prog = document.createElement('input');
-  prog.type='range'; prog.min=0; prog.max=100; prog.value=0; prog.className='vid-progress';
-
-  const bar    = document.createElement('div'); bar.className = 'vid-bar';
-  const btnPP  = document.createElement('button'); btnPP.className='vid-btn'; btnPP.textContent='▶';
-  const timeEl = document.createElement('span');  timeEl.className='vid-time'; timeEl.textContent='0:00 / 0:00';
-  const spacer = document.createElement('div');   spacer.className='vid-spacer';
-  const volEl  = document.createElement('input'); volEl.type='range'; volEl.min=0; volEl.max=1; volEl.step=0.05; volEl.value=0.6; volEl.className='vid-vol';
-  const btnMute= document.createElement('button'); btnMute.className='vid-btn'; btnMute.textContent='♪';
-  const btnFS  = document.createElement('button'); btnFS.className='vid-btn'; btnFS.textContent='⤢';
-
+  const ctrl  = document.createElement('div'); ctrl.className = 'vid-controls';
+  const prog  = document.createElement('input');
+  prog.type = 'range'; prog.min = 0; prog.max = 100; prog.value = 0; prog.className = 'vid-progress';
+  const bar     = document.createElement('div');    bar.className = 'vid-bar';
+  const btnPP   = document.createElement('button'); btnPP.className = 'vid-btn'; btnPP.textContent = '▶';
+  const timeEl  = document.createElement('span');   timeEl.className = 'vid-time'; timeEl.textContent = '0:00 / 0:00';
+  const spacer  = document.createElement('div');    spacer.className = 'vid-spacer';
+  const volEl   = document.createElement('input');  volEl.type = 'range'; volEl.min = 0; volEl.max = 1; volEl.step = 0.05; volEl.value = 0.6; volEl.className = 'vid-vol';
+  const btnMute = document.createElement('button'); btnMute.className = 'vid-btn'; btnMute.textContent = '♪';
+  const btnFS   = document.createElement('button'); btnFS.className = 'vid-btn'; btnFS.textContent = '⤢';
   bar.append(btnPP, timeEl, spacer, volEl, btnMute, btnFS);
   ctrl.append(prog, bar);
-
   v.volume = 0.6;
   let showTimer;
   const showCtrl = () => {
@@ -758,29 +673,29 @@ function buildVideoControls(v, item, noteId) {
     prog.value = (v.currentTime / v.duration) * 100;
     timeEl.textContent = `${fmtDur(v.currentTime)} / ${fmtDur(v.duration)}`;
   });
-  prog.addEventListener('input', e => { e.stopPropagation(); v.currentTime = (prog.value / 100) * (v.duration||0); });
-  v.addEventListener('play',  () => { btnPP.textContent='⏸'; showCtrl(); });
-  v.addEventListener('pause', () => { btnPP.textContent='▶'; });
-
-  btnPP.onclick = e => { e.stopPropagation(); v.paused ? v.play() : v.pause(); };
-  volEl.oninput = e => { e.stopPropagation(); v.volume = parseFloat(volEl.value); v.muted = false; btnMute.textContent='♪'; };
+  prog.addEventListener('input', e => { e.stopPropagation(); v.currentTime = (prog.value / 100) * (v.duration || 0); });
+  v.addEventListener('play',  () => { btnPP.textContent = '⏸'; showCtrl(); });
+  v.addEventListener('pause', () => { btnPP.textContent = '▶'; });
+  btnPP.onclick   = e => { e.stopPropagation(); v.paused ? v.play() : v.pause(); };
+  volEl.oninput   = e => { e.stopPropagation(); v.volume = parseFloat(volEl.value); v.muted = false; btnMute.textContent = '♪'; };
   btnMute.onclick = e => { e.stopPropagation(); v.muted = !v.muted; btnMute.textContent = v.muted ? '🔇' : '♪'; };
   btnFS.onclick   = e => { e.stopPropagation(); v.requestFullscreen?.(); };
   ctrl.addEventListener('click', e => e.stopPropagation());
-
   return ctrl;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-//  DETAIL VIEW  (Tinder-style modal with reactions + comments)
+//  DETAIL  —  Tinder-style full-screen card overlay
+//  Opens when a grid card is clicked; left/right swipe moves between notes
 // ══════════════════════════════════════════════════════════════════════════
 async function openDetail(id) {
   document.getElementById('detailContent').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('detailBars').innerHTML = '';
   openOv('detailOverlay');
   try {
     const note = await api('GET', `/notes/${id}`);
     const i = notes.findIndex(n => n.id === id);
-    if (i !== -1) notes[i] = note;
+    if (i !== -1) { notes[i] = note; detailIdx = i; }
     renderDetail(note);
     playMusic(note);
   } catch (err) {
@@ -794,30 +709,49 @@ function renderDetail(note) {
   const fsCss = note.fontWeight === 'bold italic' ? 'font-weight:bold;font-style:italic'
               : note.fontWeight === 'bold'        ? 'font-weight:bold'
               : note.fontWeight === 'italic'      ? 'font-style:italic' : '';
+
   const allIds = notes.map(n => n.id);
   const idx    = allIds.indexOf(note.id);
-  const prevId = idx > 0               ? allIds[idx-1] : null;
-  const nextId = idx < allIds.length-1 ? allIds[idx+1] : null;
+  const prevId = idx > 0               ? allIds[idx - 1] : null;
+  const nextId = idx < allIds.length-1 ? allIds[idx + 1] : null;
 
+  // ── story progress bars ──
+  const barsEl = document.getElementById('detailBars');
+  barsEl.innerHTML = notes.map((_, i) =>
+    `<div class="td-bar ${i === idx ? 'active' : (i < idx ? 'done' : '')}"></div>`
+  ).join('');
+
+  // ── tap-zone nav ──
+  const tapL = document.getElementById('detailTapLeft');
+  const tapR = document.getElementById('detailTapRight');
+  tapL.style.display = prevId ? 'flex' : 'none';
+  tapR.style.display = nextId ? 'flex' : 'none';
+  tapL.onclick = () => { detailIdx = idx - 1; openDetail(prevId); };
+  tapR.onclick = () => { detailIdx = idx + 1; openDetail(nextId); };
+
+  // ── reactions ──
   const reactHtml = Object.entries(note.reactions||{}).filter(([,v])=>v>0)
     .map(([e,c]) => {
       const isUser = (note.userReactions||[]).includes(e);
-      return `<span class="rcnt btn-react" data-id="${note.id}" data-em="${e}" style="cursor:pointer;background:${isUser?'var(--accent-bg)':'var(--bg)'};border-color:${isUser?'var(--accent-border)':'var(--border)'}">${e} <b>${c}</b></span>`;
+      return `<span class="rcnt btn-react" data-id="${note.id}" data-em="${e}"
+        style="cursor:pointer;background:${isUser?'var(--accent-bg)':'var(--bg)'};border-color:${isUser?'var(--accent-border)':'var(--border)'}">
+        ${e} <b>${c}</b></span>`;
     }).join('') || `<span style="color:var(--ink4);font-size:12px;font-family:var(--sans)">Be the first to react!</span>`;
 
+  // ── replies ──
   const repliesHtml = (note.replies||[]).map(r => {
     const canEdit = currentUser && (r.userId === currentUser.userId || isOwner);
     const replyReacts = Object.entries(r.reactions||{}).filter(([,v])=>v>0)
       .map(([e,c]) => {
         const isUser = (r.userReactions||[]).includes(e);
-        return `<span class="react-chip btn-reply-react" data-nid="${note.id}" data-rid="${r.id}" data-em="${e}" style="font-size:11px;padding:2px 7px;cursor:pointer;background:${isUser?'var(--accent-bg)':'var(--bg)'};border-color:${isUser?'var(--accent-border)':'var(--border)'};font-weight:${isUser?'700':'400'}">${e} ${c}</span>`;
+        return `<span class="react-chip btn-reply-react" data-nid="${note.id}" data-rid="${r.id}" data-em="${e}"
+          style="font-size:11px;padding:2px 7px;cursor:pointer;background:${isUser?'var(--accent-bg)':'var(--bg)'};border-color:${isUser?'var(--accent-border)':'var(--border)'};font-weight:${isUser?'700':'400'}">${e} ${c}</span>`;
       }).join('');
-    const quickReplyReacts = ['❤️','😂','🔥','😍','👏']
-      .map(e => {
-        const isUser = (r.userReactions||[]).includes(e);
-        return `<button class="btn-reply-react" data-nid="${note.id}" data-rid="${r.id}" data-em="${e}" style="background:${isUser?'var(--accent-bg)':'none'};border:${isUser?'1px solid var(--accent-border)':'1px solid transparent'};cursor:pointer;font-size:13px;padding:1px 4px;border-radius:4px;transform:${isUser?'scale(1.15)':'none'}" title="${isUser?'Remove '+e:'React '+e}">${e}</button>`;
-      }).join('');
-
+    const quickReplyReacts = ['❤️','😂','🔥','😍','👏'].map(e => {
+      const isUser = (r.userReactions||[]).includes(e);
+      return `<button class="btn-reply-react" data-nid="${note.id}" data-rid="${r.id}" data-em="${e}"
+        style="background:${isUser?'var(--accent-bg)':'none'};border:${isUser?'1px solid var(--accent-border)':'1px solid transparent'};cursor:pointer;font-size:13px;padding:1px 4px;border-radius:4px;transform:${isUser?'scale(1.15)':'none'}">${e}</button>`;
+    }).join('');
     return `
     <div class="reply-item" data-rid="${r.id}">
       <div class="reply-author">
@@ -829,62 +763,72 @@ function renderDetail(note) {
         <div style="display:flex;flex-wrap:wrap;gap:4px">${replyReacts}</div>
         <div style="display:flex;gap:2px">${quickReplyReacts}</div>
       </div>
-      ${canEdit ? `
-      <div class="reply-admin-btns" style="margin-top:6px">
+      ${canEdit ? `<div class="reply-admin-btns" style="margin-top:6px">
         <button class="btn btn-dark btn-xs btn-redit" data-nid="${note.id}" data-rid="${r.id}">✏️ Edit</button>
         <button class="btn btn-red  btn-xs btn-rdel"  data-nid="${note.id}" data-rid="${r.id}">🗑 Del</button>
       </div>` : ''}
     </div>`;
-  }).join('') ||
-    `<p style="color:var(--ink4);font-size:12px;font-style:italic;font-family:var(--sans)">No replies yet.</p>`;
+  }).join('') || `<p style="color:var(--ink4);font-size:12px;font-style:italic;font-family:var(--sans)">No replies yet.</p>`;
 
-  const cont = document.getElementById('detailContent');
-  cont.className = 'fade-enter';
-  cont.innerHTML = `
-    <div class="detail-header">
-      <h2 class="detail-title" style="font-family:${esc(note.font)};color:${p.accent}">${esc(note.title)}</h2>
-    </div>
-    <div class="detail-meta">
-      <span>📅 ${fmtDate(note.createdAt)} · ${fmtTime(note.createdAt)}</span>
-      ${isOwner ? `<span>👁 ${note.views} views</span>` : ''}
-      ${note.editedAt ? `<span>✏️ Edited ${fmtDate(note.editedAt)}</span>` : ''}
-      <span>💬 ${(note.replies||[]).length} ${(note.replies||[]).length===1?'reply':'replies'}</span>
-    </div>
-    ${note.musicUrl ? `<div style="font-size:12px;color:var(--accent);margin-bottom:12px;font-style:italic;font-family:var(--sans)">♫ Background music is playing</div>` : ''}
-    <div id="mediaMount" style="margin-bottom:${note.media?.length?'18px':'0'}"></div>
-    <div class="detail-body" style="font-family:${esc(note.font)};font-size:${note.fontSize||14}px;${fsCss};border-left-color:${p.accent}">${esc(note.body)}</div>
-    <hr class="sep">
-    <div class="section-label">React</div>
-    <div class="emoji-grid">${EMOJIS.map(e=>{
-      const isUser = (note.userReactions||[]).includes(e);
-      return `<button class="emoji-btn btn-react" data-em="${e}" data-id="${note.id}" style="${isUser?'background:var(--accent-bg);border-color:var(--accent);transform:scale(1.12)':''}" title="${isUser?'Remove '+e:'React '+e}">${e}</button>`;
-    }).join('')}</div>
-    <div class="react-display" id="rdisplay">${reactHtml}</div>
-    <hr class="sep">
-    <div class="section-label">💬 Replies (${(note.replies||[]).length})</div>
-    <div class="reply-list" id="replyList">${repliesHtml}</div>
-    <div class="reply-form">
-      <input type="text" id="rName" placeholder="${currentUser ? (currentUser.displayName||currentUser.username) : 'Your name (optional)'}" ${currentUser?'disabled':''}>
-      <textarea id="rText" placeholder="Share your thoughts or feelings…"></textarea>
-      <button class="btn btn-gold btn-sm btn-rpost" data-id="${note.id}" style="align-self:flex-end">Post Reply</button>
-    </div>
-    <div class="swipe-nav">
-      ${prevId ? `<button class="btn btn-dark btn-sm btn-prev" data-id="${prevId}">← Prev</button>` : '<span></span>'}
-      ${nextId ? `<button class="btn btn-dark btn-sm btn-next" data-id="${nextId}">Next →</button>` : '<span></span>'}
-    </div>
-    ${isOwner ? `
-    <div class="admin-note-bar">
-      <span class="admin-bar-label">Owner</span>
-      <button class="btn btn-ghost btn-sm btn-dedit" data-id="${note.id}">✏️ Edit Entry</button>
-      <button class="btn btn-red   btn-sm btn-ddel"  data-id="${note.id}">🗑 Delete Entry</button>
-    </div>` : ''}`;
-
-  if (note.media?.length) {
-    const sl = buildSlider(note.media, 'detail', note.id);
-    if (sl) document.getElementById('mediaMount').appendChild(sl);
+  // ── render tinder detail body ──
+  // Top cover: if media exists show it full-width; else coloured title bg
+  let coverHtml = '';
+  if (note.media && note.media.length) {
+    coverHtml = `<div id="tdMediaMount" class="td-cover-media"></div>`;
+  } else {
+    coverHtml = `<div class="td-cover-textbg" style="background:${p.bg}">
+      <div class="td-cover-title" style="color:${p.accent};font-family:${esc(note.font)}">${esc(note.title)}</div>
+    </div>`;
   }
 
-  // ── events ─────────────────────────────────────────────────────────────
+  const cont = document.getElementById('detailContent');
+  cont.className = 'tinder-card-body fade-enter';
+  cont.innerHTML = `
+    ${coverHtml}
+    <div class="td-body">
+      <div class="detail-header">
+        <h2 class="detail-title" style="font-family:${esc(note.font)};color:${p.accent}">${esc(note.title)}</h2>
+      </div>
+      <div class="detail-meta">
+        <span>📅 ${fmtDate(note.createdAt)} · ${fmtTime(note.createdAt)}</span>
+        ${isOwner ? `<span>👁 ${note.views} views</span>` : ''}
+        ${note.editedAt ? `<span>✏️ Edited ${fmtDate(note.editedAt)}</span>` : ''}
+        <span>💬 ${(note.replies||[]).length} ${(note.replies||[]).length===1?'reply':'replies'}</span>
+      </div>
+      ${note.musicUrl ? `<div style="font-size:12px;color:var(--accent);margin-bottom:12px;font-style:italic;font-family:var(--sans)">♫ Background music is playing</div>` : ''}
+      <div class="detail-body" style="font-family:${esc(note.font)};font-size:${note.fontSize||14}px;${fsCss};border-left-color:${p.accent}">${esc(note.body)}</div>
+      <hr class="sep">
+      <div class="section-label">React</div>
+      <div class="emoji-grid">${EMOJIS.map(e => {
+        const isUser = (note.userReactions||[]).includes(e);
+        return `<button class="emoji-btn btn-react" data-em="${e}" data-id="${note.id}"
+          style="${isUser?'background:var(--accent-bg);border-color:var(--accent);transform:scale(1.12)':''}">${e}</button>`;
+      }).join('')}</div>
+      <div class="react-display" id="rdisplay">${reactHtml}</div>
+      <hr class="sep">
+      <div class="section-label">💬 Replies (${(note.replies||[]).length})</div>
+      <div class="reply-list" id="replyList">${repliesHtml}</div>
+      <div class="reply-form">
+        <input type="text" id="rName" placeholder="${currentUser?(currentUser.displayName||currentUser.username):'Your name (optional)'}" ${currentUser?'disabled':''}>
+        <textarea id="rText" placeholder="Share your thoughts or feelings…"></textarea>
+        <button class="btn btn-gold btn-sm btn-rpost" data-id="${note.id}" style="align-self:flex-end">Post Reply</button>
+      </div>
+      ${isOwner ? `
+      <div class="admin-note-bar">
+        <span class="admin-bar-label">Owner</span>
+        <button class="btn btn-ghost btn-sm btn-dedit" data-id="${note.id}">✏️ Edit Entry</button>
+        <button class="btn btn-red   btn-sm btn-ddel"  data-id="${note.id}">🗑 Delete Entry</button>
+      </div>` : ''}
+    </div>`;
+
+  // mount media slider into cover area
+  if (note.media?.length) {
+    const sl = buildSlider(note.media, 'detail', note.id);
+    const mount = document.getElementById('tdMediaMount');
+    if (sl && mount) mount.appendChild(sl);
+  }
+
+  // ── events ──────────────────────────────────────────────────────────────
   cont.querySelector('.btn-dedit')?.addEventListener('click', () => {
     closeOv('detailOverlay'); openEditForm(note);
   });
@@ -904,7 +848,7 @@ function renderDetail(note) {
         await api('DELETE', `/upload/${btn.dataset.nid}/${btn.dataset.mid}`);
         const up = await api('GET', `/notes/${btn.dataset.nid}`);
         const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
-        renderTinder(); renderDetail(up); toast('Removed 🗑');
+        renderGrid(); renderDetail(up); toast('Removed 🗑');
       } catch (err) { toast('Error: ' + err.message); }
     };
   });
@@ -912,14 +856,13 @@ function renderDetail(note) {
   cont.querySelectorAll('.btn-react').forEach(btn => {
     btn.onclick = async () => {
       try {
-        const noteObj = notes.find(x => x.id === btn.dataset.id);
-        const hadReacted = (noteObj?.userReactions || []).includes(btn.dataset.em);
+        const noteObj    = notes.find(x => x.id === btn.dataset.id);
+        const hadReacted = (noteObj?.userReactions||[]).includes(btn.dataset.em);
         const res = await api('POST', `/notes/${btn.dataset.id}/react`, { emoji: btn.dataset.em });
-        const up = await api('GET', `/notes/${btn.dataset.id}`);
-        const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
-        renderDetail(up); renderTinder();
-        const isAdded = res.isReacted !== undefined ? res.isReacted : !hadReacted;
-        toast(isAdded ? 'Reacted ' + btn.dataset.em : 'Removed ' + btn.dataset.em);
+        const up  = await api('GET', `/notes/${btn.dataset.id}`);
+        const i   = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
+        renderDetail(up); renderGrid();
+        toast((res.isReacted ?? !hadReacted) ? 'Reacted ' + btn.dataset.em : 'Removed ' + btn.dataset.em);
       } catch (err) { toast('Error: ' + err.message); }
     };
   });
@@ -927,14 +870,13 @@ function renderDetail(note) {
   cont.querySelectorAll('.btn-reply-react').forEach(btn => {
     btn.onclick = async () => {
       try {
-        const replyObj = (note.replies || []).find(x => x.id === btn.dataset.rid);
-        const hadReacted = (replyObj?.userReactions || []).includes(btn.dataset.em);
+        const replyObj   = (note.replies||[]).find(x => x.id === btn.dataset.rid);
+        const hadReacted = (replyObj?.userReactions||[]).includes(btn.dataset.em);
         const res = await api('POST', `/notes/${btn.dataset.nid}/replies/${btn.dataset.rid}/react`, { emoji: btn.dataset.em });
-        const up = await api('GET', `/notes/${btn.dataset.nid}`);
-        const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
-        renderDetail(up); renderTinder();
-        const isAdded = res.isReacted !== undefined ? res.isReacted : !hadReacted;
-        toast(isAdded ? 'Reacted ' + btn.dataset.em : 'Removed ' + btn.dataset.em);
+        const up  = await api('GET', `/notes/${btn.dataset.nid}`);
+        const i   = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
+        renderDetail(up); renderGrid();
+        toast((res.isReacted ?? !hadReacted) ? 'Reacted ' + btn.dataset.em : 'Removed ' + btn.dataset.em);
       } catch (err) { toast('Error: ' + err.message); }
     };
   });
@@ -946,16 +888,16 @@ function renderDetail(note) {
         await api('DELETE', `/notes/${btn.dataset.nid}/replies/${btn.dataset.rid}`);
         const up = await api('GET', `/notes/${btn.dataset.nid}`);
         const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
-        renderDetail(up); renderTinder(); toast('Reply deleted');
+        renderDetail(up); renderGrid(); toast('Reply deleted');
       } catch (err) { toast('Error: ' + err.message); }
     };
   });
 
   cont.querySelectorAll('.btn-redit').forEach(btn => {
     btn.onclick = () => {
-      const rid  = btn.dataset.rid;
-      const nid  = btn.dataset.nid;
-      const item = cont.querySelector(`.reply-item[data-rid="${rid}"]`);
+      const rid   = btn.dataset.rid;
+      const nid   = btn.dataset.nid;
+      const item  = cont.querySelector(`.reply-item[data-rid="${rid}"]`);
       if (!item) return;
       const txtEl = item.querySelector(`#rtxt-${rid}`);
       const cur   = txtEl.textContent;
@@ -964,12 +906,9 @@ function renderDetail(note) {
       ta.className = 'reply-edit-ta';
       ta.value = cur;
       ta.style.cssText = 'width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg);color:var(--ink);font-family:var(--serif);font-size:13px;resize:vertical;min-height:60px;margin-top:6px;';
-      const saveBtn = document.createElement('button');
-      saveBtn.className = 'btn btn-gold btn-xs'; saveBtn.textContent = 'Save'; saveBtn.style.marginTop = '6px';
-      const cancelBtn = document.createElement('button');
-      cancelBtn.className = 'btn btn-dark btn-xs'; cancelBtn.textContent = 'Cancel'; cancelBtn.style.marginTop = '6px';
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;gap:6px;margin-top:4px;';
+      const saveBtn   = document.createElement('button'); saveBtn.className   = 'btn btn-gold btn-xs'; saveBtn.textContent   = 'Save';   saveBtn.style.marginTop   = '6px';
+      const cancelBtn = document.createElement('button'); cancelBtn.className = 'btn btn-dark btn-xs'; cancelBtn.textContent = 'Cancel'; cancelBtn.style.marginTop = '6px';
+      const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:6px;margin-top:4px;';
       row.append(saveBtn, cancelBtn);
       item.append(ta, row); ta.focus();
       cancelBtn.onclick = () => { ta.remove(); row.remove(); txtEl.style.display = ''; };
@@ -980,7 +919,7 @@ function renderDetail(note) {
           await api('PUT', `/notes/${nid}/replies/${rid}`, { text: newText });
           const up = await api('GET', `/notes/${nid}`);
           const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
-          renderDetail(up); renderTinder(); toast('Reply updated ✅');
+          renderDetail(up); renderGrid(); toast('Reply updated ✅');
         } catch (err) { toast('Error: ' + err.message); }
       };
     };
@@ -996,22 +935,11 @@ function renderDetail(note) {
       await api('POST', `/notes/${note.id}/replies`, { name, text });
       const up = await api('GET', `/notes/${note.id}`);
       const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
-      renderDetail(up); renderTinder(); toast('Reply posted 💬');
+      renderDetail(up); renderGrid(); toast('Reply posted 💬');
     } catch (err) { toast('Error: ' + err.message); }
   });
 
-  cont.querySelector('.btn-prev')?.addEventListener('click', () => {
-    const pid = cont.querySelector('.btn-prev').dataset.id;
-    tinderIdx = notes.findIndex(n => n.id === pid);
-    openDetail(pid);
-  });
-  cont.querySelector('.btn-next')?.addEventListener('click', () => {
-    const nid = cont.querySelector('.btn-next').dataset.id;
-    tinderIdx = notes.findIndex(n => n.id === nid);
-    openDetail(nid);
-  });
-
-  // swipe between notes in detail overlay
+  // touch swipe between notes inside the detail card
   const modal = document.getElementById('detailModal');
   let sx = 0, sy = 0;
   modal.ontouchstart = e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; };
@@ -1020,23 +948,45 @@ function renderDetail(note) {
     const dx = e.changedTouches[0].clientX - sx;
     const dy = e.changedTouches[0].clientY - sy;
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 48) {
-      if (dx < 0 && nextId) { tinderIdx = allIds.indexOf(nextId); openDetail(nextId); }
-      else if (dx > 0 && prevId) { tinderIdx = allIds.indexOf(prevId); openDetail(prevId); }
+      if (dx < 0 && nextId) { detailIdx = allIds.indexOf(nextId); openDetail(nextId); }
+      else if (dx > 0 && prevId) { detailIdx = allIds.indexOf(prevId); openDetail(prevId); }
     }
   };
 }
 
+// keyboard left/right when detail is open
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('detailOverlay').classList.contains('open')) return;
+  if (document.getElementById('formOverlay').classList.contains('open')) return;
+  const allIds = notes.map(n => n.id);
+  const prevId = detailIdx > 0               ? allIds[detailIdx - 1] : null;
+  const nextId = detailIdx < allIds.length-1 ? allIds[detailIdx + 1] : null;
+  if (e.key === 'ArrowRight' && nextId) { detailIdx++; openDetail(nextId); }
+  if (e.key === 'ArrowLeft'  && prevId) { detailIdx--; openDetail(prevId); }
+});
+
 // ── MUSIC ──────────────────────────────────────────────────────────────────
 function playMusic(note) {
-  if (!note.musicUrl) { audio.pause(); audio.src=''; document.getElementById('musicBar').classList.remove('active'); return; }
+  if (!note.musicUrl) {
+    audio.pause(); audio.src = '';
+    document.getElementById('musicBar').classList.remove('active');
+    return;
+  }
   if (audio.src !== note.musicUrl) { audio.src = note.musicUrl; audio.volume = 0.6; }
-  audio.play().catch(()=>{});
+  audio.play().catch(() => {});
   document.getElementById('musicTitle').textContent = note.title || 'Playing…';
   document.getElementById('musicBar').classList.add('active');
 }
 document.getElementById('btnMPP').onclick = () => {
-  if (audio.paused) { audio.play(); document.getElementById('musicBar').classList.remove('paused'); document.getElementById('btnMPP').textContent='⏸'; }
-  else              { audio.pause(); document.getElementById('musicBar').classList.add('paused');    document.getElementById('btnMPP').textContent='▶'; }
+  if (audio.paused) {
+    audio.play();
+    document.getElementById('musicBar').classList.remove('paused');
+    document.getElementById('btnMPP').textContent = '⏸';
+  } else {
+    audio.pause();
+    document.getElementById('musicBar').classList.add('paused');
+    document.getElementById('btnMPP').textContent = '▶';
+  }
 };
 document.getElementById('btnMute').onclick = () => {
   audio.muted = !audio.muted;
