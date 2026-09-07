@@ -261,6 +261,24 @@
 
 <div id="toast"></div>
 <audio id="bgAudio" loop></audio>
+
+<!-- ══ STICKER LAYER ═══════════════════════════════════════════════════════ -->
+<div id="stickerLayer"></div>
+
+<div id="stickerPanel" class="sticker-panel hidden">
+  <div class="sticker-panel-title">✦ Decorations</div>
+  <label class="sticker-upload-btn" title="Upload PNG / image to place on page">
+    <input type="file" id="stickerFileInput" accept="image/*" multiple style="display:none">
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+      <line x1="6.5" y1="1" x2="6.5" y2="12"/><line x1="1" y1="6.5" x2="12" y2="6.5"/>
+    </svg>
+    Add image
+  </label>
+  <button class="sticker-clear-btn" id="stickerClearAll">🗑 Clear all</button>
+</div>
+
+<button id="stickerToggle" class="sticker-toggle hidden" title="Add decorative stickers">🌸</button>
+
 <script src="/js/app.js"></script>
 </body>
 </html>

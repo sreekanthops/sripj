@@ -267,6 +267,8 @@ async function enterOwnDiary() {
   buildSwatches(0);
   setupUploadZone();
   showApp();
+  window._stickerSetOwner?.(true);
+  window._stickerLoad?.();
   await loadAndRender();
 }
 
@@ -288,6 +290,8 @@ async function enterPublicDiary(username) {
     buildSwatches(0);
     setupUploadZone();
     showApp();
+    window._stickerSetOwner?.(isOwner);
+    window._stickerLoad?.();
     renderGrid();
   } catch {
     if (!currentUser) { showAuth(); } else { toast('Diary not found'); await enterOwnDiary(); }
@@ -1311,4 +1315,286 @@ document.getElementById('musicVol').oninput = e => {
   } else {
     showAuth();
   }
+})();
+
+// ══════════════════════════════════════════════════════════════════════════
+//  STICKER SYSTEM  — upload PNG, drag anywhere, rotate, resize, persist
+// ══════════════════════════════════════════════════════════════════════════
+;(function initStickers() {
+  const layer       = document.getElementById('stickerLayer');
+  const panel       = document.getElementById('stickerPanel');
+  const toggleBtn   = document.getElementById('stickerToggle');
+  const fileInput   = document.getElementById('stickerFileInput');
+  const clearAllBtn = document.getElementById('stickerClearAll');
+  if (!layer || !panel || !toggleBtn) return;
+
+  // Storage key per diary page (username from URL or 'own')
+  function storageKey() {
+    const m = location.pathname.match(/\/u\/([^/]+)/);
+    return 'stickers_' + (m ? m[1] : 'home');
+  }
+
+  // ── State ──────────────────────────────────────────────────────────────
+  let stickers = [];   // [{ id, src, x, y, w, rot }]
+
+  // ── Persistence ────────────────────────────────────────────────────────
+  function save() {
+    // Store everything except the full base64 src — store it directly (it's already base64)
+    try {
+      const data = stickers.map(s => ({
+        id: s.id, src: s.src,
+        x: Math.round(s.x), y: Math.round(s.y),
+        w: Math.round(s.w), rot: Math.round(s.rot * 100) / 100
+      }));
+      localStorage.setItem(storageKey(), JSON.stringify(data));
+    } catch(e) { /* storage quota */ }
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(storageKey());
+      if (!raw) return;
+      JSON.parse(raw).forEach(d => createSticker(d.src, d.x, d.y, d.w, d.rot, d.id));
+    } catch(e) {}
+  }
+
+  // ── Create a sticker DOM element ────────────────────────────────────────
+  function createSticker(src, x, y, w, rot, id) {
+    id  = id  || ('s' + Date.now() + Math.random().toString(36).slice(2,6));
+    x   = x  ?? (window.innerWidth  * 0.3 + Math.random() * window.innerWidth  * 0.3);
+    y   = y  ?? (window.innerHeight * 0.2 + Math.random() * window.innerHeight * 0.4);
+    w   = w  ?? 140;
+    rot = rot ?? 0;
+
+    const state = { id, src, x, y, w, rot };
+    stickers.push(state);
+
+    const el = document.createElement('div');
+    el.className = 'sticker';
+    el.dataset.id = id;
+
+    // Size & position & rotation
+    function applyTransform() {
+      el.style.left   = state.x + 'px';
+      el.style.top    = state.y + 'px';
+      el.style.width  = state.w + 'px';
+      el.style.height = state.w + 'px';   // square bounding box
+      el.style.transform = `rotate(${state.rot}deg)`;
+    }
+    applyTransform();
+
+    // Image
+    const img = document.createElement('img');
+    img.src = src;
+    img.draggable = false;
+    el.appendChild(img);
+
+    // ── Controls bar ──────────────────────────────────────────────────────
+    const controls = document.createElement('div');
+    controls.className = 'sticker-controls';
+
+    // Rotate left -15°
+    const btnRotL = document.createElement('button');
+    btnRotL.className = 'sticker-btn';
+    btnRotL.title = 'Rotate left';
+    btnRotL.textContent = '↺';
+    btnRotL.addEventListener('pointerdown', e => { e.stopPropagation(); state.rot -= 15; applyTransform(); save(); });
+    controls.appendChild(btnRotL);
+
+    // Rotate right +15°
+    const btnRotR = document.createElement('button');
+    btnRotR.className = 'sticker-btn';
+    btnRotR.title = 'Rotate right';
+    btnRotR.textContent = '↻';
+    btnRotR.addEventListener('pointerdown', e => { e.stopPropagation(); state.rot += 15; applyTransform(); save(); });
+    controls.appendChild(btnRotR);
+
+    // Shrink
+    const btnShrink = document.createElement('button');
+    btnShrink.className = 'sticker-btn';
+    btnShrink.title = 'Shrink';
+    btnShrink.textContent = '−';
+    btnShrink.addEventListener('pointerdown', e => { e.stopPropagation(); state.w = Math.max(40, state.w - 20); applyTransform(); save(); });
+    controls.appendChild(btnShrink);
+
+    // Grow
+    const btnGrow = document.createElement('button');
+    btnGrow.className = 'sticker-btn';
+    btnGrow.title = 'Grow';
+    btnGrow.textContent = '+';
+    btnGrow.addEventListener('pointerdown', e => { e.stopPropagation(); state.w = Math.min(600, state.w + 20); applyTransform(); save(); });
+    controls.appendChild(btnGrow);
+
+    // Delete
+    const btnDel = document.createElement('button');
+    btnDel.className = 'sticker-btn';
+    btnDel.title = 'Remove';
+    btnDel.textContent = '✕';
+    btnDel.style.background = 'rgba(184,50,50,.6)';
+    btnDel.addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      el.remove();
+      stickers = stickers.filter(s => s.id !== id);
+      save();
+    });
+    controls.appendChild(btnDel);
+
+    el.appendChild(controls);
+
+    // ── Free-rotate handle (top-right corner) ─────────────────────────────
+    const rotHandle = document.createElement('div');
+    rotHandle.className = 'sticker-rotate-handle';
+    rotHandle.title = 'Drag to rotate';
+    rotHandle.textContent = '⟳';
+
+    let rotatingSticker = false;
+    let rotStartAngle = 0, rotStartRot = 0;
+
+    function getAngle(e) {
+      const rect = el.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top  + rect.height / 2;
+      const px = e.clientX ?? (e.touches?.[0]?.clientX ?? cx);
+      const py = e.clientY ?? (e.touches?.[0]?.clientY ?? cy);
+      return Math.atan2(py - cy, px - cx) * (180 / Math.PI);
+    }
+
+    rotHandle.addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      rotHandle.setPointerCapture(e.pointerId);
+      rotatingSticker = true;
+      rotStartAngle   = getAngle(e);
+      rotStartRot     = state.rot;
+      el.classList.add('active');
+    });
+    rotHandle.addEventListener('pointermove', e => {
+      if (!rotatingSticker) return;
+      const delta = getAngle(e) - rotStartAngle;
+      state.rot = rotStartRot + delta;
+      applyTransform();
+    });
+    rotHandle.addEventListener('pointerup', e => {
+      rotatingSticker = false;
+      el.classList.remove('active');
+      save();
+    });
+    el.appendChild(rotHandle);
+
+    // ── Resize handle (bottom-right corner) ───────────────────────────────
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'sticker-resize-handle';
+    resizeHandle.title = 'Drag to resize';
+
+    let resizing = false, resizeStartX = 0, resizeStartW = 0;
+
+    resizeHandle.addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      resizeHandle.setPointerCapture(e.pointerId);
+      resizing     = true;
+      resizeStartX = e.clientX;
+      resizeStartW = state.w;
+      el.classList.add('active');
+    });
+    resizeHandle.addEventListener('pointermove', e => {
+      if (!resizing) return;
+      const delta = e.clientX - resizeStartX;
+      state.w = Math.max(40, Math.min(600, resizeStartW + delta));
+      applyTransform();
+    });
+    resizeHandle.addEventListener('pointerup', () => {
+      resizing = false;
+      el.classList.remove('active');
+      save();
+    });
+    el.appendChild(resizeHandle);
+
+    // ── Drag to move ───────────────────────────────────────────────────────
+    let dragging = false, dragOX = 0, dragOY = 0;
+
+    el.addEventListener('pointerdown', e => {
+      // Don't start drag if clicking a handle or control button
+      if (e.target.closest('.sticker-controls') ||
+          e.target.closest('.sticker-rotate-handle') ||
+          e.target.closest('.sticker-resize-handle')) return;
+      dragging = true;
+      dragOX   = e.clientX - state.x;
+      dragOY   = e.clientY - state.y;
+      el.setPointerCapture(e.pointerId);
+      el.classList.add('active');
+      el.style.zIndex = '200';
+    });
+    el.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      state.x = e.clientX - dragOX;
+      state.y = e.clientY - dragOY;
+      applyTransform();
+    });
+    el.addEventListener('pointerup', () => {
+      dragging = false;
+      el.classList.remove('active');
+      el.style.zIndex = '';
+      save();
+    });
+
+    layer.appendChild(el);
+    return el;
+  }
+
+  // ── File input → create sticker ─────────────────────────────────────────
+  fileInput.addEventListener('change', () => {
+    Array.from(fileInput.files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        createSticker(e.target.result);
+        save();
+        toast('Sticker added 🌸 — drag it anywhere!');
+      };
+      reader.readAsDataURL(file);
+    });
+    fileInput.value = '';
+  });
+
+  // ── Clear all ────────────────────────────────────────────────────────────
+  clearAllBtn.addEventListener('click', () => {
+    layer.innerHTML = '';
+    stickers = [];
+    save();
+    toast('All stickers removed');
+  });
+
+  // ── Toggle panel ─────────────────────────────────────────────────────────
+  toggleBtn.addEventListener('click', () => {
+    const open = !panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', open);
+    toggleBtn.classList.toggle('active', !open);
+  });
+  // Close panel when clicking outside
+  document.addEventListener('pointerdown', e => {
+    if (!panel.classList.contains('hidden') &&
+        !panel.contains(e.target) &&
+        e.target !== toggleBtn) {
+      panel.classList.add('hidden');
+      toggleBtn.classList.remove('active');
+    }
+  }, true);
+
+  // ── Show/hide toggle based on ownership ──────────────────────────────────
+  // Called after login/diary load
+  window._stickerSetOwner = function(owner) {
+    toggleBtn.classList.toggle('hidden', !owner);
+    if (!owner) {
+      panel.classList.add('hidden');
+      toggleBtn.classList.remove('active');
+    }
+  };
+
+  // Load persisted stickers on boot
+  // (delayed slightly so URL routing has settled)
+  window._stickerLoad = function() {
+    layer.innerHTML = '';
+    stickers = [];
+    load();
+  };
 })();
