@@ -254,6 +254,69 @@ footer {
   text-transform: uppercase;
 }
 
+/* ── Time-filter bar ── */
+.tf-bar {
+  padding: 20px 0 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+.tf-pills {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.tf-pill {
+  padding: 7px 18px; border-radius: 99px;
+  font-size: 12px; font-weight: 600; font-family: var(--sans);
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--ink3); cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.tf-pill:hover { background: var(--surface3); color: var(--ink2); }
+.tf-pill.active {
+  background: var(--gold); border-color: var(--gold2); color: #1a1208;
+}
+
+/* sub-row: week buttons inside month, or month buttons inside year */
+.tf-sub-row {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-top: 10px;
+}
+.tf-sub-btn {
+  padding: 5px 14px; border-radius: 99px;
+  font-size: 11px; font-weight: 600; font-family: var(--sans);
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--ink3); cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.tf-sub-btn:hover { background: var(--surface2); color: var(--ink2); }
+.tf-sub-btn.active { background: var(--gold2); border-color: var(--gold2); color: #1a1208; }
+
+/* Week-group heading inside grid */
+.week-group-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--ink4);
+  padding: 2px 0 10px;
+  grid-column: 1 / -1;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+/* Pagination */
+.notes-pager {
+  display: flex; justify-content: center; gap: 8px;
+  padding: 32px 0 12px; flex-wrap: wrap;
+}
+.pager-btn {
+  padding: 8px 18px; border-radius: var(--r2);
+  font-size: 13px; font-weight: 600; font-family: var(--sans);
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--ink2); cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.pager-btn:hover { background: var(--surface3); color: var(--ink); }
+.pager-btn.active { background: var(--gold); border-color: var(--gold2); color: #1a1208; }
+
 /* ── Notes header / entry count ── */
 .notes-header {
   margin-bottom: 16px;
@@ -270,10 +333,10 @@ footer {
    NOTES GRID  —  masonry-feel auto columns
 ══════════════════════════════════════════════════════ */
 #notesGrid {
-  columns: 3 320px;
-  column-gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
 }
-#notesGrid > * { break-inside: avoid; margin-bottom: 16px; }
 
 /* skeleton */
 .skeleton {
@@ -294,6 +357,7 @@ footer {
   cursor: pointer;
   overflow: hidden;
   display: flex; flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18), 0 1px 2px rgba(0,0,0,.12);
   transition: transform .3s var(--slow), box-shadow .3s var(--slow), border-color .25s;
   position: relative;
 }

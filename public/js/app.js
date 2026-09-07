@@ -27,6 +27,12 @@ let detailIdx    = 0;   // current note index inside the tinder detail overlay
 let activeTag    = null;
 let pendingTags  = [];
 
+// ── TIME FILTER STATE ──────────────────────────────────────────────────────
+let tfMode      = 'week';   // 'week' | 'month' | 'year' | 'all'
+let tfSubKey    = null;     // e.g. '2025-06' for month mode, or '2025-W23' for year drill-down
+let allPage     = 1;        // current page in 'all' mode
+const PER_PAGE  = 50;
+
 const audio = document.getElementById('bgAudio');
 
 // ── PAGE VIEW TRACKING ──────────────────────────────────────────────────────
@@ -489,21 +495,139 @@ document.getElementById('btnClearFilter').onclick = () => {
   updateClearBtn(); loadAndRender();
 };
 
-// ── SORT ───────────────────────────────────────────────────────────────────
-function getSortedFilteredNotes() {
+document.getElementById('sortSelect').onchange = renderGrid;
+
+// ── TIME FILTER HELPERS ────────────────────────────────────────────────────
+function isoWeekKey(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const year = d.getUTCFullYear();
+  const week = Math.ceil(((d - Date.UTC(year, 0, 1)) / 86400000 + 1) / 7);
+  return `${year}-W${String(week).padStart(2, '00')}`;
+}
+function weekLabel(key) {
+  const [y, w] = key.split('-W').map(Number);
+  const jan4 = new Date(Date.UTC(y, 0, 4));
+  const dow = jan4.getUTCDay() || 7;
+  const monday = new Date(jan4); monday.setUTCDate(jan4.getUTCDate() - dow + 1 + (w - 1) * 7);
+  const sunday = new Date(monday); sunday.setUTCDate(monday.getUTCDate() + 6);
+  const fmt = d => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', timeZone: 'UTC' });
+  return `${fmt(monday)} — ${fmt(sunday)}`;
+}
+function monthKey(date) { return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'00')}`; }
+function monthLabel(key) {
+  const [y, m] = key.split('-').map(Number);
+  return new Date(y, m-1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+}
+
+function getTimeFilteredNotes() {
   let list = activeTag ? notes.filter(n => (n.tags||[]).includes(activeTag)) : notes;
   const sortKey = document.getElementById('sortSelect')?.value || 'newest';
   const totalReact = n => Object.values(n.reactions||{}).reduce((a,b)=>a+b,0);
   switch (sortKey) {
-    case 'oldest':         return [...list].sort((a,b) => a.createdAt.localeCompare(b.createdAt));
-    case 'most-reactions': return [...list].sort((a,b) => totalReact(b) - totalReact(a));
-    case 'most-comments':  return [...list].sort((a,b) => (b.replies?.length||0) - (a.replies?.length||0));
-    case 'most-views':     return [...list].sort((a,b) => b.views - a.views);
-    default:               return [...list].sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+    case 'oldest':         list = [...list].sort((a,b) => a.createdAt.localeCompare(b.createdAt)); break;
+    case 'most-reactions': list = [...list].sort((a,b) => totalReact(b) - totalReact(a)); break;
+    case 'most-comments':  list = [...list].sort((a,b) => (b.replies?.length||0) - (a.replies?.length||0)); break;
+    case 'most-views':     list = [...list].sort((a,b) => b.views - a.views); break;
+    default:               list = [...list].sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+  }
+  const now = new Date();
+  if (tfMode === 'week') return list.filter(n => isoWeekKey(new Date(n.createdAt)) === isoWeekKey(now));
+  if (tfMode === 'month') {
+    const key = tfSubKey || monthKey(now);
+    return list.filter(n => monthKey(new Date(n.createdAt)) === key);
+  }
+  if (tfMode === 'year') {
+    const selYear = tfSubKey ? tfSubKey.split('-')[0] : String(now.getFullYear());
+    let r = list.filter(n => String(new Date(n.createdAt).getFullYear()) === selYear);
+    if (tfSubKey && tfSubKey.length === 7 && !tfSubKey.includes('-W')) r = r.filter(n => monthKey(new Date(n.createdAt)) === tfSubKey);
+    if (tfSubKey && tfSubKey.includes('-W')) r = r.filter(n => isoWeekKey(new Date(n.createdAt)) === tfSubKey);
+    return r;
+  }
+  return list;
+}
+
+function renderTimeFilterBar() {
+  document.querySelectorAll('.tf-pill').forEach(b => b.classList.toggle('active', b.dataset.tf === tfMode));
+  const subRow = document.getElementById('tfSubRow');
+  subRow.innerHTML = ''; subRow.style.display = 'none'; subRow.style.flexDirection = '';
+  const allSorted = [...notes].sort((a,b) => a.createdAt.localeCompare(b.createdAt));
+  if (!allSorted.length) return;
+
+  if (tfMode === 'month') {
+    const months = [...new Set(allSorted.map(n => monthKey(new Date(n.createdAt))))].sort().reverse().slice(0,24);
+    if (!months.length) return;
+    const cur = tfSubKey || monthKey(new Date());
+    subRow.style.display = 'flex';
+    subRow.innerHTML = months.map(k =>
+      `<button class="tf-sub-btn${k===cur?' active':''}" data-mk="${k}">${monthLabel(k)}</button>`
+    ).join('');
+    subRow.querySelectorAll('.tf-sub-btn').forEach(b => {
+      b.onclick = () => { tfSubKey = b.dataset.mk; renderTimeFilterBar(); renderGrid(); };
+    });
+  }
+
+  if (tfMode === 'year') {
+    const years = [...new Set(allSorted.map(n => String(new Date(n.createdAt).getFullYear())))].sort().reverse();
+    const selYear = tfSubKey ? tfSubKey.split('-')[0] : String(new Date().getFullYear());
+    subRow.style.display = 'flex'; subRow.style.flexDirection = 'column'; subRow.style.gap = '8px';
+
+    const yearRow = document.createElement('div');
+    yearRow.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap';
+    yearRow.innerHTML = years.map(y =>
+      `<button class="tf-sub-btn${y===selYear?' active':''}" data-yk="${y}">${y}</button>`
+    ).join('');
+    subRow.appendChild(yearRow);
+
+    const monthsInYear = [...new Set(
+      allSorted.filter(n => String(new Date(n.createdAt).getFullYear()) === selYear)
+               .map(n => monthKey(new Date(n.createdAt)))
+    )].sort().reverse();
+
+    if (monthsInYear.length) {
+      const selMonth = tfSubKey && tfSubKey.length === 7 && !tfSubKey.includes('-W') ? tfSubKey : null;
+      const monthRow = document.createElement('div');
+      monthRow.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap';
+      monthRow.innerHTML = monthsInYear.map(mk => {
+        const lbl = new Date(mk + '-01').toLocaleDateString('en-GB', { month: 'short' });
+        return `<button class="tf-sub-btn${mk===selMonth?' active':''}" data-mk="${mk}">${lbl}</button>`;
+      }).join('');
+      subRow.appendChild(monthRow);
+      if (selMonth) {
+        const weeksInMonth = [...new Set(
+          allSorted.filter(n => monthKey(new Date(n.createdAt)) === selMonth)
+                   .map(n => isoWeekKey(new Date(n.createdAt)))
+        )].sort().reverse();
+        if (weeksInMonth.length > 1) {
+          const selWeek = tfSubKey && tfSubKey.includes('-W') ? tfSubKey : null;
+          const wkRow = document.createElement('div');
+          wkRow.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap';
+          wkRow.innerHTML = weeksInMonth.map(wk =>
+            `<button class="tf-sub-btn${wk===selWeek?' active':''}" data-wk="${wk}">${weekLabel(wk)}</button>`
+          ).join('');
+          subRow.appendChild(wkRow);
+          wkRow.querySelectorAll('[data-wk]').forEach(b => {
+            b.onclick = () => { tfSubKey = b.dataset.wk; renderTimeFilterBar(); renderGrid(); };
+          });
+        }
+      }
+      monthRow.querySelectorAll('[data-mk]').forEach(b => {
+        b.onclick = () => { tfSubKey = b.dataset.mk; renderTimeFilterBar(); renderGrid(); };
+      });
+    }
+    yearRow.querySelectorAll('[data-yk]').forEach(b => {
+      b.onclick = () => { tfSubKey = b.dataset.yk; renderTimeFilterBar(); renderGrid(); };
+    });
   }
 }
 
-document.getElementById('sortSelect').onchange = renderGrid;
+document.getElementById('timeFilterBar').addEventListener('click', e => {
+  const pill = e.target.closest('.tf-pill');
+  if (!pill) return;
+  tfMode = pill.dataset.tf; tfSubKey = null; allPage = 1;
+  renderTimeFilterBar(); renderGrid();
+});
 
 // ── TAG FILTER BAR ─────────────────────────────────────────────────────────
 function renderTagFilterRow() {
@@ -532,10 +656,15 @@ function renderTagFilterRow() {
 function renderGrid() {
   const grid    = document.getElementById('notesGrid');
   const countEl = document.getElementById('noteCount');
-  const display = getSortedFilteredNotes();
+  const pager   = document.getElementById('notesPager');
+  const display = getTimeFilteredNotes();
   renderTagFilterRow();
+  renderTimeFilterBar();
+
   if (countEl) countEl.textContent = display.length
     ? `${display.length} entr${display.length === 1 ? 'y' : 'ies'}` : '';
+
+  pager.style.display = 'none'; pager.innerHTML = '';
 
   if (!display.length) {
     grid.innerHTML = `
@@ -545,96 +674,59 @@ function renderGrid() {
           ? `No entries tagged <b style="color:var(--accent)">#${esc(activeTag)}</b>.`
           : isOwner
             ? 'Tap <b style="color:var(--accent)">+ New Entry</b> to write your first entry.'
-            : 'No diary entries yet — check back soon.'}
+            : 'No entries for this period.'}
       </div>`;
     return;
   }
 
+  // pagination for 'all' mode (50 per page)
+  let toRender = display;
+  if (tfMode === 'all') {
+    const totalPages = Math.ceil(display.length / PER_PAGE);
+    if (allPage > totalPages) allPage = totalPages;
+    toRender = display.slice((allPage - 1) * PER_PAGE, allPage * PER_PAGE);
+    if (totalPages > 1) {
+      pager.style.display = 'flex';
+      const maxShow = 7;
+      let start = Math.max(1, allPage - Math.floor(maxShow/2));
+      let end   = Math.min(totalPages, start + maxShow - 1);
+      if (end - start < maxShow - 1) start = Math.max(1, end - maxShow + 1);
+      if (start > 1) pager.innerHTML += `<button class="pager-btn" data-pg="1">« First</button>`;
+      for (let pg = start; pg <= end; pg++)
+        pager.innerHTML += `<button class="pager-btn${pg===allPage?' active':''}" data-pg="${pg}">${pg}</button>`;
+      if (end < totalPages) pager.innerHTML += `<button class="pager-btn" data-pg="${totalPages}">Last »</button>`;
+      pager.querySelectorAll('[data-pg]').forEach(b => {
+        b.onclick = () => { allPage = Number(b.dataset.pg); renderGrid(); window.scrollTo({top:0,behavior:'smooth'}); };
+      });
+    }
+  }
+
+  // group notes by week for month/year modes
+  const shouldGroup = tfMode === 'month' || tfMode === 'year';
+  let groups = [];
+  if (shouldGroup) {
+    const map = new Map();
+    toRender.forEach(n => { const wk = isoWeekKey(new Date(n.createdAt)); if (!map.has(wk)) map.set(wk,[]); map.get(wk).push(n); });
+    groups = [...map.entries()].sort(([a],[b]) => b.localeCompare(a));
+  }
+
   // skeleton flash
-  grid.innerHTML = display.map(() => '<div class="skeleton"></div>').join('');
+  grid.innerHTML = toRender.map(() => '<div class="skeleton"></div>').join('');
 
   requestAnimationFrame(() => {
     grid.innerHTML = '';
-    display.forEach(n => {
-      const p    = PALETTE[n.colorIdx || 0];
-      const card = document.createElement('article');
-      card.className = 'note-card fade-enter';
-      card.dataset.id = n.id;
-      card.style.setProperty('--card-accent', p.accent);
+    if (shouldGroup && groups.length) {
+      groups.forEach(([wk, weekNotes]) => {
+        const lbl = document.createElement('div');
+        lbl.className = 'week-group-label';
+        lbl.textContent = weekLabel(wk);
+        grid.appendChild(lbl);
+        weekNotes.forEach(n => grid.appendChild(buildNoteCard(n)));
+      });
+    } else {
+      toRender.forEach(n => grid.appendChild(buildNoteCard(n)));
+    }
 
-      // media thumbnail
-      if (n.media && n.media.length) {
-        const mediaWrap = document.createElement('div');
-        mediaWrap.className = 'card-media';
-        const sl = buildSlider(n.media, 'card', n.id);
-        if (sl) mediaWrap.appendChild(sl);
-        card.appendChild(mediaWrap);
-      }
-
-      // body
-      const body = document.createElement('div');
-      body.className = 'card-body-section';
-      body.innerHTML = `
-        <div class="card-meta-row">
-          <span class="card-date">📅 ${fmtDate(n.createdAt)}</span>
-          ${isOwner ? `<span class="card-views">👁 ${n.views}</span>` : ''}
-        </div>
-        <div class="card-title" style="font-family:${esc(n.font)};color:${p.accent}">${esc(n.title)}</div>
-        ${!n.media?.length
-          ? `<div class="card-excerpt" style="font-family:${esc(n.font)};font-size:${Math.min(n.fontSize||14,13)}px">${esc(n.body)}</div>`
-          : ''}`;
-      card.appendChild(body);
-
-      // quick reaction bar
-      const quickBar = document.createElement('div');
-      quickBar.className = 'card-quick-bar';
-      quickBar.innerHTML = ['❤️','😂','🔥','😍','👏'].map(e => {
-        const isUser = (n.userReactions||[]).includes(e);
-        const cnt    = (n.reactions||{})[e] || 0;
-        return `<button class="card-react-btn ${isUser?'active':''}" data-nid="${n.id}" data-em="${e}">
-          ${e}${cnt > 0 ? `<span class="card-react-cnt">${cnt}</span>` : ''}
-        </button>`;
-      }).join('');
-      card.appendChild(quickBar);
-
-      // footer chips
-      const reacts = Object.entries(n.reactions||{}).filter(([,v])=>v>0)
-        .map(([e,c]) => {
-          const isUser = (n.userReactions||[]).includes(e);
-          return `<span class="react-chip" style="${isUser?'background:var(--accent-bg);border-color:var(--accent-border);font-weight:700':''}">${e} ${c}</span>`;
-        }).join('') || `<span style="font-size:11px;color:var(--ink4);font-family:var(--sans)">No reactions</span>`;
-      const chips = [
-        n.musicUrl      ? `<span class="chip">♫</span>` : '',
-        n.media?.length ? `<span class="chip">🎬 ${n.media.length}</span>` : '',
-        (n.replies||[]).length ? `<span class="chip">💬 ${n.replies.length}</span>` : '',
-      ].filter(Boolean).join('');
-
-      const foot = document.createElement('div');
-      foot.className = 'card-footer';
-      foot.innerHTML = `<div class="card-reactions">${reacts}</div><div class="card-chips">${chips}</div>`;
-      card.appendChild(foot);
-
-      // tags row
-      if (n.tags && n.tags.length) {
-        const tagRow = document.createElement('div');
-        tagRow.className = 'card-tags-row';
-        tagRow.innerHTML = n.tags.map(t =>
-          `<button class="tag-chip${activeTag===t?' tag-chip-active':''}" data-tag="${esc(t)}">#${esc(t)}</button>`
-        ).join('');
-        tagRow.querySelectorAll('.tag-chip').forEach(btn => {
-          btn.onclick = e => {
-            e.stopPropagation();
-            activeTag = activeTag === btn.dataset.tag ? null : btn.dataset.tag;
-            renderTagFilterRow(); renderGrid();
-          };
-        });
-        card.appendChild(tagRow);
-      }
-
-      grid.appendChild(card);
-    });
-
-    // card click → open tinder detail
     grid.querySelectorAll('.note-card').forEach(card => {
       card.onclick = e => {
         if (e.target.closest('.slider-root') || e.target.closest('.card-react-btn') || e.target.closest('.tag-chip')) return;
@@ -643,7 +735,6 @@ function renderGrid() {
       };
     });
 
-    // quick react on card
     grid.querySelectorAll('.card-react-btn').forEach(btn => {
       btn.onclick = async e => {
         e.stopPropagation();
@@ -651,10 +742,7 @@ function renderGrid() {
           const noteObj = notes.find(x => x.id === btn.dataset.nid);
           const hadReacted = (noteObj?.userReactions||[]).includes(btn.dataset.em);
           const res = await api('POST', `/notes/${btn.dataset.nid}/react`, { emoji: btn.dataset.em });
-          if (noteObj) {
-            noteObj.reactions     = res.reactions;
-            noteObj.userReactions = res.userReactions;
-          }
+          if (noteObj) { noteObj.reactions = res.reactions; noteObj.userReactions = res.userReactions; }
           const isAdded = res.isReacted !== undefined ? res.isReacted : !hadReacted;
           toast(isAdded ? 'Reacted ' + btn.dataset.em : 'Removed ' + btn.dataset.em);
           renderGrid();
@@ -662,6 +750,80 @@ function renderGrid() {
       };
     });
   });
+}
+
+// ── BUILD A SINGLE NOTE CARD ELEMENT ──────────────────────────────────────
+function buildNoteCard(n) {
+  const p    = PALETTE[n.colorIdx || 0];
+  const card = document.createElement('article');
+  card.className = 'note-card fade-enter';
+  card.dataset.id = n.id;
+  card.style.setProperty('--card-accent', p.accent);
+
+  if (n.media && n.media.length) {
+    const mediaWrap = document.createElement('div');
+    mediaWrap.className = 'card-media';
+    const sl = buildSlider(n.media, 'card', n.id);
+    if (sl) mediaWrap.appendChild(sl);
+    card.appendChild(mediaWrap);
+  }
+
+  const body = document.createElement('div');
+  body.className = 'card-body-section';
+  body.innerHTML = `
+    <div class="card-meta-row">
+      <span class="card-date">📅 ${fmtDate(n.createdAt)}</span>
+      ${isOwner ? `<span class="card-views">👁 ${n.views}</span>` : ''}
+    </div>
+    <div class="card-title" style="font-family:${esc(n.font)};color:${p.accent}">${esc(n.title)}</div>
+    ${!n.media?.length
+      ? `<div class="card-excerpt" style="font-family:${esc(n.font)};font-size:${Math.min(n.fontSize||14,13)}px">${esc(n.body)}</div>`
+      : ''}`;
+  card.appendChild(body);
+
+  const quickBar = document.createElement('div');
+  quickBar.className = 'card-quick-bar';
+  quickBar.innerHTML = ['❤️','😂','🔥','😍','👏'].map(e => {
+    const isUser = (n.userReactions||[]).includes(e);
+    const cnt    = (n.reactions||{})[e] || 0;
+    return `<button class="card-react-btn ${isUser?'active':''}" data-nid="${n.id}" data-em="${e}">
+      ${e}${cnt > 0 ? `<span class="card-react-cnt">${cnt}</span>` : ''}
+    </button>`;
+  }).join('');
+  card.appendChild(quickBar);
+
+  const reacts = Object.entries(n.reactions||{}).filter(([,v])=>v>0)
+    .map(([e,c]) => {
+      const isUser = (n.userReactions||[]).includes(e);
+      return `<span class="react-chip" style="${isUser?'background:var(--accent-bg);border-color:var(--accent-border);font-weight:700':''}">${e} ${c}</span>`;
+    }).join('') || `<span style="font-size:11px;color:var(--ink4);font-family:var(--sans)">No reactions</span>`;
+  const chips = [
+    n.musicUrl      ? `<span class="chip">♫</span>` : '',
+    n.media?.length ? `<span class="chip">🎬 ${n.media.length}</span>` : '',
+    (n.replies||[]).length ? `<span class="chip">💬 ${n.replies.length}</span>` : '',
+  ].filter(Boolean).join('');
+
+  const foot = document.createElement('div');
+  foot.className = 'card-footer';
+  foot.innerHTML = `<div class="card-reactions">${reacts}</div><div class="card-chips">${chips}</div>`;
+  card.appendChild(foot);
+
+  if (n.tags && n.tags.length) {
+    const tagRow = document.createElement('div');
+    tagRow.className = 'card-tags-row';
+    tagRow.innerHTML = n.tags.map(t =>
+      `<button class="tag-chip${activeTag===t?' tag-chip-active':''}" data-tag="${esc(t)}">#${esc(t)}</button>`
+    ).join('');
+    tagRow.querySelectorAll('.tag-chip').forEach(btn => {
+      btn.onclick = e => {
+        e.stopPropagation();
+        activeTag = activeTag === btn.dataset.tag ? null : btn.dataset.tag;
+        renderTagFilterRow(); renderGrid();
+      };
+    });
+    card.appendChild(tagRow);
+  }
+  return card;
 }
 
 // ══════════════════════════════════════════════════════════════════════════

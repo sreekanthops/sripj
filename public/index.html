@@ -134,10 +134,25 @@
   <!-- ── MAIN ── -->
   <main id="mainContent">
     <section id="notesSection">
+
+      <!-- Time-filter bar -->
+      <div id="timeFilterBar" class="tf-bar">
+        <div class="tf-pills">
+          <button class="tf-pill active" data-tf="week">This Week</button>
+          <button class="tf-pill" data-tf="month">Monthly</button>
+          <button class="tf-pill" data-tf="year">Yearly</button>
+          <button class="tf-pill" data-tf="all">Show All</button>
+        </div>
+        <!-- sub-row: months inside a year, or weeks inside a month -->
+        <div id="tfSubRow" class="tf-sub-row" style="display:none"></div>
+      </div>
+
       <div id="notesHeader" class="notes-header">
         <span id="noteCount" class="notes-count"></span>
       </div>
       <div id="notesGrid"></div>
+      <!-- pagination (Show All mode) -->
+      <div id="notesPager" class="notes-pager" style="display:none"></div>
     </section>
     <footer>My Journal · your private space to write, reflect &amp; remember</footer>
   </main>
