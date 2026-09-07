@@ -6,21 +6,23 @@ const db = new Database(path.join(__dirname, '..', 'diary.db'));
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
-// ── SCHEMA ────────────────────────────────────────────────────────────────────
+// ── SCHEMA (create tables if not exist) ───────────────────────────────────────
+
+// Disable FK enforcement during migrations so ALTER TABLE works cleanly
+db.pragma('foreign_keys = OFF');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
-    id           TEXT PRIMARY KEY,
-    username     TEXT NOT NULL UNIQUE,
-    display_name TEXT NOT NULL DEFAULT '',
-    bio          TEXT NOT NULL DEFAULT '',
+    id            TEXT PRIMARY KEY,
+    username      TEXT NOT NULL UNIQUE,
+    display_name  TEXT NOT NULL DEFAULT '',
+    bio           TEXT NOT NULL DEFAULT '',
     password_hash TEXT NOT NULL,
-    created_at   TEXT NOT NULL
+    created_at    TEXT NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS notes (
     id          TEXT PRIMARY KEY,
-    user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title       TEXT NOT NULL DEFAULT '',
     body        TEXT NOT NULL DEFAULT '',
     font        TEXT NOT NULL DEFAULT 'Georgia,serif',
@@ -44,7 +46,6 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS replies (
     id         TEXT PRIMARY KEY,
     note_id    TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
-    user_id    TEXT,
     name       TEXT NOT NULL DEFAULT 'Anonymous',
     text       TEXT NOT NULL,
     created_at TEXT NOT NULL
@@ -59,5 +60,24 @@ db.exec(`
     created_at TEXT NOT NULL
   );
 `);
+
+// ── MIGRATIONS (idempotent — safe to run on every start) ─────────────────────
+
+function hasColumn(table, col) {
+  return db.prepare(`PRAGMA table_info(${table})`).all().some(r => r.name === col);
+}
+
+// notes.user_id
+if (!hasColumn('notes', 'user_id')) {
+  db.exec(`ALTER TABLE notes ADD COLUMN user_id TEXT NOT NULL DEFAULT ''`);
+}
+
+// replies.user_id
+if (!hasColumn('replies', 'user_id')) {
+  db.exec(`ALTER TABLE replies ADD COLUMN user_id TEXT`);
+}
+
+// Re-enable FK enforcement
+db.pragma('foreign_keys = ON');
 
 module.exports = db;
