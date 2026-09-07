@@ -241,7 +241,7 @@ async function enterOwnDiary() {
   document.getElementById('sidebarTitle').textContent = currentUser.displayName || currentUser.username;
   document.getElementById('sidebarSub').textContent   = '@' + currentUser.username;
   document.getElementById('pageTitle').textContent     = 'My Journal';
-  document.getElementById('pageTitleCaption').textContent = 'abt u';
+  document.getElementById('pageTitleCaption').textContent = 'write · reflect · remember';
   history.replaceState({}, '', '/u/' + currentUser.username);
   renderHeader();
   buildSwatches(0);
@@ -263,7 +263,7 @@ async function enterPublicDiary(username) {
     document.getElementById('pageTitle').textContent     = isOwner
       ? 'My Journal'
       : (viewingUser.displayName || viewingUser.username) + "'s Diary";
-    document.getElementById('pageTitleCaption').textContent = isOwner ? 'abt u' : '';
+    document.getElementById('pageTitleCaption').textContent = isOwner ? 'write · reflect · remember' : '';
     renderHeader();
     buildSwatches(0);
     setupUploadZone();
