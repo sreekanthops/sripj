@@ -1,4 +1,4 @@
-/* ── app.js  v4  — multi-user diary ──────────────────────────────────────── */
+/* ── app.js  v5  — Tinder-style diary ──────────────────────────────────── */
 'use strict';
 
 // ── CONFIG ─────────────────────────────────────────────────────────────────
@@ -16,13 +16,14 @@ const PALETTE = [
 ];
 
 // ── STATE ──────────────────────────────────────────────────────────────────
-let token       = localStorage.getItem('diary_token') || null;
-let currentUser = null;   // { userId, username, displayName, bio }
-let viewingUser = null;   // { id, username, displayName, bio } — when on public page
-let isOwner     = false;  // viewing own diary
-let notes       = [];
-let editId      = null;
+let token        = localStorage.getItem('diary_token') || null;
+let currentUser  = null;
+let viewingUser  = null;
+let isOwner      = false;
+let notes        = [];
+let editId       = null;
 let pendingFiles = [];
+let tinderIdx    = 0;   // current card index in tinder home view
 
 const audio = document.getElementById('bgAudio');
 
@@ -143,11 +144,23 @@ document.getElementById('detailClose').onclick  = () => closeOv('detailOverlay')
 document.getElementById('formClose').onclick    = () => closeOv('formOverlay');
 document.getElementById('profileClose').onclick = () => closeOv('profileOverlay');
 
-// ── HEADER ─────────────────────────────────────────────────────────────────
+// ── SIDEBAR DRAWER (hamburger) ─────────────────────────────────────────────
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarBackdrop').classList.add('active');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarBackdrop').classList.remove('active');
+}
+// hamburgerBtn is rendered inside each tinder card (thHamburger); wired in renderTinder()
+document.getElementById('sidebarCloseBtn').onclick = closeSidebar;
+document.getElementById('sidebarBackdrop').onclick = closeSidebar;
+
+// ── HEADER / SIDEBAR ACTIONS ───────────────────────────────────────────────
 function renderHeader() {
   const el = document.getElementById('headerActions');
   if (isOwner) {
-    // viewing own diary — show full owner controls
     el.innerHTML = `
       <span class="owner-badge">✦ ${esc(currentUser.displayName)}</span>
       <button class="btn btn-primary btn-sm" data-action="new-note">+ New Entry</button>
@@ -155,12 +168,10 @@ function renderHeader() {
       <button class="btn btn-ghost btn-sm" data-action="profile">✏️ Profile</button>
       <button class="btn btn-ghost btn-sm" data-action="logout">Sign out</button>`;
   } else if (currentUser && viewingUser) {
-    // logged-in user visiting someone else's diary
     el.innerHTML = `
       <span class="owner-badge">👤 ${esc(currentUser.displayName)}</span>
       <button class="btn btn-ghost btn-sm" data-action="go-home">My Diary</button>`;
   } else if (!currentUser && viewingUser) {
-    // guest visiting a public diary
     el.innerHTML = `
       <button class="btn btn-ghost btn-sm" data-action="go-login">Sign In / Sign Up</button>`;
   } else {
@@ -171,6 +182,7 @@ function renderHeader() {
 document.getElementById('headerActions').addEventListener('click', e => {
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
+  closeSidebar();
   const action = btn.dataset.action;
   if (action === 'new-note') {
     openNewForm();
@@ -194,11 +206,6 @@ document.getElementById('headerActions').addEventListener('click', e => {
   }
 });
 
-// scroll shadow
-window.addEventListener('scroll', () => {
-  document.getElementById('topbar')?.classList.toggle('scrolled', window.scrollY > 8);
-}, { passive: true });
-
 // ── PROFILE MODAL ──────────────────────────────────────────────────────────
 document.getElementById('profSave').onclick = async () => {
   const displayName = document.getElementById('profName').value.trim();
@@ -220,7 +227,6 @@ async function enterOwnDiary() {
   document.body.classList.add('is-owner');
   document.getElementById('sidebarTitle').textContent = currentUser.displayName || currentUser.username;
   document.getElementById('sidebarSub').textContent   = '@' + currentUser.username;
-  document.getElementById('pageTitle').textContent    = 'My Journal';
   history.replaceState({}, '', '/u/' + currentUser.username);
   renderHeader();
   buildSwatches(0);
@@ -242,14 +248,12 @@ async function enterPublicDiary(username) {
     notes = data.notes;
     document.getElementById('sidebarTitle').textContent = viewingUser.displayName || viewingUser.username;
     document.getElementById('sidebarSub').textContent   = '@' + viewingUser.username;
-    document.getElementById('pageTitle').textContent    = isOwner ? 'My Journal' : (viewingUser.displayName || viewingUser.username) + "'s Diary";
     renderHeader();
     buildSwatches(0);
     setupUploadZone();
     showApp();
-    renderGrid();
+    renderTinder();
   } catch {
-    // user not found — show auth or 404 message
     if (!currentUser) { showAuth(); } else { toast('Diary not found'); await enterOwnDiary(); }
   }
 }
@@ -398,12 +402,17 @@ async function loadNotes() {
   }
 }
 async function loadAndRender() {
-  try { await loadNotes(); renderGrid(); }
-  catch { document.getElementById('notesGrid').innerHTML =
-    `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--ink4);font-family:var(--sans)">
-      <div style="font-size:32px;margin-bottom:12px;color:var(--accent);opacity:.5">⚠</div>
-      Could not load entries.
-    </div>`; }
+  try {
+    await loadNotes();
+    tinderIdx = 0;
+    renderTinder();
+  } catch {
+    document.getElementById('tinderStage').innerHTML =
+      `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--ink4);flex-direction:column;gap:12px;font-family:var(--sans)">
+        <div style="font-size:32px;color:var(--accent);opacity:.5">⚠</div>
+        <div>Could not load entries.</div>
+       </div>`;
+  }
 }
 
 document.getElementById('filterFrom').onchange    = loadAndRender;
@@ -415,7 +424,203 @@ document.getElementById('btnClearFilter').onclick = () => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════
-//  MEDIA SLIDER
+//  TINDER HOME VIEW
+// ══════════════════════════════════════════════════════════════════════════
+function renderTinder() {
+  const stage = document.getElementById('tinderStage');
+  const noteCount = document.getElementById('noteCount');
+
+  if (noteCount) noteCount.textContent = notes.length ? `${notes.length} entr${notes.length===1?'y':'ies'}` : '';
+
+  if (!notes.length) {
+    stage.innerHTML = `
+      <div class="tinder-empty">
+        <div class="tinder-empty-icon">✦</div>
+        <div class="tinder-empty-msg">
+          ${isOwner ? 'Open the menu and tap <b>+ New Entry</b> to write your first entry.' : 'No diary entries yet — check back soon.'}
+        </div>
+      </div>`;
+    return;
+  }
+
+  // clamp index
+  if (tinderIdx < 0) tinderIdx = 0;
+  if (tinderIdx >= notes.length) tinderIdx = notes.length - 1;
+
+  const note = notes[tinderIdx];
+  const p    = PALETTE[note.colorIdx || 0];
+
+  // story progress bars
+  const barsHtml = notes.map((_,i) =>
+    `<div class="th-bar ${i === tinderIdx ? 'active' : (i < tinderIdx ? 'done' : '')}"></div>`
+  ).join('');
+
+  // media: show first image/video cover
+  let coverHtml = '';
+  if (note.media && note.media.length) {
+    const m = note.media[0];
+    if (isVid(m.mimetype)) {
+      coverHtml = `<video src="${esc(m.url)}" autoplay muted loop playsinline class="th-cover-media"></video>`;
+    } else {
+      coverHtml = `<img src="${esc(m.url)}" alt="" class="th-cover-media" draggable="false">`;
+    }
+    if (note.media.length > 1) {
+      coverHtml += `<span class="th-media-count">1/${note.media.length}</span>`;
+    }
+  } else {
+    // text-only card — use palette bg
+    coverHtml = `<div class="th-cover-textbg" style="background:${p.bg}">
+      <div class="th-cover-title" style="color:${p.accent};font-family:${esc(note.font)}">
+        ${esc(note.title)}
+      </div>
+    </div>`;
+  }
+
+  // quick reactions
+  const quickReacts = ['❤️','😂','🔥','😍','👏'].map(e => {
+    const cnt = (note.reactions || {})[e] || 0;
+    const isU = (note.userReactions||[]).includes(e);
+    return `<button class="th-react-btn ${isU?'active':''}" data-nid="${note.id}" data-em="${e}">
+      <span class="th-react-em">${e}</span>${cnt > 0 ? `<span class="th-react-cnt">${cnt}</span>` : ''}
+    </button>`;
+  }).join('');
+
+  const replyCnt = (note.replies||[]).length;
+
+  stage.innerHTML = `
+    <div class="th-card" data-id="${note.id}">
+      <!-- media cover -->
+      <div class="th-cover" style="${!(note.media&&note.media.length)?'':'background:#000'}">
+        ${coverHtml}
+
+        <!-- story progress bars -->
+        <div class="th-bars">${barsHtml}</div>
+
+        <!-- hamburger top-left -->
+        <button class="th-hamburger" id="thHamburger" aria-label="Open menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <line x1="3" y1="6"  x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+
+        <!-- new entry FAB (owner only) -->
+        ${isOwner ? `<button class="th-fab-new" id="thFabNew" title="New Entry">+</button>` : ''}
+
+        <!-- tap zones -->
+        <div class="th-tap left"  id="thTapLeft"  aria-label="Previous entry">
+          <div class="th-tap-arrow">‹</div>
+        </div>
+        <div class="th-tap right" id="thTapRight" aria-label="Next entry">
+          <div class="th-tap-arrow">›</div>
+        </div>
+
+        <!-- overlay gradient for bottom info -->
+        <div class="th-grad"></div>
+
+        <!-- author + date on image -->
+        <div class="th-overlay-info">
+          <div class="th-overlay-date">${fmtDate(note.createdAt)}</div>
+        </div>
+      </div>
+
+      <!-- info section below cover -->
+      <div class="th-info">
+        <div class="th-title" style="color:${p.accent};font-family:${esc(note.font)}">${esc(note.title)}</div>
+        ${note.body ? `<div class="th-excerpt" style="font-family:${esc(note.font)}">${esc(note.body.slice(0,120))}${note.body.length>120?'…':''}</div>` : ''}
+        <div class="th-action-row">
+          <div class="th-reacts">${quickReacts}</div>
+          <button class="th-comment-btn" data-nid="${note.id}">
+            💬 ${replyCnt > 0 ? replyCnt : ''} <span class="th-comment-label">Comments</span>
+          </button>
+        </div>
+        ${isOwner ? `<div class="th-owner-row">
+          <button class="btn btn-ghost btn-xs th-edit-btn" data-id="${note.id}">✏️ Edit</button>
+          <button class="btn btn-danger btn-xs th-del-btn" data-id="${note.id}">🗑 Delete</button>
+        </div>` : ''}
+      </div>
+    </div>`;
+
+  // ── wire up events ──
+  document.getElementById('thHamburger').onclick = openSidebar;
+
+  if (isOwner) {
+    document.getElementById('thFabNew')?.addEventListener('click', openNewForm);
+  }
+
+  document.getElementById('thTapLeft').onclick = e => {
+    e.stopPropagation();
+    if (tinderIdx > 0) { tinderIdx--; renderTinder(); }
+  };
+  document.getElementById('thTapRight').onclick = e => {
+    e.stopPropagation();
+    if (tinderIdx < notes.length - 1) { tinderIdx++; renderTinder(); }
+  };
+
+  // tap on info → open full detail
+  stage.querySelector('.th-info').addEventListener('click', e => {
+    if (e.target.closest('.th-reacts') || e.target.closest('.th-owner-row')) return;
+    openDetail(note.id);
+  });
+  stage.querySelector('.th-comment-btn')?.addEventListener('click', () => openDetail(note.id));
+
+  // quick react buttons
+  stage.querySelectorAll('.th-react-btn').forEach(btn => {
+    btn.onclick = async e => {
+      e.stopPropagation();
+      try {
+        const noteObj = notes.find(x => x.id === btn.dataset.nid);
+        const hadReacted = (noteObj?.userReactions||[]).includes(btn.dataset.em);
+        const res = await api('POST', `/notes/${btn.dataset.nid}/react`, { emoji: btn.dataset.em });
+        if (noteObj) {
+          noteObj.reactions     = res.reactions;
+          noteObj.userReactions = res.userReactions;
+        }
+        const isAdded = res.isReacted !== undefined ? res.isReacted : !hadReacted;
+        toast(isAdded ? 'Reacted ' + btn.dataset.em : 'Removed ' + btn.dataset.em);
+        renderTinder();
+      } catch (err) { toast('Error: ' + err.message); }
+    };
+  });
+
+  // owner edit / delete
+  stage.querySelector('.th-edit-btn')?.addEventListener('click', async e => {
+    e.stopPropagation();
+    const full = await api('GET', `/notes/${e.currentTarget.dataset.id}`);
+    openEditForm(full);
+  });
+  stage.querySelector('.th-del-btn')?.addEventListener('click', async e => {
+    e.stopPropagation();
+    if (!confirm('Delete this entry permanently?')) return;
+    try {
+      await api('DELETE', `/notes/${e.currentTarget.dataset.id}`);
+      toast('Deleted 🗑'); await loadAndRender();
+    } catch (err) { toast('Error: ' + err.message); }
+  });
+
+  // keyboard & touch swipe
+  stage._thTouchX = 0;
+  stage.ontouchstart = e => { stage._thTouchX = e.touches[0].clientX; };
+  stage.ontouchend   = e => {
+    const dx = e.changedTouches[0].clientX - stage._thTouchX;
+    if (Math.abs(dx) > 50) {
+      if (dx < 0 && tinderIdx < notes.length - 1) { tinderIdx++; renderTinder(); }
+      else if (dx > 0 && tinderIdx > 0)            { tinderIdx--; renderTinder(); }
+    }
+  };
+}
+
+// keyboard arrows for tinder nav
+document.addEventListener('keydown', e => {
+  if (document.getElementById('detailOverlay').classList.contains('open')) return;
+  if (document.getElementById('formOverlay').classList.contains('open')) return;
+  if (e.key === 'ArrowRight' && tinderIdx < notes.length - 1) { tinderIdx++; renderTinder(); }
+  if (e.key === 'ArrowLeft'  && tinderIdx > 0)                { tinderIdx--; renderTinder(); }
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+//  MEDIA SLIDER (used in detail view)
 // ══════════════════════════════════════════════════════════════════════════
 function buildSlider(items, size, noteId) {
   if (!items || !items.length) return null;
@@ -449,7 +654,6 @@ function buildSlider(items, size, noteId) {
       slide.appendChild(img);
     }
 
-    // per-slide delete (only for owner)
     if (isOwner) {
       const del = document.createElement('button');
       del.className = 'slide-del';
@@ -465,7 +669,6 @@ function buildSlider(items, size, noteId) {
 
   root.appendChild(track);
 
-  // dots & counter only if multiple
   let dots = [];
   if (items.length > 1) {
     const dotsEl = document.createElement('div');
@@ -498,17 +701,11 @@ function buildSlider(items, size, noteId) {
     }
 
     function handlePrev(e) {
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       goTo(cur > 0 ? cur - 1 : items.length - 1);
     }
     function handleNext(e) {
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       goTo(cur < items.length - 1 ? cur + 1 : 0);
     }
 
@@ -518,7 +715,6 @@ function buildSlider(items, size, noteId) {
     nextBtn.disabled = false;
     root.appendChild(prevBtn); root.appendChild(nextBtn);
 
-    // touch swipe
     let tx=0, dragging=false;
     root.addEventListener('touchstart', e => { tx = e.touches[0].clientX; dragging=true; }, {passive:true});
     root.addEventListener('touchend',   e => {
@@ -576,114 +772,7 @@ function buildVideoControls(v, item, noteId) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-//  GRID
-// ══════════════════════════════════════════════════════════════════════════
-function renderGrid() {
-  const grid    = document.getElementById('notesGrid');
-  const countEl = document.getElementById('noteCount');
-  document.getElementById('swipeHint').textContent = notes.length > 1 ? '← swipe to navigate ←' : '';
-  if (countEl) countEl.textContent = notes.length ? `${notes.length} entr${notes.length===1?'y':'ies'}` : '';
-
-  if (!notes.length) {
-    grid.innerHTML = `
-      <div style="grid-column:1/-1;text-align:center;padding:70px 20px;color:var(--ink4);font-family:var(--sans)">
-        <div style="font-size:36px;margin-bottom:12px;color:var(--accent);opacity:.5">✦</div>
-        ${isOwner ? 'Tap <b style="color:var(--accent)">+ New Entry</b> to write your first entry.'
-                  : 'No diary entries yet — check back soon.'}
-      </div>`;
-    return;
-  }
-
-  grid.innerHTML = notes.map(() => '<div class="skeleton"></div>').join('');
-  requestAnimationFrame(() => {
-    grid.innerHTML = '';
-    notes.forEach(n => {
-      const p    = PALETTE[n.colorIdx || 0];
-      const card = document.createElement('article');
-      card.className = 'note-card fade-enter';
-      card.dataset.id = n.id;
-      card.style.setProperty('--card-accent', p.accent);
-
-      if (n.media && n.media.length) {
-        const mediaWrap = document.createElement('div');
-        mediaWrap.className = 'card-media';
-        const sl = buildSlider(n.media, 'card', n.id);
-        if (sl) mediaWrap.appendChild(sl);
-        card.appendChild(mediaWrap);
-      }
-
-      const body = document.createElement('div');
-      body.className = 'card-body-section';
-      body.innerHTML = `
-        <div class="card-meta-row">
-          <span class="card-date">📅 ${fmtDate(n.createdAt)}</span>
-          ${isOwner ? `<span class="card-views">👁 ${n.views}</span>` : ''}
-        </div>
-        <div class="card-title" style="font-family:${esc(n.font)};color:${p.accent}">${esc(n.title)}</div>
-        ${!n.media?.length ? `<div class="card-excerpt" style="font-family:${esc(n.font)};font-size:${Math.min(n.fontSize||14,13)}px">${esc(n.body)}</div>` : ''}`;
-      card.appendChild(body);
-
-      const reacts = Object.entries(n.reactions||{}).filter(([,v])=>v>0)
-        .map(([e,c]) => {
-          const isUser = (n.userReactions||[]).includes(e);
-          return `<span class="react-chip btn-card-react" data-nid="${n.id}" data-em="${e}" style="${isUser?'background:var(--accent-bg);border-color:var(--accent-border);font-weight:700':''}">${e} ${c}</span>`;
-        }).join('') || `<span style="font-size:11px;color:var(--ink4);font-family:var(--sans)">No reactions</span>`;
-      const chips = [
-        n.musicUrl ? `<span class="chip">♫ Music</span>` : '',
-        n.media?.length ? `<span class="chip">🎬 ${n.media.length}</span>` : '',
-        (n.replies||[]).length ? `<span class="chip">💬 ${n.replies.length}</span>` : '',
-      ].filter(Boolean).join('');
-
-      // quick emojis bar
-      const quickBar = document.createElement('div');
-      quickBar.className = 'card-quick-bar';
-      quickBar.style.cssText = 'display:flex;align-items:center;gap:4px;padding:6px 20px 0;';
-      quickBar.innerHTML = ['❤️', '😂', '🔥', '😍', '👏']
-        .map(e => {
-          const isUser = (n.userReactions||[]).includes(e);
-          return `<button class="btn-card-react" data-nid="${n.id}" data-em="${e}" style="background:${isUser?'var(--accent-bg)':'none'};border:${isUser?'1px solid var(--accent-border)':'1px solid transparent'};cursor:pointer;font-size:14px;padding:2px 5px;border-radius:6px;transform:${isUser?'scale(1.15)':'none'}" title="${isUser?'Remove '+e:'React '+e}">${e}</button>`;
-        })
-        .join('');
-      card.appendChild(quickBar);
-
-      const foot = document.createElement('div');
-      foot.className = 'card-footer';
-      foot.innerHTML = `
-        <div class="card-reactions">${reacts}</div>
-        <div class="card-chips">${chips}</div>`;
-      card.appendChild(foot);
-      grid.appendChild(card);
-    });
-
-    grid.querySelectorAll('.note-card').forEach(card => {
-      card.onclick = e => {
-        if (e.target.closest('.slider-root') || e.target.closest('.btn-card-react')) return;
-        openDetail(card.dataset.id);
-      };
-    });
-
-    grid.querySelectorAll('.btn-card-react').forEach(btn => {
-      btn.onclick = async e => {
-        e.stopPropagation();
-        try {
-          const noteObj = notes.find(x => x.id === btn.dataset.nid);
-          const hadReacted = (noteObj?.userReactions || []).includes(btn.dataset.em);
-          const res = await api('POST', `/notes/${btn.dataset.nid}/react`, { emoji: btn.dataset.em });
-          if (noteObj) {
-            noteObj.reactions = res.reactions;
-            noteObj.userReactions = res.userReactions;
-            renderGrid();
-          }
-          const isAdded = res.isReacted !== undefined ? res.isReacted : !hadReacted;
-          toast(isAdded ? ('Reacted ' + btn.dataset.em) : ('Removed ' + btn.dataset.em));
-        } catch (err) { toast('Error: ' + err.message); }
-      };
-    });
-  });
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-//  DETAIL VIEW
+//  DETAIL VIEW  (Tinder-style modal with reactions + comments)
 // ══════════════════════════════════════════════════════════════════════════
 async function openDetail(id) {
   document.getElementById('detailContent').innerHTML = '<div class="spinner"></div>';
@@ -717,7 +806,6 @@ function renderDetail(note) {
     }).join('') || `<span style="color:var(--ink4);font-size:12px;font-family:var(--sans)">Be the first to react!</span>`;
 
   const repliesHtml = (note.replies||[]).map(r => {
-    // can delete own reply (if logged in as author) OR owner can delete any reply
     const canEdit = currentUser && (r.userId === currentUser.userId || isOwner);
     const replyReacts = Object.entries(r.reactions||{}).filter(([,v])=>v>0)
       .map(([e,c]) => {
@@ -791,7 +879,6 @@ function renderDetail(note) {
       <button class="btn btn-red   btn-sm btn-ddel"  data-id="${note.id}">🗑 Delete Entry</button>
     </div>` : ''}`;
 
-  // media slider
   if (note.media?.length) {
     const sl = buildSlider(note.media, 'detail', note.id);
     if (sl) document.getElementById('mediaMount').appendChild(sl);
@@ -817,7 +904,7 @@ function renderDetail(note) {
         await api('DELETE', `/upload/${btn.dataset.nid}/${btn.dataset.mid}`);
         const up = await api('GET', `/notes/${btn.dataset.nid}`);
         const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
-        renderGrid(); renderDetail(up); toast('Removed 🗑');
+        renderTinder(); renderDetail(up); toast('Removed 🗑');
       } catch (err) { toast('Error: ' + err.message); }
     };
   });
@@ -830,9 +917,9 @@ function renderDetail(note) {
         const res = await api('POST', `/notes/${btn.dataset.id}/react`, { emoji: btn.dataset.em });
         const up = await api('GET', `/notes/${btn.dataset.id}`);
         const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
-        renderDetail(up); renderGrid();
+        renderDetail(up); renderTinder();
         const isAdded = res.isReacted !== undefined ? res.isReacted : !hadReacted;
-        toast(isAdded ? ('Reacted ' + btn.dataset.em) : ('Removed ' + btn.dataset.em));
+        toast(isAdded ? 'Reacted ' + btn.dataset.em : 'Removed ' + btn.dataset.em);
       } catch (err) { toast('Error: ' + err.message); }
     };
   });
@@ -845,9 +932,9 @@ function renderDetail(note) {
         const res = await api('POST', `/notes/${btn.dataset.nid}/replies/${btn.dataset.rid}/react`, { emoji: btn.dataset.em });
         const up = await api('GET', `/notes/${btn.dataset.nid}`);
         const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
-        renderDetail(up); renderGrid();
+        renderDetail(up); renderTinder();
         const isAdded = res.isReacted !== undefined ? res.isReacted : !hadReacted;
-        toast(isAdded ? ('Reacted ' + btn.dataset.em) : ('Removed ' + btn.dataset.em));
+        toast(isAdded ? 'Reacted ' + btn.dataset.em : 'Removed ' + btn.dataset.em);
       } catch (err) { toast('Error: ' + err.message); }
     };
   });
@@ -859,7 +946,7 @@ function renderDetail(note) {
         await api('DELETE', `/notes/${btn.dataset.nid}/replies/${btn.dataset.rid}`);
         const up = await api('GET', `/notes/${btn.dataset.nid}`);
         const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
-        renderDetail(up); renderGrid(); toast('Reply deleted');
+        renderDetail(up); renderTinder(); toast('Reply deleted');
       } catch (err) { toast('Error: ' + err.message); }
     };
   });
@@ -893,7 +980,7 @@ function renderDetail(note) {
           await api('PUT', `/notes/${nid}/replies/${rid}`, { text: newText });
           const up = await api('GET', `/notes/${nid}`);
           const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
-          renderDetail(up); renderGrid(); toast('Reply updated ✅');
+          renderDetail(up); renderTinder(); toast('Reply updated ✅');
         } catch (err) { toast('Error: ' + err.message); }
       };
     };
@@ -909,16 +996,22 @@ function renderDetail(note) {
       await api('POST', `/notes/${note.id}/replies`, { name, text });
       const up = await api('GET', `/notes/${note.id}`);
       const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
-      renderDetail(up); renderGrid(); toast('Reply posted 💬');
+      renderDetail(up); renderTinder(); toast('Reply posted 💬');
     } catch (err) { toast('Error: ' + err.message); }
   });
 
-  cont.querySelector('.btn-prev')?.addEventListener('click', () =>
-    openDetail(cont.querySelector('.btn-prev').dataset.id));
-  cont.querySelector('.btn-next')?.addEventListener('click', () =>
-    openDetail(cont.querySelector('.btn-next').dataset.id));
+  cont.querySelector('.btn-prev')?.addEventListener('click', () => {
+    const pid = cont.querySelector('.btn-prev').dataset.id;
+    tinderIdx = notes.findIndex(n => n.id === pid);
+    openDetail(pid);
+  });
+  cont.querySelector('.btn-next')?.addEventListener('click', () => {
+    const nid = cont.querySelector('.btn-next').dataset.id;
+    tinderIdx = notes.findIndex(n => n.id === nid);
+    openDetail(nid);
+  });
 
-  // swipe between notes
+  // swipe between notes in detail overlay
   const modal = document.getElementById('detailModal');
   let sx = 0, sy = 0;
   modal.ontouchstart = e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; };
@@ -927,8 +1020,8 @@ function renderDetail(note) {
     const dx = e.changedTouches[0].clientX - sx;
     const dy = e.changedTouches[0].clientY - sy;
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 48) {
-      if (dx < 0 && nextId) openDetail(nextId);
-      else if (dx > 0 && prevId) openDetail(prevId);
+      if (dx < 0 && nextId) { tinderIdx = allIds.indexOf(nextId); openDetail(nextId); }
+      else if (dx > 0 && prevId) { tinderIdx = allIds.indexOf(prevId); openDetail(prevId); }
     }
   };
 }
@@ -957,7 +1050,6 @@ document.getElementById('musicVol').oninput = e => {
 
 // ── INIT ───────────────────────────────────────────────────────────────────
 (async () => {
-  // detect URL: /u/:username → public diary, else auth
   const match = location.pathname.match(/^\/u\/([^/]+)/);
   const urlUsername = match ? match[1].toLowerCase() : null;
 
@@ -972,13 +1064,10 @@ document.getElementById('musicVol').oninput = e => {
   }
 
   if (urlUsername) {
-    // Someone opened a /u/:username link
     await enterPublicDiary(urlUsername);
   } else if (currentUser) {
-    // Logged in, no specific URL — go to own diary
     await enterOwnDiary();
   } else {
-    // No token, no URL — show auth screen
     showAuth();
   }
 })();
