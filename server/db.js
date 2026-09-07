@@ -146,4 +146,35 @@ if (hasTable('reply_reactions') && hasColumn('reply_reactions', 'count')) {
 // Re-enable FK enforcement
 db.pragma('foreign_keys = ON');
 
+// ── ADMIN & ANALYTICS TABLES ─────────────────────────────────────────────────
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS admins (
+    id            TEXT PRIMARY KEY,
+    username      TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    email         TEXT NOT NULL DEFAULT '',
+    created_at    TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS page_views (
+    id          TEXT PRIMARY KEY,
+    user_id     TEXT,
+    path        TEXT NOT NULL DEFAULT '/',
+    ip          TEXT NOT NULL DEFAULT '',
+    ua          TEXT NOT NULL DEFAULT '',
+    duration_s  INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS sessions (
+    id         TEXT PRIMARY KEY,
+    user_id    TEXT,
+    ip         TEXT NOT NULL DEFAULT '',
+    ua         TEXT NOT NULL DEFAULT '',
+    started_at TEXT NOT NULL,
+    ended_at   TEXT
+  );
+`);
+
 module.exports = db;

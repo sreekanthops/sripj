@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Journal — Admin</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px;scroll-behavior:smooth}
+:root{
+  --bg:#0c0b09;--bg2:#141210;--bg3:#1b1916;
+  --surface:#201d1a;--surface2:#272320;--surface3:#302c28;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
+  --ink:#f2ede5;--ink2:#c5bdb0;--ink3:#877f74;--ink4:#4e4842;
+  --gold:#d4a96a;--gold2:#b8893a;
+  --green:#4caf8a;--red:#e05252;--blue:#5a9ec5;--purple:#9b6fd4;
+  --r:12px;--r2:8px;--r3:6px;
+  --sans:'Inter',system-ui,sans-serif;
+  --topbar:54px;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
+.hidden{display:none!important}
+a{color:var(--gold);text-decoration:none}
+
+/* ── LOGIN ── */
+#loginScreen{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);
+}
+.login-card{
+  width:100%;max-width:360px;padding:40px 36px;
+  background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);
+}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-logo-icon{font-size:32px;color:var(--gold);margin-bottom:8px}
+.login-logo-name{font-size:22px;font-weight:700;letter-spacing:-.4px}
+.login-logo-sub{font-size:12px;color:var(--ink4);margin-top:3px;letter-spacing:.5px;text-transform:uppercase}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+.field input{
+  width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2);
+  padding:10px 14px;font-size:14px;color:var(--ink);font-family:var(--sans);outline:none;
+  transition:border-color .15s;
+}
+.field input:focus{border-color:var(--gold)}
+.btn{
+  display:inline-flex;align-items:center;gap:6px;padding:10px 20px;
+  border-radius:var(--r2);font-size:13px;font-weight:600;cursor:pointer;
+  border:none;font-family:var(--sans);transition:opacity .15s,background .15s;
+}
+.btn-primary{background:var(--gold);color:#1a1208}
+.btn-primary:hover{background:var(--gold2)}
+.btn-primary:active{opacity:.85}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{opacity:.85}
+.btn-ghost{background:var(--surface2);border:1px solid var(--border2);color:var(--ink2)}
+.btn-ghost:hover{background:var(--surface3);color:var(--ink)}
+.btn-full{width:100%;justify-content:center}
+.err{color:var(--red);font-size:12px;margin-top:8px;min-height:16px}
+
+/* ── APP SHELL ── */
+#appShell{display:flex;flex-direction:column;min-height:100vh}
+#topbar{
+  position:sticky;top:0;z-index:100;height:var(--topbar);
+  background:rgba(12,11,9,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.topbar-logo{font-size:16px;font-weight:700;letter-spacing:-.3px}
+.topbar-logo span{color:var(--gold)}
+.topbar-badge{
+  font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  background:var(--gold);color:#1a1208;padding:2px 8px;border-radius:99px;
+}
+.topbar-right{display:flex;align-items:center;gap:10px}
+#adminName{font-size:12px;color:var(--ink3)}
+
+/* ── NAV TABS ── */
+.nav-tabs{
+  display:flex;align-items:center;gap:2px;
+  padding:0 24px;border-bottom:1px solid var(--border);
+  background:var(--bg2);overflow-x:auto;
+}
+.nav-tab{
+  padding:12px 16px;font-size:12px;font-weight:600;letter-spacing:.3px;
+  color:var(--ink3);cursor:pointer;border:none;background:none;
+  font-family:var(--sans);border-bottom:2px solid transparent;
+  white-space:nowrap;transition:color .15s,border-color .15s;
+}
+.nav-tab:hover{color:var(--ink)}
+.nav-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+/* ── PAGES ── */
+.page{display:none;padding:28px 24px 60px;max-width:1200px;margin:0 auto;width:100%}
+.page.active{display:block}
+
+/* ── STAT CARDS ── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:28px}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:18px 20px;
+}
+.stat-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--ink4);margin-bottom:8px}
+.stat-value{font-size:28px;font-weight:700;letter-spacing:-.5px;color:var(--ink)}
+.stat-sub{font-size:11px;color:var(--ink4);margin-top:4px}
+.stat-card.gold .stat-value{color:var(--gold)}
+.stat-card.green .stat-value{color:var(--green)}
+.stat-card.blue .stat-value{color:var(--blue)}
+.stat-card.purple .stat-value{color:var(--purple)}
+
+/* ── SECTION ── */
+.section{margin-bottom:32px}
+.section-title{
+  font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--ink4);margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;
+}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── CHART ── */
+.chart-wrap{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:20px;overflow:hidden;
+}
+.chart-inner{overflow-x:auto}
+svg.bar-chart{display:block;min-width:100%}
+.bar-chart .bar{fill:var(--gold);opacity:.7;transition:opacity .15s}
+.bar-chart .bar:hover{opacity:1}
+.bar-chart .bar-bg{fill:var(--surface2)}
+.bar-chart text{fill:var(--ink4);font-family:var(--sans);font-size:10px}
+.bar-chart text.val{fill:var(--ink3);font-size:9px}
+.chart-tabs{display:flex;gap:4px;margin-bottom:12px}
+.chart-tab{
+  padding:4px 12px;font-size:11px;font-weight:600;border-radius:99px;cursor:pointer;
+  background:var(--surface2);border:1px solid var(--border);color:var(--ink3);
+  font-family:var(--sans);transition:background .15s,color .15s;
+}
+.chart-tab.active{background:var(--gold);color:#1a1208;border-color:var(--gold)}
+
+/* ── TABLE ── */
+.table-wrap{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;overflow-x:auto;
+}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{
+  background:var(--surface2);padding:10px 14px;text-align:left;
+  font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--ink4);border-bottom:1px solid var(--border);white-space:nowrap;
+}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--ink2);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--surface2)}
+.badge{
+  display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;
+}
+.badge-green{background:rgba(76,175,138,.15);color:var(--green)}
+.badge-gold{background:rgba(212,169,106,.15);color:var(--gold)}
+
+/* ── EMOJI BAR ── */
+.emoji-grid{
+  display:flex;flex-wrap:wrap;gap:8px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px 20px;
+}
+.emoji-item{
+  display:flex;align-items:center;gap:8px;
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);
+  padding:8px 14px;min-width:90px;
+}
+.emoji-icon{font-size:20px;line-height:1}
+.emoji-count{font-size:18px;font-weight:700;color:var(--ink)}
+.emoji-pct{font-size:10px;color:var(--ink4)}
+
+/* ── SETTINGS ── */
+.settings-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:24px;max-width:440px;
+}
+.settings-card .field input{background:var(--bg2)}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:24px;right:24px;z-index:9999;
+  font-size:13px;font-weight:600;padding:10px 18px;border-radius:var(--r2);
+  background:var(--surface3);color:var(--ink);border:1px solid var(--border2);
+  opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;
+  pointer-events:none;
+}
+#toast.show{opacity:1;transform:translateY(0)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .page{padding:16px 14px 60px}
+  .topbar-badge{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ────────────────────────────────────────────────── -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">✦</div>
+      <div class="login-logo-name">My Journal</div>
+      <div class="login-logo-sub">Admin Portal</div>
+    </div>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="admin" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="loginPwd" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary btn-full" id="loginBtn">Sign In</button>
+    <p class="err" id="loginErr"></p>
+  </div>
+</div>
+
+<!-- ── APP SHELL ─────────────────────────────────────────────── -->
+<div id="appShell" class="hidden">
+  <header id="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">My <span>Journal</span></span>
+      <span class="topbar-badge">Admin</span>
+    </div>
+    <div class="topbar-right">
+      <span id="adminName"></span>
+      <button class="btn btn-ghost" id="logoutBtn" style="padding:6px 12px;font-size:12px">Sign out</button>
+    </div>
+  </header>
+
+  <nav class="nav-tabs" id="navTabs">
+    <button class="nav-tab active" data-page="overview">Overview</button>
+    <button class="nav-tab" data-page="activity">Activity</button>
+    <button class="nav-tab" data-page="users">Users</button>
+    <button class="nav-tab" data-page="reactions">Reactions</button>
+    <button class="nav-tab" data-page="settings">Settings</button>
+  </nav>
+
+  <!-- OVERVIEW -->
+  <div class="page active" id="page-overview">
+    <div class="stat-grid" id="statGrid"></div>
+    <div class="section">
+      <div class="section-title">Daily Visitors — last 30 days</div>
+      <div class="chart-wrap"><div class="chart-inner" id="dailyChart"></div></div>
+    </div>
+    <div class="section">
+      <div class="section-title">New Signups — last 30 days</div>
+      <div class="chart-wrap"><div class="chart-inner" id="signupChart"></div></div>
+    </div>
+  </div>
+
+  <!-- ACTIVITY -->
+  <div class="page" id="page-activity">
+    <div class="section">
+      <div class="section-title">Visitor Trends</div>
+      <div class="chart-wrap">
+        <div class="chart-tabs">
+          <button class="chart-tab active" data-period="daily">Daily</button>
+          <button class="chart-tab" data-period="weekly">Weekly</button>
+          <button class="chart-tab" data-period="monthly">Monthly</button>
+        </div>
+        <div class="chart-inner" id="activityChart"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Avg Time on Site (seconds) — last 30 days</div>
+      <div class="chart-wrap"><div class="chart-inner" id="timeChart"></div></div>
+    </div>
+  </div>
+
+  <!-- USERS -->
+  <div class="page" id="page-users">
+    <div class="section">
+      <div class="section-title">All Users</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Username</th>
+              <th>Display Name</th>
+              <th>Joined</th>
+              <th>Entries</th>
+              <th>Total Views</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- REACTIONS -->
+  <div class="page" id="page-reactions">
+    <div class="section">
+      <div class="section-title">Reaction Breakdown (all time)</div>
+      <div id="emojiGrid" class="emoji-grid"></div>
+    </div>
+    <div class="section" style="margin-top:24px">
+      <div class="section-title">Top Notes by Reactions</div>
+      <div class="chart-wrap"><div class="chart-inner" id="notesReactChart"></div></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <div class="section">
+      <div class="section-title">Change Admin Password</div>
+      <div class="settings-card">
+        <div class="field">
+          <label>Current Password</label>
+          <input type="password" id="curPwd" placeholder="Current password">
+        </div>
+        <div class="field">
+          <label>New Password</label>
+          <input type="password" id="newPwd" placeholder="New password (min 6)">
+        </div>
+        <div class="field">
+          <label>Confirm New Password</label>
+          <input type="password" id="confPwd" placeholder="Repeat new password">
+        </div>
+        <button class="btn btn-primary" id="savePwdBtn">Update Password</button>
+        <p class="err" id="pwdErr"></p>
+      </div>
+    </div>
+    <div class="section" style="margin-top:32px">
+      <div class="section-title">Admin Info</div>
+      <div class="settings-card">
+        <p style="font-size:13px;color:var(--ink2);line-height:1.7">
+          Default username: <b style="color:var(--gold)">admin</b><br>
+          Admin email: <b style="color:var(--gold)">sri.chityala501@gmail.com</b><br>
+          Session duration: <b style="color:var(--ink)">8 hours</b><br>
+          Portal URL: <b style="color:var(--ink)">/admin</b>
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = '/api/admin';
+let adminToken = sessionStorage.getItem('admin_token') || null;
+let stats = null;
+
+// ── UTILS ───────────────────────────────────────────────────────────────────
+function toast(msg, dur = 2800) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+async function api(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(adminToken ? { Authorization: 'Bearer ' + adminToken } : {}) },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Error');
+  return data;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function fmtSec(s) {
+  if (!s || s < 1) return '< 1s';
+  if (s < 60) return s + 's';
+  return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+}
+
+// ── AUTH ────────────────────────────────────────────────────────────────────
+document.getElementById('loginBtn').onclick = async () => {
+  const user = document.getElementById('loginUser').value.trim();
+  const pwd  = document.getElementById('loginPwd').value;
+  const err  = document.getElementById('loginErr');
+  err.textContent = '';
+  try {
+    const data = await api('POST', '/login', { username: user, password: pwd });
+    adminToken = data.token;
+    sessionStorage.setItem('admin_token', adminToken);
+    showApp(data.username);
+  } catch (e) { err.textContent = e.message; }
+};
+document.getElementById('loginPwd').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+
+document.getElementById('logoutBtn').onclick = () => {
+  adminToken = null;
+  sessionStorage.removeItem('admin_token');
+  document.getElementById('appShell').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+};
+
+async function showApp(username) {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appShell').classList.remove('hidden');
+  document.getElementById('adminName').textContent = username || 'admin';
+  await loadStats();
+}
+
+// ── TABS ────────────────────────────────────────────────────────────────────
+document.getElementById('navTabs').addEventListener('click', e => {
+  const tab = e.target.closest('.nav-tab');
+  if (!tab) return;
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  tab.classList.add('active');
+  document.getElementById('page-' + tab.dataset.page).classList.add('active');
+});
+
+// ── LOAD STATS ───────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    stats = await api('GET', '/stats');
+    renderOverview();
+    renderActivity();
+    renderUsers();
+    renderReactions();
+  } catch (e) {
+    if (e.message.includes('Unauthorized') || e.message.includes('expired')) {
+      adminToken = null;
+      sessionStorage.removeItem('admin_token');
+      document.getElementById('appShell').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+      toast('Session expired — please sign in again');
+    } else {
+      toast('Failed to load stats: ' + e.message);
+    }
+  }
+}
+
+// ── OVERVIEW ────────────────────────────────────────────────────────────────
+function renderOverview() {
+  const t = stats.totals;
+  document.getElementById('statGrid').innerHTML = `
+    <div class="stat-card gold">
+      <div class="stat-label">Total Users</div>
+      <div class="stat-value">${t.totalUsers}</div>
+      <div class="stat-sub">registered accounts</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Entries</div>
+      <div class="stat-value">${t.totalNotes}</div>
+      <div class="stat-sub">diary notes written</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Total Views</div>
+      <div class="stat-value">${t.totalViews.toLocaleString()}</div>
+      <div class="stat-sub">note page views</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-label">Reactions</div>
+      <div class="stat-value">${t.totalReactions.toLocaleString()}</div>
+      <div class="stat-sub">emoji reactions given</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Replies</div>
+      <div class="stat-value">${t.totalReplies.toLocaleString()}</div>
+      <div class="stat-sub">comments posted</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Avg Session</div>
+      <div class="stat-value">${fmtSec(t.avgTime)}</div>
+      <div class="stat-sub">time on site</div>
+    </div>
+  `;
+  renderBarChart('dailyChart', stats.dailyActivity, 'day', 'uniq', 'Visitors');
+  renderBarChart('signupChart', stats.newUsersDaily, 'day', 'c', 'Signups', '#4caf8a');
+}
+
+// ── ACTIVITY ────────────────────────────────────────────────────────────────
+let actPeriod = 'daily';
+function renderActivity() {
+  renderActivityChart();
+  renderBarChart('timeChart', stats.avgTimeDaily, 'day', 'avg_s', 'Avg sec', '#5a9ec5');
+
+  document.querySelectorAll('.chart-tab').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.chart-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      actPeriod = btn.dataset.period;
+      renderActivityChart();
+    };
+  });
+}
+
+function renderActivityChart() {
+  const map = { daily: stats.dailyActivity, weekly: stats.weeklyActivity, monthly: stats.monthlyActivity };
+  const labelKey = { daily: 'day', weekly: 'week', monthly: 'month' };
+  const data = map[actPeriod] || [];
+  renderBarChart('activityChart', data, labelKey[actPeriod], 'uniq', 'Unique visitors');
+}
+
+// ── USERS ────────────────────────────────────────────────────────────────────
+function renderUsers() {
+  const tbody = document.getElementById('usersTable');
+  if (!stats.users.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--ink4);padding:30px">No users yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = stats.users.map((u, i) => `
+    <tr>
+      <td style="color:var(--ink4)">${i + 1}</td>
+      <td><span class="badge badge-gold">@${u.username}</span></td>
+      <td>${u.display_name || '—'}</td>
+      <td>${fmtDate(u.created_at)}</td>
+      <td>${u.note_count}</td>
+      <td>${u.total_views.toLocaleString()}</td>
+      <td>
+        <button class="btn btn-danger" style="padding:4px 10px;font-size:11px"
+          data-del="${u.id}" data-uname="${u.username}">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+
+  tbody.querySelectorAll('[data-del]').forEach(btn => {
+    btn.onclick = async () => {
+      if (!confirm(`Delete user @${btn.dataset.uname} and ALL their entries? This cannot be undone.`)) return;
+      try {
+        await api('DELETE', '/users/' + btn.dataset.del);
+        toast('User deleted');
+        await loadStats();
+      } catch (e) { toast('Error: ' + e.message); }
+    };
+  });
+}
+
+// ── REACTIONS ────────────────────────────────────────────────────────────────
+function renderReactions() {
+  const grid = document.getElementById('emojiGrid');
+  const total = stats.topReactions.reduce((a, r) => a + r.c, 0);
+  if (!total) {
+    grid.innerHTML = '<span style="color:var(--ink4);font-size:13px">No reactions yet</span>';
+  } else {
+    grid.innerHTML = stats.topReactions.map(r => `
+      <div class="emoji-item">
+        <span class="emoji-icon">${r.emoji}</span>
+        <div>
+          <div class="emoji-count">${r.c}</div>
+          <div class="emoji-pct">${Math.round(r.c / total * 100)}%</div>
+        </div>
+      </div>
+    `).join('');
+  }
+  renderBarChart('notesReactChart', stats.notesPerUser, 'username', 'c', 'Entries', '#9b6fd4');
+}
+
+// ── SETTINGS ────────────────────────────────────────────────────────────────
+document.getElementById('savePwdBtn').onclick = async () => {
+  const cur  = document.getElementById('curPwd').value;
+  const nw   = document.getElementById('newPwd').value;
+  const conf = document.getElementById('confPwd').value;
+  const err  = document.getElementById('pwdErr');
+  err.textContent = '';
+  if (!cur || !nw || !conf) { err.textContent = 'All fields required'; return; }
+  if (nw !== conf) { err.textContent = 'Passwords do not match'; return; }
+  try {
+    await api('POST', '/change-password', { currentPassword: cur, newPassword: nw });
+    toast('Password updated ✅');
+    document.getElementById('curPwd').value = '';
+    document.getElementById('newPwd').value = '';
+    document.getElementById('confPwd').value = '';
+  } catch (e) { err.textContent = e.message; }
+};
+
+// ── BAR CHART (pure SVG, no dependencies) ────────────────────────────────────
+function renderBarChart(containerId, data, labelKey, valueKey, title = '', color = '') {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!data || !data.length) {
+    el.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ink4);font-size:12px">No data available yet</div>';
+    return;
+  }
+  const BAR_W   = 28;
+  const BAR_GAP = 8;
+  const H       = 140;
+  const LABEL_H = 36;
+  const PAD_TOP = 24;
+  const PAD_L   = 8;
+  const maxVal  = Math.max(...data.map(d => d[valueKey] || 0), 1);
+  const W       = data.length * (BAR_W + BAR_GAP) + PAD_L * 2;
+  const barColor = color || 'var(--gold)';
+
+  const bars = data.map((d, i) => {
+    const v   = d[valueKey] || 0;
+    const bH  = Math.max((v / maxVal) * H, v > 0 ? 3 : 0);
+    const x   = PAD_L + i * (BAR_W + BAR_GAP);
+    const y   = PAD_TOP + H - bH;
+    // shorten label
+    let lbl = String(d[labelKey] || '');
+    if (lbl.length > 5) lbl = lbl.slice(-5);
+    return `
+      <rect class="bar-bg" x="${x}" y="${PAD_TOP}" width="${BAR_W}" height="${H}" rx="3"/>
+      <rect class="bar" x="${x}" y="${y}" width="${BAR_W}" height="${bH}" rx="3" fill="${barColor}" style="fill:${barColor}">
+        <title>${d[labelKey]}: ${v}</title>
+      </rect>
+      ${v > 0 ? `<text class="val" x="${x + BAR_W / 2}" y="${y - 4}" text-anchor="middle">${v}</text>` : ''}
+      <text x="${x + BAR_W / 2}" y="${PAD_TOP + H + 14}" text-anchor="middle">${lbl}</text>
+    `;
+  }).join('');
+
+  el.innerHTML = `
+    <svg class="bar-chart" viewBox="0 0 ${Math.max(W, 300)} ${PAD_TOP + H + LABEL_H}" preserveAspectRatio="xMinYMid meet">
+      ${bars}
+    </svg>
+  `;
+}
+
+// ── AUTO-LOGIN on page load ───────────────────────────────────────────────────
+(async () => {
+  if (adminToken) {
+    try {
+      await showApp(null);
+    } catch {
+      adminToken = null;
+      sessionStorage.removeItem('admin_token');
+    }
+  }
+})();
+</script>
+</body>
+</html>

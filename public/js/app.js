@@ -29,6 +29,20 @@ let pendingTags  = [];
 
 const audio = document.getElementById('bgAudio');
 
+// ── PAGE VIEW TRACKING ──────────────────────────────────────────────────────
+;(function trackPageView() {
+  const start = Date.now();
+  function sendBeacon(dur) {
+    const userId = (() => { try { const t = localStorage.getItem('diary_token'); if (!t) return null; return JSON.parse(atob(t.split('.')[1])).userId; } catch { return null; } })();
+    const payload = JSON.stringify({ userId, path: location.pathname, duration_s: Math.round(dur / 1000) });
+    if (navigator.sendBeacon) navigator.sendBeacon('/api/admin/track-view', new Blob([payload], { type: 'application/json' }));
+    else fetch('/api/admin/track-view', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true }).catch(() => {});
+  }
+  window.addEventListener('pagehide', () => sendBeacon(Date.now() - start));
+  // also send at 30s intervals for long sessions
+  setInterval(() => sendBeacon(Date.now() - start), 30000);
+})();
+
 // ── UTILS ──────────────────────────────────────────────────────────────────
 function fmtDate(iso) {
   return new Date(iso).toLocaleDateString('en-GB',
