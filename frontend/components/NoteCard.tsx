@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Bookmark, Music, MessageCircle, Camera } from "lucide-react";
+import { Bookmark, Eye, Camera, Music, MessageCircle } from "lucide-react";
 import type { Note } from "@/lib/api";
 import { fmtDate } from "@/lib/api";
 
@@ -17,55 +17,65 @@ interface Props {
   activeTag?: string | null;
 }
 
+const QUICK_EMOJIS = ["❤️", "😂", "🔥", "😍", "👏"];
+
 export default function NoteCard({ note, index, total, isOwner, onClick, onReact, onTagClick, activeTag }: Props) {
-  // Determine a consistent "mood" label from the note — fall back to "Memory"
-  const moodLabel = note.tags?.[0]
-    ? note.tags[0].charAt(0).toUpperCase() + note.tags[0].slice(1)
-    : note.media?.length > 0 ? "Memory" : "Read";
-
-  const moodIcon = note.media?.length > 0
-    ? <Camera size={12}/>
-    : <Bookmark size={12}/>;
-
-  // Format index as "01 / 12"
+  const hasMedia = note.media?.length > 0;
+  const moodLabel = hasMedia ? "Memory" : "Read";
   const numStr = `${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`;
+
+  // Total reactions count
+  const totalReactions = Object.values(note.reactions || {}).reduce((a, b) => a + b, 0);
 
   return (
     <motion.article
       layout
-      initial={{ opacity:0, y:16 }}
-      animate={{ opacity:1, y:0 }}
-      exit={{ opacity:0, scale:0.97 }}
-      transition={{ duration:0.3 }}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={{ duration: 0.3 }}
       onClick={onClick}
       className="note-card"
     >
-      {/* Media */}
-      {note.media?.length > 0 && (
-        <CardMediaSlider media={note.media} />
-      )}
+      {/* Media thumbnail */}
+      {hasMedia && <CardMediaSlider media={note.media} />}
 
-      {/* Body */}
+      {/* Card body */}
       <div className="card-body">
+        {/* Meta row: date + counter */}
         <div className="card-meta">
-          <span className="card-date">{fmtDate(note.createdAt)}</span>
+          <span className="card-date">
+            <span className="card-date-icon">📅</span>
+            {fmtDate(note.createdAt)}
+          </span>
           <span className="card-num">{numStr}</span>
         </div>
 
-        {/* Title in handwriting script */}
-        <h3
-          className="card-title"
-          style={{ fontFamily: "var(--font-script)" }}
-        >
-          {note.title}
-        </h3>
+        {/* Title — italic handwriting script */}
+        <h3 className="card-title">{note.title}</h3>
 
-        {/* Body excerpt — only shown when no media */}
-        {!note.media?.length && note.body && (
-          <p className="card-excerpt">
-            {note.body}
-          </p>
+        {/* Body excerpt (text-only notes) */}
+        {!hasMedia && note.body && (
+          <p className="card-excerpt">{note.body}</p>
         )}
+
+        {/* Emoji reaction row — shown in card body, large emojis */}
+        <div className="card-emoji-row" onClick={e => e.stopPropagation()}>
+          {QUICK_EMOJIS.map(e => {
+            const isReacted = note.userReactions?.includes(e);
+            return (
+              <motion.button
+                key={e}
+                whileTap={{ scale: 0.75 }}
+                className={`emoji-quick-btn${isReacted ? " reacted" : ""}`}
+                onClick={ev => { ev.stopPropagation(); onReact?.(note.id, e); }}
+                title={isReacted ? `Remove ${e}` : `React ${e}`}
+              >
+                {e}
+              </motion.button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Tags */}
@@ -74,7 +84,7 @@ export default function NoteCard({ note, index, total, isOwner, onClick, onReact
           {note.tags.map(t => (
             <button
               key={t}
-              className={`tag-chip${activeTag===t?" tag-chip-active":""}`}
+              className={`tag-chip${activeTag === t ? " tag-chip-active" : ""}`}
               onClick={() => onTagClick?.(t)}
             >
               #{t}
@@ -83,39 +93,28 @@ export default function NoteCard({ note, index, total, isOwner, onClick, onReact
         </div>
       )}
 
-      {/* Footer — mood label + bookmark */}
+      {/* Footer */}
       <div className="card-footer" onClick={e => e.stopPropagation()}>
+        {/* Left: mood label */}
         <div className="card-mood-label">
-          {moodIcon}
+          {hasMedia ? <Camera size={12} /> : <Eye size={12} />}
           <span>{moodLabel}</span>
-          {/* chips for media/music/replies */}
-          {note.musicUrl && <><Music size={10} style={{marginLeft:6}}/> Music</>}
-          {note.replies?.length > 0 && <><MessageCircle size={10} style={{marginLeft:6}}/>{note.replies.length}</>}
+          {note.musicUrl && <Music size={10} style={{ marginLeft: 6 }} />}
         </div>
 
-        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-          {/* Quick emoji reactions */}
-          <div style={{ display:"flex", gap:2 }}>
-            {["❤️","🔥","😍"].map(e => {
-              const isReacted = note.userReactions?.includes(e);
-              return (
-                <motion.button key={e} whileTap={{ scale:0.8 }}
-                  onClick={(ev) => { ev.stopPropagation(); onReact?.(note.id, e); }}
-                  style={{
-                    background: isReacted ? "var(--c-accent-light)" : "none",
-                    border: isReacted ? "1px solid var(--c-accent-ring)" : "1px solid transparent",
-                    cursor: "pointer", fontSize:13,
-                    padding:"1px 4px", borderRadius:5,
-                  }}>
-                  {e}
-                </motion.button>
-              );
-            })}
-          </div>
-
-          {/* Bookmark icon */}
-          <button className="card-bookmark-btn" title="Bookmark">
-            <Bookmark size={14} strokeWidth={1.5}/>
+        {/* Right: reactions count chip + bookmark */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {(totalReactions > 0 || note.replies?.length > 0) ? (
+            <span className="card-reaction-count">
+              {note.replies?.length > 0 && (
+                <><MessageCircle size={11} />{note.replies.length}</>
+              )}
+            </span>
+          ) : (
+            <span className="card-no-react">No reactions</span>
+          )}
+          <button className="card-bookmark-btn" title="Bookmark" onClick={e => e.stopPropagation()}>
+            <Bookmark size={14} strokeWidth={1.5} />
           </button>
         </div>
       </div>
@@ -128,7 +127,7 @@ function CardMediaSlider({ media }: { media: Note["media"] }) {
   const activeIdx = Math.min(cur, Math.max(0, media.length - 1));
 
   return (
-    <div className="card-media" onClick={e => e.stopPropagation()} style={{ position:"relative", userSelect:"none" }}>
+    <div className="card-media" onClick={e => e.stopPropagation()} style={{ position: "relative", userSelect: "none" }}>
       {media[activeIdx].mimetype.startsWith("video/")
         ? <video key={media[activeIdx].id} src={media[activeIdx].url} muted playsInline loop />
         // eslint-disable-next-line @next/next/no-img-element
@@ -136,18 +135,12 @@ function CardMediaSlider({ media }: { media: Note["media"] }) {
       {media.length > 1 && (
         <>
           <span className="card-media-count">{activeIdx + 1} / {media.length}</span>
-          <button
-            type="button"
-            className="sl-arrow sl-prev"
-            style={{ width:30, height:30, fontSize:16, left:8, zIndex:30 }}
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCur(prev => prev > 0 ? prev - 1 : media.length - 1); }}
-          >‹</button>
-          <button
-            type="button"
-            className="sl-arrow sl-next"
-            style={{ width:30, height:30, fontSize:16, right:8, zIndex:30 }}
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCur(prev => prev < media.length - 1 ? prev + 1 : 0); }}
-          >›</button>
+          <button type="button" className="sl-arrow sl-prev"
+            style={{ width: 30, height: 30, fontSize: 16, left: 8, zIndex: 30 }}
+            onClick={e => { e.preventDefault(); e.stopPropagation(); setCur(p => p > 0 ? p - 1 : media.length - 1); }}>‹</button>
+          <button type="button" className="sl-arrow sl-next"
+            style={{ width: 30, height: 30, fontSize: 16, right: 8, zIndex: 30 }}
+            onClick={e => { e.preventDefault(); e.stopPropagation(); setCur(p => p < media.length - 1 ? p + 1 : 0); }}>›</button>
         </>
       )}
     </div>

@@ -192,49 +192,56 @@ function DiaryPage() {
         )}
       </nav>
 
-      {/* ── HERO ── */}
-      <div className="page-hero">
-        <p className="hero-quote">
-          A collection of thoughts,<br/>moments and little pieces of my heart.
-        </p>
-        <p className="hero-sub">Same person. Different days. Endless thoughts.</p>
-        <div className="hero-accent-line"/>
-      </div>
+      {/* ── HERO (left) + FILTERS (right) in one row ── */}
+      <div className="page-content-top">
+        {/* Left: hero text */}
+        <div className="page-hero">
+          <p className="hero-quote">
+            A collection of thoughts,<br/>moments and little pieces of my heart.
+          </p>
+          <p className="hero-sub">Same person. Different days. Endless thoughts.</p>
+          <div className="hero-accent-line"/>
+        </div>
 
-      {/* ── FILTER TABS + DATE RANGE ── */}
-      <div className="filter-section">
-        <div className="filter-tabs">
-          {(["this-week","monthly","yearly","all"] as FilterTab[]).map(t => (
-            <button
-              key={t}
-              className={`filter-tab${filterTab===t?" active":""}`}
-              onClick={() => setFilterTab(t)}
+        {/* Right: filter controls */}
+        <div className="filter-section">
+          {/* Tab row */}
+          <div className="filter-row">
+            <div className="filter-tabs">
+              {(["this-week","monthly","yearly","all"] as FilterTab[]).map(t => (
+                <button
+                  key={t}
+                  className={`filter-tab${filterTab===t?" active":""}`}
+                  onClick={() => setFilterTab(t)}
+                >
+                  {t === "this-week" ? "This Week" : t === "monthly" ? "Monthly" : t === "yearly" ? "Yearly" : "Show All"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Date range + sort row */}
+          <div className="filter-row">
+            <div className="filter-bar">
+              <span style={{ fontSize:12, color:"var(--c-ink4)" }}>📅</span>
+              <input type="date" value={filterFrom} onChange={e=>{setFilterFrom(e.target.value);setFilterTab("all");}}/>
+              <span className="filter-sep">→</span>
+              <input type="date" value={filterTo} onChange={e=>{setFilterTo(e.target.value);setFilterTab("all");}}/>
+              {(filterFrom||filterTo) && <button className="filter-clear" onClick={()=>{setFilterFrom("");setFilterTo("");setFilterTab("all");}}>Clear</button>}
+            </div>
+            <select
+              value={sortKey}
+              onChange={e => setSortKey(e.target.value as SortKey)}
+              className="f-select-sm"
             >
-              {t === "this-week" ? "This Week" : t === "monthly" ? "Monthly" : t === "yearly" ? "Yearly" : "Show All"}
-            </button>
-          ))}
+              <option value="newest">↓ Newest</option>
+              <option value="oldest">↑ Oldest</option>
+              <option value="most-reactions">Most reactions</option>
+              <option value="most-comments">Most comments</option>
+              <option value="most-views">Most viewed</option>
+            </select>
+          </div>
         </div>
-
-        {/* Date range override */}
-        <div className="filter-bar">
-          <input type="date" value={filterFrom} onChange={e=>{setFilterFrom(e.target.value);setFilterTab("all");}}/>
-          <span className="filter-sep">→</span>
-          <input type="date" value={filterTo} onChange={e=>{setFilterTo(e.target.value);setFilterTab("all");}}/>
-          {(filterFrom||filterTo) && <button className="filter-clear" onClick={()=>{setFilterFrom("");setFilterTo("");setFilterTab("all");}}>Clear</button>}
-        </div>
-
-        {/* Sort */}
-        <select
-          value={sortKey}
-          onChange={e => setSortKey(e.target.value as SortKey)}
-          className="f-select-sm"
-        >
-          <option value="newest">Newest first</option>
-          <option value="oldest">Oldest first</option>
-          <option value="most-reactions">Most reactions</option>
-          <option value="most-comments">Most comments</option>
-          <option value="most-views">Most viewed</option>
-        </select>
       </div>
 
       {/* ── TAG FILTER ── */}
