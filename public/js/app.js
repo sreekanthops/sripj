@@ -462,12 +462,17 @@ async function loadAndRender() {
   }
 }
 
-document.getElementById('filterFrom').onchange    = loadAndRender;
-document.getElementById('filterTo').onchange      = loadAndRender;
+function updateClearBtn() {
+  const btn = document.getElementById('btnClearFilter');
+  const has = document.getElementById('filterFrom').value || document.getElementById('filterTo').value;
+  if (btn) btn.style.display = has ? 'inline-flex' : 'none';
+}
+document.getElementById('filterFrom').onchange = () => { updateClearBtn(); loadAndRender(); };
+document.getElementById('filterTo').onchange   = () => { updateClearBtn(); loadAndRender(); };
 document.getElementById('btnClearFilter').onclick = () => {
   document.getElementById('filterFrom').value = '';
   document.getElementById('filterTo').value   = '';
-  loadAndRender();
+  updateClearBtn(); loadAndRender();
 };
 
 // ── SORT ───────────────────────────────────────────────────────────────────
@@ -878,7 +883,7 @@ function renderDetail(note) {
   }
 
   const cont = document.getElementById('detailContent');
-  cont.className = 'tinder-card-body fade-enter';
+  cont.className = 'detail-body-wrap fade-enter';
   cont.innerHTML = `
     ${coverHtml}
     <div class="td-body">

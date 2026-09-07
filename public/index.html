@@ -3,26 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-  <title>Diary</title>
+  <title>My Journal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
 </head>
 <body>
 
-<!-- ══ AUTH SCREEN ══════════════════════════════════════════════ -->
+<!-- ══ AUTH SCREEN ═══════════════════════════════════════════ -->
 <div id="authScreen" class="auth-screen">
+  <div class="auth-bg-art"></div>
   <div class="auth-card">
     <div class="auth-logo">
-      <span class="logo-mark" style="font-size:32px">✦</span>
-      <div class="logo-name" style="font-size:26px">Diary</div>
-      <div class="logo-tagline">Your private space to write</div>
+      <div class="auth-logo-icon">✦</div>
+      <div class="auth-logo-name">My Journal</div>
+      <div class="auth-logo-sub">abt u abt u</div>
     </div>
     <div class="auth-tabs">
       <button class="auth-tab active" data-tab="login">Sign In</button>
-      <button class="auth-tab" data-tab="signup">Create Account</button>
+      <button class="auth-tab" data-tab="signup">Sign Up</button>
     </div>
     <div class="auth-panel" id="panelLogin">
       <div class="field">
@@ -31,164 +32,154 @@
       </div>
       <div class="field">
         <label>Password</label>
-        <input type="password" id="loginPwd" placeholder="password" autocomplete="current-password">
+        <input type="password" id="loginPwd" placeholder="••••••••" autocomplete="current-password">
       </div>
-      <button class="btn btn-primary btn-lg" id="loginBtn" style="width:100%;justify-content:center">Sign In</button>
+      <button class="btn btn-primary btn-lg" id="loginBtn">Sign In</button>
       <p id="loginErr" class="auth-err"></p>
     </div>
     <div class="auth-panel hidden" id="panelSignup">
       <div class="field">
-        <label>Username <span class="auth-hint">(letters, numbers, _ — min 3)</span></label>
-        <input type="text" id="signupUser" placeholder="choose a username" autocomplete="username">
+        <label>Username <span class="auth-hint">letters, numbers, _ — min 3</span></label>
+        <input type="text" id="signupUser" placeholder="yourusername" autocomplete="username">
       </div>
       <div class="field">
-        <label>Display Name <span class="auth-hint">(shown to others)</span></label>
+        <label>Display Name</label>
         <input type="text" id="signupName" placeholder="Your Name">
       </div>
       <div class="field">
-        <label>Password <span class="auth-hint">(min 4 characters)</span></label>
-        <input type="password" id="signupPwd" placeholder="choose a password" autocomplete="new-password">
+        <label>Password <span class="auth-hint">min 4 characters</span></label>
+        <input type="password" id="signupPwd" placeholder="••••••••" autocomplete="new-password">
       </div>
-      <button class="btn btn-primary btn-lg" id="signupBtn" style="width:100%;justify-content:center">Create Account</button>
+      <button class="btn btn-primary btn-lg" id="signupBtn">Create Account</button>
       <p id="signupErr" class="auth-err"></p>
     </div>
   </div>
 </div>
 
-<!-- ══ DIARY APP ════════════════════════════════════════════════ -->
+<!-- ══ DIARY APP ══════════════════════════════════════════════ -->
 <div id="appScreen" class="hidden">
+
+  <!-- ── TOPBAR (floating) ── -->
+  <header id="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-left">
+        <button class="nav-icon-btn" id="hamburgerBtn" aria-label="Menu">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <line x1="2" y1="5"  x2="18" y2="5"/>
+            <line x1="2" y1="10" x2="14" y2="10"/>
+            <line x1="2" y1="15" x2="18" y2="15"/>
+          </svg>
+        </button>
+        <div class="brand">
+          <span class="brand-name" id="pageTitle">My Journal</span>
+          <span class="brand-caption" id="pageTitleCaption">abt u</span>
+        </div>
+        <span id="noteCount" class="note-pill"></span>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-primary btn-sm" id="quickNewBtn" style="display:none">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+          New
+        </button>
+        <div class="ctrl-group">
+          <select id="sortSelect" class="ctrl-select" title="Sort">
+            <option value="newest">↓ Newest</option>
+            <option value="oldest">↑ Oldest</option>
+            <option value="most-reactions">♡ Reactions</option>
+            <option value="most-comments">💬 Comments</option>
+            <option value="most-views">👁 Views</option>
+          </select>
+          <span class="ctrl-divider"></span>
+          <input type="date" class="ctrl-date" id="filterFrom" title="From">
+          <span class="ctrl-dash">—</span>
+          <input type="date" class="ctrl-date" id="filterTo" title="To">
+          <button id="btnClearFilter" class="ctrl-clear" style="display:none">✕</button>
+        </div>
+      </div>
+    </div>
+    <!-- Tag chips strip -->
+    <div id="tagFilterRow" class="tag-strip" style="display:none">
+      <span class="tag-strip-label">Filter</span>
+      <div id="tagChips" class="tag-strip-chips"></div>
+      <button id="btnClearTag" class="tag-strip-clear" style="display:none">Clear</button>
+    </div>
+  </header>
 
   <!-- ── SIDEBAR DRAWER ── -->
   <aside id="sidebar">
-    <div class="sidebar-top-row">
-      <div class="sidebar-logo">
-        <span class="logo-mark">✦</span>
+    <div class="sidebar-head">
+      <div class="sb-brand">
+        <div class="sb-icon">✦</div>
         <div>
-          <div class="logo-name" id="sidebarTitle">My Diary</div>
-          <div class="logo-tagline" id="sidebarSub">Personal Notes</div>
+          <div class="sb-name" id="sidebarTitle">My Journal</div>
+          <div class="sb-sub" id="sidebarSub">@username</div>
         </div>
       </div>
-      <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu">✕</button>
+      <button class="nav-icon-btn" id="sidebarCloseBtn">✕</button>
     </div>
-
-    <nav class="sidebar-nav">
-      <div id="headerActions"></div>
-    </nav>
-
-    <div id="musicBar">
-      <div class="music-indicator" id="musicIndicator">
-        <span class="music-dot"></span>
-        <span class="music-dot"></span>
-        <span class="music-dot"></span>
+    <nav id="headerActions" class="sb-nav"></nav>
+    <div id="musicBar" class="music-bar">
+      <div class="music-eq" id="musicIndicator">
+        <span class="eq-bar"></span><span class="eq-bar"></span><span class="eq-bar"></span><span class="eq-bar"></span>
       </div>
-      <span class="music-title" id="musicTitle">No music</span>
-      <div class="music-controls">
-        <button id="btnMPP" title="Play/Pause">▶</button>
-        <button id="btnMute" title="Mute">♪</button>
+      <span class="music-name" id="musicTitle">No music</span>
+      <div class="music-ctrls">
+        <button id="btnMPP">▶</button>
+        <button id="btnMute">♪</button>
         <input type="range" id="musicVol" min="0" max="1" step="0.05" value="0.6">
       </div>
     </div>
   </aside>
+  <div class="sb-backdrop" id="sidebarBackdrop"></div>
 
-  <!-- ── MAIN CONTENT ── -->
+  <!-- ── MAIN ── -->
   <main id="mainContent">
-    <!-- Topbar -->
-    <div id="topbar">
-      <div class="topbar-inner">
-        <div class="topbar-left">
-          <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <line x1="3" y1="6"  x2="21" y2="6"/>
-              <line x1="3" y1="12" x2="21" y2="12"/>
-              <line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </button>
-          <div class="page-title">
-            <span class="page-title-text" id="pageTitle">Journal</span>
-            <span class="page-title-caption" id="pageTitleCaption"></span>
-            <span id="noteCount" class="note-count"></span>
-          </div>
-        </div>
-        <div class="topbar-right">
-          <button class="btn btn-primary btn-sm" id="quickNewBtn" style="display:none">+ New Entry</button>
-          <select id="sortSelect" class="sort-select" title="Sort entries">
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
-            <option value="most-reactions">Most reactions</option>
-            <option value="most-comments">Most comments</option>
-            <option value="most-views">Most viewed</option>
-          </select>
-          <div class="filter-group">
-            <input type="date" class="date-input" id="filterFrom" title="From date">
-            <span class="filter-sep">—</span>
-            <input type="date" class="date-input" id="filterTo" title="To date">
-            <button id="btnClearFilter" class="clear-btn">Clear</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tag filter row -->
-    <div id="tagFilterRow" class="tag-filter-row" style="display:none">
-      <span class="tag-filter-label">Tags:</span>
-      <div id="tagChips" class="tag-chips-wrap"></div>
-      <button id="btnClearTag" class="clear-btn" style="display:none">✕ Clear tag</button>
-    </div>
-
-    <!-- Notes grid -->
     <section id="notesSection">
       <div id="notesGrid"></div>
     </section>
+    <footer>My Journal · abt u abt u</footer>
   </main>
 
 </div>
 
-<!-- ── SIDEBAR BACKDROP ── -->
-<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-
-<!-- ══ DETAIL OVERLAY  — Tinder swipe card ════════════════════ -->
+<!-- ══ DETAIL OVERLAY ════════════════════════════════════════ -->
 <div class="overlay tinder-mode" id="detailOverlay">
-  <!-- Story progress bars + close sit outside the scrollable card body -->
-  <div class="tinder-card-container" id="detailModal">
-    <button class="tinder-close" id="detailClose" aria-label="Close">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <line x1="3" y1="3" x2="13" y2="13"/>
-        <line x1="13" y1="3" x2="3" y2="13"/>
+  <div class="detail-card" id="detailModal">
+    <button class="detail-close" id="detailClose" aria-label="Close">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
       </svg>
     </button>
-    <!-- story progress bars injected here by renderDetail -->
     <div class="td-story-bars" id="detailBars"></div>
-    <!-- left / right tap zones for swipe between notes -->
     <div class="td-tap td-tap-left"  id="detailTapLeft">‹</div>
     <div class="td-tap td-tap-right" id="detailTapRight">›</div>
-    <!-- scrollable body -->
-    <div class="tinder-card-body" id="detailContent"></div>
+    <div class="detail-body-wrap" id="detailContent"></div>
   </div>
 </div>
 
-<!-- ══ NOTE FORM MODAL ═════════════════════════════════════ -->
+<!-- ══ NOTE FORM ══════════════════════════════════════════════ -->
 <div class="overlay center" id="formOverlay">
-  <div class="modal" id="formModal">
-    <button class="modal-close" id="formClose">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+  <div class="sheet" id="formModal">
+    <button class="sheet-close" id="formClose">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
     </button>
-    <div class="modal-title" id="formTitle">New Entry</div>
+    <div class="sheet-title" id="formTitle">New Entry</div>
     <div class="field">
       <label>Title</label>
       <input type="text" id="fTitle" placeholder="Give your entry a title…">
     </div>
     <div class="field">
-      <label>Appearance</label>
+      <label>Style</label>
       <div class="style-row">
         <select id="fFont">
-          <option value="Georgia,serif">Georgia (Classic)</option>
+          <option value="Georgia,serif">Georgia</option>
           <option value="'Palatino Linotype',serif">Palatino</option>
           <option value="'Courier New',monospace">Courier</option>
           <option value="Arial,sans-serif">Arial</option>
           <option value="Verdana,sans-serif">Verdana</option>
           <option value="'Comic Sans MS',cursive">Comic Sans</option>
         </select>
-        <input type="number" id="fSize" value="14" min="10" max="28" title="Font size px">
+        <input type="number" id="fSize" value="14" min="10" max="28" title="Size">
         <select id="fWeight">
           <option value="normal">Normal</option>
           <option value="bold">Bold</option>
@@ -196,7 +187,6 @@
           <option value="bold italic">Bold+Italic</option>
         </select>
       </div>
-      <label style="margin-bottom:6px">Colour Theme</label>
       <div class="swatches" id="swatches"></div>
     </div>
     <div class="field">
@@ -204,12 +194,12 @@
       <textarea id="fBody" class="lined" placeholder="Write your thoughts here…"></textarea>
     </div>
     <div class="field" id="tagsField">
-      <label>Tags <span class="auth-hint">(press Enter or comma to add)</span></label>
+      <label>Tags <span class="auth-hint">Enter or comma to add</span></label>
       <div id="tagsChips" class="tags-chips-edit"></div>
       <input type="text" id="fTags" placeholder="e.g. travel, love, rant…">
     </div>
     <div class="field" id="musicField">
-      <label>Background Music URL (.mp3)</label>
+      <label>Background Music <span class="auth-hint">.mp3 URL</span></label>
       <input type="text" id="fMusic" placeholder="https://…/song.mp3">
     </div>
     <div class="field" id="mediaField">
@@ -217,30 +207,30 @@
       <div class="exist-media-row" id="existMediaRow"></div>
       <div class="upload-zone" id="uploadZone">
         <input type="file" id="fFiles" accept="video/*,image/*" multiple>
-        <span class="uz-icon">+</span>
-        <div>Drag &amp; drop or <b>tap to choose</b></div>
-        <small>MP4 · MOV · WebM · JPG · PNG · GIF · up to 200 MB</small>
+        <div class="uz-icon">↑</div>
+        <div>Drop files or <b>tap to choose</b></div>
+        <small>JPG · PNG · MP4 · MOV · up to 200 MB</small>
       </div>
       <div class="upload-previews" id="uploadPreviews"></div>
     </div>
-    <button class="btn btn-primary" id="fSave" style="width:100%;justify-content:center;margin-top:8px">Save Entry</button>
+    <button class="btn btn-primary" id="fSave" style="width:100%;justify-content:center;margin-top:4px">Save Entry</button>
   </div>
 </div>
 
-<!-- ══ PROFILE MODAL ════════════════════════════════════════ -->
+<!-- ══ PROFILE MODAL ═════════════════════════════════════════ -->
 <div class="overlay center" id="profileOverlay">
-  <div class="modal" id="profileModal">
-    <button class="modal-close" id="profileClose">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+  <div class="sheet" id="profileModal">
+    <button class="sheet-close" id="profileClose">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
     </button>
-    <div class="modal-title">Edit Profile</div>
+    <div class="sheet-title">Edit Profile</div>
     <div class="field">
       <label>Display Name</label>
       <input type="text" id="profName" placeholder="Your Name">
     </div>
     <div class="field">
-      <label>Bio <span class="auth-hint">(optional, shown on your public page)</span></label>
-      <textarea id="profBio" placeholder="Tell the world a little about yourself…" style="min-height:80px"></textarea>
+      <label>Bio <span class="auth-hint">shown on your public page</span></label>
+      <textarea id="profBio" placeholder="Tell the world about yourself…" style="min-height:80px"></textarea>
     </div>
     <button class="btn btn-primary" id="profSave" style="width:100%;justify-content:center">Save</button>
   </div>
@@ -248,8 +238,6 @@
 
 <div id="toast"></div>
 <audio id="bgAudio" loop></audio>
-<footer>My Diary v6.0</footer>
-
 <script src="/js/app.js"></script>
 </body>
 </html>
