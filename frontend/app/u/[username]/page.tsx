@@ -13,17 +13,17 @@ import { api } from "@/lib/api";
 import type { Note, PublicUser } from "@/lib/api";
 
 function DiaryPage() {
-  const params    = useParams();
-  const router    = useRouter();
-  const username  = (params.username as string).toLowerCase();
+  const params   = useParams();
+  const router   = useRouter();
+  const username = (params.username as string).toLowerCase();
   const { user, loading: authLoading, logout, refreshUser } = useAuth();
 
   const [notes,       setNotes]       = useState<Note[]>([]);
-  const [pageUser,    setPageUser]    = useState<PublicUser | null>(null);
+  const [pageUser,    setPageUser]    = useState<PublicUser|null>(null);
   const [pageLoading, setPageLoading] = useState(true);
-  const [openNoteId,  setOpenNoteId]  = useState<string | null>(null);
+  const [openNoteId,  setOpenNoteId]  = useState<string|null>(null);
   const [formOpen,    setFormOpen]    = useState(false);
-  const [editNote,    setEditNote]    = useState<Note | null>(null);
+  const [editNote,    setEditNote]    = useState<Note|null>(null);
   const [filterFrom,  setFilterFrom]  = useState("");
   const [filterTo,    setFilterTo]    = useState("");
 
@@ -34,202 +34,126 @@ function DiaryPage() {
       const p = new URLSearchParams();
       if (filterFrom) p.set("from", filterFrom);
       if (filterTo)   p.set("to",   filterTo);
-      const qs = p.toString() ? "?" + p : "";
-      const data = await api.get<{ user: PublicUser; notes: Note[] }>(`/notes/user/${username}${qs}`);
+      const qs = p.toString() ? "?"+p : "";
+      const data = await api.get<{user:PublicUser;notes:Note[]}>(`/notes/user/${username}${qs}`);
       setPageUser(data.user);
       setNotes(data.notes);
-    } catch {
-      setPageUser(null);
-    } finally {
-      setPageLoading(false);
-    }
+    } catch { setPageUser(null); }
+    finally  { setPageLoading(false); }
   }, [username, filterFrom, filterTo]);
 
   useEffect(() => { if (!authLoading) load(); }, [load, authLoading]);
 
-  const handleLogout = () => {
-    logout();
-    router.push("/");
-  };
-
+  const handleLogout = () => { logout(); router.push("/"); };
   const handleProfileUpdate = async (displayName: string, bio: string) => {
     await refreshUser();
     setPageUser(prev => prev ? { ...prev, displayName, bio } : prev);
   };
 
-  if (authLoading || pageLoading) return <Spinner />;
+  if (authLoading || pageLoading) return <div className="spinner" style={{marginTop:80}}/>;
 
-  if (!pageUser) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--color-paper)] gap-4">
-        <span className="text-4xl opacity-30">✦</span>
-        <p className="text-[var(--color-ink-3)] font-serif text-xl">Diary not found</p>
-        <button onClick={() => router.push("/")} className="text-sm text-[var(--color-accent)] underline cursor-pointer">
-          Go home
-        </button>
-      </div>
-    );
-  }
+  if (!pageUser) return (
+    <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"var(--c-paper)", gap:16 }}>
+      <span style={{ fontSize:36, opacity:.3 }}>✦</span>
+      <p style={{ color:"var(--c-ink3)", fontFamily:"var(--font-serif)", fontSize:20 }}>Diary not found</p>
+      <button onClick={() => router.push("/")} style={{ fontSize:14, color:"var(--c-accent)", background:"none", border:"none", cursor:"pointer", textDecoration:"underline" }}>
+        Go home
+      </button>
+    </div>
+  );
 
-  const pageTitle = isOwner
-    ? "My Journal"
-    : `${pageUser.displayName || pageUser.username}'s Diary`;
+  const pageTitle = isOwner ? "My Journal" : `${pageUser.displayName||pageUser.username}'s Diary`;
 
   return (
-    <div className="flex min-h-screen bg-[var(--color-paper)]">
+    <div className="app-shell">
       {/* Sidebar */}
-      <div className="hidden md:block">
-        <Sidebar
-          user={user || { userId: "", username: "", displayName: pageUser.displayName, bio: pageUser.bio }}
-          isOwner={isOwner}
-          viewingName={pageUser.displayName || pageUser.username}
-          viewingSub={`@${pageUser.username}`}
-          onNewEntry={() => { setEditNote(null); setFormOpen(true); }}
-          onLogout={handleLogout}
-          onGoHome={() => user && router.push(`/u/${user.username}`)}
-          onGoLogin={() => router.push("/")}
-          onProfileUpdate={handleProfileUpdate}
-        />
-      </div>
+      <Sidebar
+        user={user||{userId:"",username:"",displayName:pageUser.displayName,bio:pageUser.bio}}
+        isOwner={isOwner}
+        viewingName={pageUser.displayName||pageUser.username}
+        viewingSub={`@${pageUser.username}`}
+        onNewEntry={() => { setEditNote(null); setFormOpen(true); }}
+        onLogout={handleLogout}
+        onGoHome={() => user && router.push(`/u/${user.username}`)}
+        onGoLogin={() => router.push("/")}
+        onProfileUpdate={handleProfileUpdate}
+      />
 
-      {/* Main */}
-      <main className="flex-1 md:ml-[240px] flex flex-col min-h-screen">
+      <div className="main-area">
         {/* Topbar */}
-        <div className="sticky top-0 z-[90] bg-[var(--color-paper)]/90 backdrop-blur-[16px]
-          border-b border-[var(--color-border)]">
-          <div className="px-8 py-4 flex items-center justify-between gap-5 flex-wrap">
-            <div className="flex items-baseline gap-2.5">
-              <h1 className="font-serif text-2xl text-[var(--color-ink)] tracking-tight leading-none">
-                {pageTitle}
-              </h1>
-              {notes.length > 0 && (
-                <span className="text-[12px] text-[var(--color-ink-4)]">
-                  {notes.length} {notes.length === 1 ? "entry" : "entries"}
-                </span>
-              )}
+        <div className="topbar">
+          <div className="topbar-inner">
+            <div>
+              <span className="page-title">{pageTitle}</span>
+              {notes.length > 0 && <span className="note-count">{notes.length} {notes.length===1?"entry":"entries"}</span>}
             </div>
-            <div className="flex items-center gap-2 bg-[var(--color-surface-2)] border border-[var(--color-border-2)]
-              rounded-[9px] px-3 py-1.5">
-              <Search size={11} className="text-[var(--color-ink-4)]" />
-              <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)}
-                className="bg-transparent text-[12px] text-[var(--color-ink-2)] outline-none cursor-pointer" />
-              <span className="text-[11px] text-[var(--color-ink-4)]">—</span>
-              <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)}
-                className="bg-transparent text-[12px] text-[var(--color-ink-2)] outline-none cursor-pointer" />
-              {(filterFrom || filterTo) && (
-                <button onClick={() => { setFilterFrom(""); setFilterTo(""); }}
-                  className="text-[11px] text-[var(--color-ink-4)] hover:text-[var(--color-ink-2)] cursor-pointer">
-                  Clear
-                </button>
-              )}
+            <div className="filter-bar">
+              <Search size={11} color="var(--c-ink4)"/>
+              <input type="date" value={filterFrom} onChange={e=>setFilterFrom(e.target.value)}/>
+              <span className="filter-sep">—</span>
+              <input type="date" value={filterTo} onChange={e=>setFilterTo(e.target.value)}/>
+              {(filterFrom||filterTo) && <button className="filter-clear" onClick={()=>{setFilterFrom("");setFilterTo("");}}>Clear</button>}
             </div>
           </div>
         </div>
 
-        {/* Mobile sidebar actions */}
-        <div className="md:hidden px-4 py-3 flex items-center gap-2 border-b border-[var(--color-border)]">
+        {/* Mobile bar */}
+        <div className="mobile-bar">
           {isOwner ? (
             <>
-              <button onClick={() => { setEditNote(null); setFormOpen(true); }}
-                className="flex-1 py-2 rounded-[9px] bg-[var(--color-accent)] text-white text-sm font-medium cursor-pointer">
-                + New Entry
-              </button>
-              <button onClick={handleLogout}
-                className="px-3 py-2 rounded-[9px] border border-[var(--color-border-2)] text-[var(--color-ink-3)] text-sm cursor-pointer">
-                Sign out
-              </button>
+              <button className="btn-primary" style={{flex:1}} onClick={() => { setEditNote(null); setFormOpen(true); }}>+ New Entry</button>
+              <button className="btn-ghost" style={{width:"auto"}} onClick={handleLogout}>Sign out</button>
             </>
           ) : (
-            <button onClick={() => router.push("/")}
-              className="px-3 py-2 rounded-[9px] border border-[var(--color-border-2)] text-[var(--color-ink-3)] text-sm cursor-pointer">
-              Sign In
-            </button>
+            <button className="btn-ghost" style={{width:"auto"}} onClick={() => router.push("/")}>Sign In</button>
           )}
         </div>
 
         {/* Grid */}
-        <section className="px-8 py-7 pb-20 flex-1" style={{ padding: "28px 32px 80px" }}>
+        <div className="notes-section">
           {notes.length === 0 ? (
-            <EmptyState isOwner={isOwner} onNew={() => { setEditNote(null); setFormOpen(true); }} />
+            <div className="empty-state">
+              <span className="empty-star">✦</span>
+              <p className="empty-text">
+                {isOwner
+                  ? <>Tap <button onClick={() => { setEditNote(null); setFormOpen(true); }}>+ New Entry</button> to write your first entry.</>
+                  : "No diary entries yet — check back soon."}
+              </p>
+            </div>
           ) : (
-            <motion.div
-              className="grid gap-[18px]"
-              style={{ gridTemplateColumns: "repeat(auto-fill, minmax(295px,1fr))" }}
-            >
+            <div className="notes-grid">
               <AnimatePresence>
                 {notes.map(n => (
-                  <NoteCard key={n.id} note={n} isOwner={isOwner}
-                    onClick={() => setOpenNoteId(n.id)} />
+                  <NoteCard key={n.id} note={n} isOwner={isOwner} onClick={() => setOpenNoteId(n.id)}/>
                 ))}
               </AnimatePresence>
-            </motion.div>
+            </div>
           )}
-        </section>
-      </main>
+        </div>
 
-      {/* Bio banner (public view only) */}
+        <footer>My Diary v4.0</footer>
+      </div>
+
+      {/* Bio banner */}
       {!isOwner && pageUser.bio && (
-        <aside className="fixed bottom-0 left-0 right-0 bg-[var(--color-surface-2)] border-t border-[var(--color-border)]
-          px-6 py-3 text-center text-[13px] text-[var(--color-ink-3)] italic font-serif z-50">
+        <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--c-surface2)", borderTop:"1px solid var(--c-border)", padding:"12px 24px", textAlign:"center", fontSize:13, color:"var(--c-ink3)", fontStyle:"italic", fontFamily:"var(--font-serif)", zIndex:50 }}>
           {pageUser.bio}
-        </aside>
+        </div>
       )}
 
-      {/* Note Detail */}
-      <NoteDetail
-        noteId={openNoteId}
-        notes={notes}
-        isOwner={isOwner}
-        currentUser={user}
+      <NoteDetail noteId={openNoteId} notes={notes} isOwner={isOwner} currentUser={user}
         onClose={() => setOpenNoteId(null)}
         onEdit={n => { setEditNote(n); setFormOpen(true); setOpenNoteId(null); }}
         onDeleted={() => { setOpenNoteId(null); load(); }}
-        onNotesUpdate={setNotes}
-      />
+        onNotesUpdate={setNotes}/>
 
-      {/* Note Form */}
-      <NoteForm
-        open={formOpen}
-        note={editNote}
+      <NoteForm open={formOpen} note={editNote}
         onClose={() => { setFormOpen(false); setEditNote(null); }}
-        onSaved={() => { setFormOpen(false); setEditNote(null); load(); }}
-      />
-
-      <footer className="text-center py-5 text-[11px] text-[var(--color-ink-4)] border-t border-[var(--color-border)]
-        md:ml-[240px] tracking-[.5px]">
-        My Diary v4.0
-      </footer>
+        onSaved={() => { setFormOpen(false); setEditNote(null); load(); }}/>
     </div>
   );
 }
 
 export default function Page() {
-  return (
-    <AuthProvider>
-      <DiaryPage />
-    </AuthProvider>
-  );
-}
-
-function Spinner() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--color-paper)]">
-      <div className="w-8 h-8 border-2 border-[var(--color-paper-3)] border-t-[var(--color-accent)] rounded-full animate-spin" />
-    </div>
-  );
-}
-
-function EmptyState({ isOwner, onNew }: { isOwner: boolean; onNew: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
-      <span className="text-[36px] text-[var(--color-accent)] opacity-40">✦</span>
-      {isOwner ? (
-        <p className="text-[var(--color-ink-4)] font-sans text-[15px]">
-          Tap <button onClick={onNew} className="text-[var(--color-accent)] font-semibold cursor-pointer">+ New Entry</button> to write your first entry.
-        </p>
-      ) : (
-        <p className="text-[var(--color-ink-4)] font-sans text-[15px]">No diary entries yet — check back soon.</p>
-      )}
-    </div>
-  );
+  return <AuthProvider><DiaryPage/></AuthProvider>;
 }
