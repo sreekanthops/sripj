@@ -32,6 +32,7 @@ export interface Note {
   fontWeight: string;
   colorIdx: number;
   musicUrl: string;
+  tags: string[];
   views: number;
   createdAt: string;
   editedAt: string | null;

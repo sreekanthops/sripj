@@ -11,9 +11,11 @@ interface Props {
   isOwner: boolean;
   onClick: () => void;
   onReact?: (noteId: string, emoji: string) => void;
+  onTagClick?: (tag: string) => void;
+  activeTag?: string | null;
 }
 
-export default function NoteCard({ note, isOwner, onClick, onReact }: Props) {
+export default function NoteCard({ note, isOwner, onClick, onReact, onTagClick, activeTag }: Props) {
   const p = PALETTE[note.colorIdx || 0];
   const reactions = Object.entries(note.reactions||{}).filter(([,v])=>v>0).slice(0,4);
 
@@ -106,6 +108,21 @@ export default function NoteCard({ note, isOwner, onClick, onReact }: Props) {
           {note.replies?.length > 0 && <Chip icon={<MessageCircle size={9}/>} label={`${note.replies.length}`} accent={p.accent}/>}
         </div>
       </div>
+
+      {/* Tags */}
+      {note.tags?.length > 0 && (
+        <div className="card-tags" onClick={e => e.stopPropagation()}>
+          {note.tags.map(t => (
+            <button
+              key={t}
+              className={`tag-chip${activeTag===t?" tag-chip-active":""}`}
+              onClick={() => onTagClick?.(t)}
+            >
+              #{t}
+            </button>
+          ))}
+        </div>
+      )}
     </motion.article>
   );
 }

@@ -30,6 +30,7 @@ db.exec(`
     font_weight TEXT NOT NULL DEFAULT 'normal',
     color_idx   INTEGER NOT NULL DEFAULT 0,
     music_url   TEXT NOT NULL DEFAULT '',
+    tags        TEXT NOT NULL DEFAULT '[]',
     views       INTEGER NOT NULL DEFAULT 0,
     created_at  TEXT NOT NULL,
     edited_at   TEXT
@@ -103,6 +104,11 @@ if (!hasColumn('users', 'password_hash')) db.exec(`ALTER TABLE users ADD COLUMN 
 // notes.user_id
 if (!hasColumn('notes', 'user_id')) {
   db.exec(`ALTER TABLE notes ADD COLUMN user_id TEXT NOT NULL DEFAULT ''`);
+}
+
+// notes.tags
+if (!hasColumn('notes', 'tags')) {
+  db.exec(`ALTER TABLE notes ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'`);
 }
 
 // replies.user_id

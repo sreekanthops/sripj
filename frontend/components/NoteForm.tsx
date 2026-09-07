@@ -33,6 +33,8 @@ export default function NoteForm({ open, note, onClose, onSaved }: Props) {
   const [fontWeight, setFontWeight] = useState("normal");
   const [colorIdx,   setColorIdx]   = useState(0);
   const [musicUrl,   setMusicUrl]   = useState("");
+  const [tagInput,   setTagInput]   = useState("");
+  const [tags,       setTags]       = useState<string[]>([]);
   const [pending,    setPending]    = useState<File[]>([]);
   const [saving,     setSaving]     = useState(false);
   const [error,      setError]      = useState("");
@@ -44,12 +46,22 @@ export default function NoteForm({ open, note, onClose, onSaved }: Props) {
       setTitle(note.title); setBody(note.body); setFont(note.font||"Georgia,serif");
       setFontSize(note.fontSize||14); setFontWeight(note.fontWeight||"normal");
       setColorIdx(note.colorIdx||0); setMusicUrl(note.musicUrl||"");
+      setTags(note.tags||[]);
     } else {
       setTitle(""); setBody(""); setFont("Georgia,serif");
       setFontSize(14); setFontWeight("normal"); setColorIdx(0); setMusicUrl("");
+      setTags([]);
     }
-    setPending([]); setError("");
+    setTagInput(""); setPending([]); setError("");
   }, [open, isEdit, note]);
+
+  const addTag = (raw: string) => {
+    const t = raw.trim().toLowerCase().replace(/[^a-z0-9_\-]/g, "");
+    if (t && !tags.includes(t)) setTags(prev => [...prev, t]);
+    setTagInput("");
+  };
+
+  const removeTag = (t: string) => setTags(prev => prev.filter(x => x !== t));
 
   const addFiles = (files: FileList|File[]) => {
     setPending(prev => [...prev, ...Array.from(files).filter(f => f.type.startsWith("image/")||f.type.startsWith("video/"))]);
@@ -59,7 +71,7 @@ export default function NoteForm({ open, note, onClose, onSaved }: Props) {
     if (!title.trim()&&!body.trim()) { setError("Write something first ✍"); return; }
     setSaving(true); setError("");
     try {
-      const payload = { title:title||"Untitled", body, font, fontSize, fontWeight, colorIdx, musicUrl };
+      const payload = { title:title||"Untitled", body, font, fontSize, fontWeight, colorIdx, musicUrl, tags };
       const saved = isEdit && note
         ? await api.put<Note>(`/notes/${note.id}`, payload)
         : await api.post<Note>("/notes", payload);
@@ -110,6 +122,30 @@ export default function NoteForm({ open, note, onClose, onSaved }: Props) {
           placeholder="Write your thoughts here…"
           className="f-textarea lined-ta"
           style={{ fontFamily:font, fontSize }}/>
+      </div>
+
+      {/* Tags */}
+      <div className="f-field">
+        <label className="f-label">Tags <span className="f-hint">press Enter or comma to add</span></label>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:tags.length?8:0 }}>
+          {tags.map(t => (
+            <span key={t} className="tag-chip tag-chip-form">
+              #{t}
+              <button onClick={() => removeTag(t)} style={{ background:"none", border:"none", cursor:"pointer", marginLeft:3, lineHeight:1, color:"inherit", opacity:.7, fontSize:11, padding:0 }}>✕</button>
+            </span>
+          ))}
+        </div>
+        <input
+          value={tagInput}
+          onChange={e => setTagInput(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(tagInput); }
+            if (e.key === "Backspace" && !tagInput && tags.length) removeTag(tags[tags.length-1]);
+          }}
+          onBlur={() => { if (tagInput.trim()) addTag(tagInput); }}
+          placeholder="e.g. travel, love, rant…"
+          className="f-input"
+        />
       </div>
 
       {/* Music */}

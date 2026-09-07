@@ -416,6 +416,34 @@ body {
 footer { text-align:center; padding:22px; border-top:1px solid var(--c-border); font-size:11px; color:var(--c-ink4); letter-spacing:.5px; }
 @media(min-width:769px){ footer{ margin-left:240px; } }
 
+/* ════════ TAGS ════════ */
+.tag-chip {
+  display:inline-flex; align-items:center;
+  padding:3px 9px; border-radius:99px;
+  font-size:11px; font-weight:600; letter-spacing:.3px;
+  background:var(--c-paper2); border:1px solid var(--c-border2);
+  color:var(--c-ink3); cursor:pointer;
+  transition:background .15s, border-color .15s, color .15s;
+}
+.tag-chip:hover { background:var(--c-accent-light); border-color:var(--c-accent-ring); color:var(--c-accent); }
+.tag-chip-active { background:var(--c-accent-light) !important; border-color:var(--c-accent) !important; color:var(--c-accent) !important; font-weight:700; }
+.tag-chip-form { background:var(--c-accent-light); border:1px solid var(--c-accent-ring); color:var(--c-accent); }
+
+.card-tags {
+  display:flex; flex-wrap:wrap; gap:5px;
+  padding:0 20px 14px;
+}
+
+.tag-filter-row {
+  display:flex; flex-wrap:wrap; align-items:center; gap:6px;
+  padding:8px 32px 10px;
+  border-top:1px solid var(--c-border);
+  background:rgba(245,240,232,.92);
+}
+.tag-filter-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--c-ink4); margin-right:2px; }
+@media(max-width:1024px){ .tag-filter-row{ padding:8px 24px 10px; } }
+@media(max-width:768px){ .tag-filter-row{ padding:8px 16px 10px; } }
+
 /* ════════ @theme for Tailwind utilities that DO compile ════════ */
 @theme {
   --font-sans:   system-ui, sans-serif;
