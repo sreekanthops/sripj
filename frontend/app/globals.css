@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
+  --font-serif: var(--font-playfair), Georgia, serif;
+  --font-script: var(--font-dancing), cursive;
+
+  /* Paper palette */
+  --color-paper:       #f5f0e8;
+  --color-paper-2:     #ece7dc;
+  --color-paper-3:     #e4ddd0;
+  --color-surface:     #fdfaf5;
+  --color-surface-2:   #ffffff;
+
+  /* Ink */
+  --color-ink:         #1a1612;
+  --color-ink-2:       #3d3628;
+  --color-ink-3:       #7a6e5e;
+  --color-ink-4:       #b0a490;
+
+  /* Accent — deep sage */
+  --color-accent:      #3d6b5e;
+  --color-accent-2:    #2f5248;
+  --color-accent-light: rgba(61,107,94,0.10);
+  --color-accent-ring:  rgba(61,107,94,0.25);
+
+  /* Semantic */
+  --color-red:         #c0392b;
+  --color-gold:        #7c5f3a;
+
+  /* Border */
+  --color-border:      rgba(0,0,0,0.07);
+  --color-border-2:    rgba(0,0,0,0.12);
+
+  /* Radius */
+  --radius-card:  14px;
+  --radius-btn:   9px;
+
+  /* Shadows */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:  0 4px 20px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+  --shadow-lg:  0 16px 48px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
+}
+
+/* ── Global base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-paper-3); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-ink-4); }
+
+/* ── Lined textarea ── */
+.lined-textarea {
+  background-image: repeating-linear-gradient(
+    var(--color-surface-2), var(--color-surface-2) 27px, var(--color-paper-2) 28px
+  );
+  background-size: 100% 28px;
+  line-height: 28px;
+}
+
+/* ── Paper rule decoration ── */
+.paper-rule::after {
+  content: '';
+  display: block;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--color-accent-ring), transparent);
+  margin-top: 24px;
+}
