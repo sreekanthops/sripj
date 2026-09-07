@@ -24,6 +24,8 @@ let notes        = [];
 let editId       = null;
 let pendingFiles = [];
 let detailIdx    = 0;   // current note index inside the tinder detail overlay
+let activeTag    = null;
+let pendingTags  = [];
 
 const audio = document.getElementById('bgAudio');
 
@@ -238,7 +240,8 @@ async function enterOwnDiary() {
   document.body.classList.add('is-owner');
   document.getElementById('sidebarTitle').textContent = currentUser.displayName || currentUser.username;
   document.getElementById('sidebarSub').textContent   = '@' + currentUser.username;
-  document.getElementById('pageTitle').textContent    = 'My Journal';
+  document.getElementById('pageTitle').textContent     = 'My Journal';
+  document.getElementById('pageTitleCaption').textContent = 'abt u';
   history.replaceState({}, '', '/u/' + currentUser.username);
   renderHeader();
   buildSwatches(0);
@@ -257,9 +260,10 @@ async function enterPublicDiary(username) {
     notes = data.notes;
     document.getElementById('sidebarTitle').textContent = viewingUser.displayName || viewingUser.username;
     document.getElementById('sidebarSub').textContent   = '@' + viewingUser.username;
-    document.getElementById('pageTitle').textContent    = isOwner
+    document.getElementById('pageTitle').textContent     = isOwner
       ? 'My Journal'
       : (viewingUser.displayName || viewingUser.username) + "'s Diary";
+    document.getElementById('pageTitleCaption').textContent = isOwner ? 'abt u' : '';
     renderHeader();
     buildSwatches(0);
     setupUploadZone();
@@ -341,9 +345,37 @@ function renderExistMedia(note) {
   });
 }
 
+// ── TAGS FORM HELPERS ──────────────────────────────────────────────────────
+function renderTagsChips() {
+  const wrap = document.getElementById('tagsChips');
+  wrap.innerHTML = pendingTags.map((t, i) =>
+    `<span class="tag-chip-edit">#${esc(t)}<button class="tag-chip-del" data-i="${i}">✕</button></span>`
+  ).join('');
+  wrap.querySelectorAll('.tag-chip-del').forEach(btn => {
+    btn.onclick = () => { pendingTags.splice(parseInt(btn.dataset.i), 1); renderTagsChips(); };
+  });
+}
+
+function addPendingTag(raw) {
+  const t = raw.trim().toLowerCase().replace(/[^a-z0-9_\-]/g, '');
+  if (t && !pendingTags.includes(t)) pendingTags.push(t);
+  document.getElementById('fTags').value = '';
+  renderTagsChips();
+}
+
+document.getElementById('fTags').addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addPendingTag(e.target.value); }
+  if (e.key === 'Backspace' && !e.target.value && pendingTags.length) {
+    pendingTags.pop(); renderTagsChips();
+  }
+});
+document.getElementById('fTags').addEventListener('blur', e => {
+  if (e.target.value.trim()) addPendingTag(e.target.value);
+});
+
 // ── FORMS ──────────────────────────────────────────────────────────────────
 function openNewForm() {
-  editId = null;
+  editId = null; pendingTags = [];
   document.getElementById('formTitle').textContent = '✒ New Entry';
   document.getElementById('fTitle').value  = '';
   document.getElementById('fBody').value   = '';
@@ -351,13 +383,15 @@ function openNewForm() {
   document.getElementById('fSize').value   = 14;
   document.getElementById('fWeight').value = 'normal';
   document.getElementById('fMusic').value  = '';
+  document.getElementById('fTags').value   = '';
   document.getElementById('existMediaRow').innerHTML = '';
+  renderTagsChips();
   buildSwatches(0); setupUploadZone();
   openOv('formOverlay');
   setTimeout(() => document.getElementById('fTitle').focus(), 120);
 }
 function openEditForm(note) {
-  editId = note.id;
+  editId = note.id; pendingTags = Array.isArray(note.tags) ? [...note.tags] : [];
   document.getElementById('formTitle').textContent = '✒ Edit Entry';
   document.getElementById('fTitle').value  = note.title;
   document.getElementById('fBody').value   = note.body;
@@ -365,12 +399,15 @@ function openEditForm(note) {
   document.getElementById('fSize').value   = note.fontSize || 14;
   document.getElementById('fWeight').value = note.fontWeight || 'normal';
   document.getElementById('fMusic').value  = note.musicUrl || '';
+  document.getElementById('fTags').value   = '';
+  renderTagsChips();
   buildSwatches(note.colorIdx || 0);
   renderExistMedia(note); setupUploadZone();
   openOv('formOverlay');
 }
 
 document.getElementById('fSave').onclick = async () => {
+  if (document.getElementById('fTags').value.trim()) addPendingTag(document.getElementById('fTags').value);
   const title      = document.getElementById('fTitle').value.trim();
   const body       = document.getElementById('fBody').value.trim();
   const font       = document.getElementById('fFont').value;
@@ -378,8 +415,9 @@ document.getElementById('fSave').onclick = async () => {
   const fontWeight = document.getElementById('fWeight').value;
   const colorIdx   = activeCI();
   const musicUrl   = document.getElementById('fMusic').value.trim();
+  const tags       = [...pendingTags];
   if (!title && !body) { toast('Write something first ✍'); return; }
-  const payload = { title: title||'Untitled', body, font, fontSize, fontWeight, colorIdx, musicUrl };
+  const payload = { title: title||'Untitled', body, font, fontSize, fontWeight, colorIdx, musicUrl, tags };
   try {
     let saved;
     if (editId) {
@@ -432,32 +470,73 @@ document.getElementById('btnClearFilter').onclick = () => {
   loadAndRender();
 };
 
+// ── SORT ───────────────────────────────────────────────────────────────────
+function getSortedFilteredNotes() {
+  let list = activeTag ? notes.filter(n => (n.tags||[]).includes(activeTag)) : notes;
+  const sortKey = document.getElementById('sortSelect')?.value || 'newest';
+  const totalReact = n => Object.values(n.reactions||{}).reduce((a,b)=>a+b,0);
+  switch (sortKey) {
+    case 'oldest':         return [...list].sort((a,b) => a.createdAt.localeCompare(b.createdAt));
+    case 'most-reactions': return [...list].sort((a,b) => totalReact(b) - totalReact(a));
+    case 'most-comments':  return [...list].sort((a,b) => (b.replies?.length||0) - (a.replies?.length||0));
+    case 'most-views':     return [...list].sort((a,b) => b.views - a.views);
+    default:               return [...list].sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+  }
+}
+
+document.getElementById('sortSelect').onchange = renderGrid;
+
+// ── TAG FILTER BAR ─────────────────────────────────────────────────────────
+function renderTagFilterRow() {
+  const allTags = [...new Set(notes.flatMap(n => n.tags||[]))].sort();
+  const row     = document.getElementById('tagFilterRow');
+  const wrap    = document.getElementById('tagChips');
+  const clearBtn = document.getElementById('btnClearTag');
+  if (!allTags.length) { row.style.display = 'none'; return; }
+  row.style.display = 'flex';
+  wrap.innerHTML = allTags.map(t =>
+    `<button class="tag-chip${activeTag===t?' tag-chip-active':''}" data-tag="${esc(t)}">#${esc(t)}</button>`
+  ).join('');
+  wrap.querySelectorAll('.tag-chip').forEach(btn => {
+    btn.onclick = () => {
+      activeTag = activeTag === btn.dataset.tag ? null : btn.dataset.tag;
+      renderTagFilterRow(); renderGrid();
+    };
+  });
+  clearBtn.style.display = activeTag ? 'inline-block' : 'none';
+  clearBtn.onclick = () => { activeTag = null; renderTagFilterRow(); renderGrid(); };
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 //  GRID  —  home / dashboard view
 // ══════════════════════════════════════════════════════════════════════════
 function renderGrid() {
   const grid    = document.getElementById('notesGrid');
   const countEl = document.getElementById('noteCount');
-  if (countEl) countEl.textContent = notes.length
-    ? `${notes.length} entr${notes.length === 1 ? 'y' : 'ies'}` : '';
+  const display = getSortedFilteredNotes();
+  renderTagFilterRow();
+  if (countEl) countEl.textContent = display.length
+    ? `${display.length} entr${display.length === 1 ? 'y' : 'ies'}` : '';
 
-  if (!notes.length) {
+  if (!display.length) {
     grid.innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:70px 20px;color:var(--ink4);font-family:var(--sans)">
         <div style="font-size:36px;margin-bottom:12px;color:var(--accent);opacity:.5">✦</div>
-        ${isOwner
-          ? 'Tap <b style="color:var(--accent)">+ New Entry</b> to write your first entry.'
-          : 'No diary entries yet — check back soon.'}
+        ${activeTag
+          ? `No entries tagged <b style="color:var(--accent)">#${esc(activeTag)}</b>.`
+          : isOwner
+            ? 'Tap <b style="color:var(--accent)">+ New Entry</b> to write your first entry.'
+            : 'No diary entries yet — check back soon.'}
       </div>`;
     return;
   }
 
   // skeleton flash
-  grid.innerHTML = notes.map(() => '<div class="skeleton"></div>').join('');
+  grid.innerHTML = display.map(() => '<div class="skeleton"></div>').join('');
 
   requestAnimationFrame(() => {
     grid.innerHTML = '';
-    notes.forEach(n => {
+    display.forEach(n => {
       const p    = PALETTE[n.colorIdx || 0];
       const card = document.createElement('article');
       card.className = 'note-card fade-enter';
@@ -516,13 +595,30 @@ function renderGrid() {
       foot.innerHTML = `<div class="card-reactions">${reacts}</div><div class="card-chips">${chips}</div>`;
       card.appendChild(foot);
 
+      // tags row
+      if (n.tags && n.tags.length) {
+        const tagRow = document.createElement('div');
+        tagRow.className = 'card-tags-row';
+        tagRow.innerHTML = n.tags.map(t =>
+          `<button class="tag-chip${activeTag===t?' tag-chip-active':''}" data-tag="${esc(t)}">#${esc(t)}</button>`
+        ).join('');
+        tagRow.querySelectorAll('.tag-chip').forEach(btn => {
+          btn.onclick = e => {
+            e.stopPropagation();
+            activeTag = activeTag === btn.dataset.tag ? null : btn.dataset.tag;
+            renderTagFilterRow(); renderGrid();
+          };
+        });
+        card.appendChild(tagRow);
+      }
+
       grid.appendChild(card);
     });
 
     // card click → open tinder detail
     grid.querySelectorAll('.note-card').forEach(card => {
       card.onclick = e => {
-        if (e.target.closest('.slider-root') || e.target.closest('.card-react-btn')) return;
+        if (e.target.closest('.slider-root') || e.target.closest('.card-react-btn') || e.target.closest('.tag-chip')) return;
         detailIdx = notes.findIndex(n => n.id === card.dataset.id);
         openDetail(card.dataset.id);
       };

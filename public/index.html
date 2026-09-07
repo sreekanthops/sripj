@@ -105,11 +105,19 @@
           </button>
           <div class="page-title">
             <span class="page-title-text" id="pageTitle">Journal</span>
+            <span class="page-title-caption" id="pageTitleCaption"></span>
             <span id="noteCount" class="note-count"></span>
           </div>
         </div>
         <div class="topbar-right">
           <button class="btn btn-primary btn-sm" id="quickNewBtn" style="display:none">+ New Entry</button>
+          <select id="sortSelect" class="sort-select" title="Sort entries">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="most-reactions">Most reactions</option>
+            <option value="most-comments">Most comments</option>
+            <option value="most-views">Most viewed</option>
+          </select>
           <div class="filter-group">
             <input type="date" class="date-input" id="filterFrom" title="From date">
             <span class="filter-sep">—</span>
@@ -118,6 +126,13 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Tag filter row -->
+    <div id="tagFilterRow" class="tag-filter-row" style="display:none">
+      <span class="tag-filter-label">Tags:</span>
+      <div id="tagChips" class="tag-chips-wrap"></div>
+      <button id="btnClearTag" class="clear-btn" style="display:none">✕ Clear tag</button>
     </div>
 
     <!-- Notes grid -->
@@ -187,6 +202,11 @@
     <div class="field">
       <label>Content</label>
       <textarea id="fBody" class="lined" placeholder="Write your thoughts here…"></textarea>
+    </div>
+    <div class="field" id="tagsField">
+      <label>Tags <span class="auth-hint">(press Enter or comma to add)</span></label>
+      <div id="tagsChips" class="tags-chips-edit"></div>
+      <input type="text" id="fTags" placeholder="e.g. travel, love, rant…">
     </div>
     <div class="field" id="musicField">
       <label>Background Music URL (.mp3)</label>
