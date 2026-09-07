@@ -45,9 +45,11 @@ router.get('/', optionalAuth, (req, res) => {
 router.get('/:id', optionalAuth, (req, res) => {
   const row = db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Not found' });
-  // increment views
-  db.prepare('UPDATE notes SET views = views + 1 WHERE id = ?').run(req.params.id);
-  row.views += 1;
+  // increment views only for non-admin visitors
+  if (!req.admin) {
+    db.prepare('UPDATE notes SET views = views + 1 WHERE id = ?').run(req.params.id);
+    row.views += 1;
+  }
   res.json(buildNote(row));
 });
 

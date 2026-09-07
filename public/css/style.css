@@ -568,12 +568,14 @@ body.is-admin .slide-del { display: block; }
 .overlay.center.open .modal { transform: scale(1); }
 
 .modal-close {
-  position: absolute; top: 20px; right: 20px;
+  position: sticky; top: 0; float: right;
+  margin-bottom: -28px;
   width: 28px; height: 28px; border-radius: 50%;
   background: var(--bg2); border: 1px solid var(--border);
   color: var(--ink3); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all .15s;
+  z-index: 10;
 }
 .modal-close svg { width: 11px; height: 11px; display: block; }
 .modal-close:hover { background: var(--bg3); color: var(--ink); transform: rotate(90deg); }

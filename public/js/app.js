@@ -643,7 +643,7 @@ function renderGrid() {
       body.innerHTML = `
         <div class="card-meta-row">
           <span class="card-date">📅 ${fmtDate(n.createdAt)}</span>
-          <span class="card-views">👁 ${n.views}</span>
+          ${isAdmin ? `<span class="card-views">👁 ${n.views}</span>` : ''}
         </div>
         <div class="card-title" style="font-family:${esc(n.font)};color:${p.accent}">${esc(n.title)}</div>
         ${!n.media?.length ? `<div class="card-excerpt" style="font-family:${esc(n.font)};font-size:${Math.min(n.fontSize||14,13)}px">${esc(n.body)}</div>` : ''}`;
@@ -736,7 +736,7 @@ function renderDetail(note) {
     </div>
     <div class="detail-meta">
       <span>📅 ${fmtDate(note.createdAt)} · ${fmtTime(note.createdAt)}</span>
-      <span>👁 ${note.views} views</span>
+      ${isAdmin ? `<span>👁 ${note.views} views</span>` : ''}
       ${note.editedAt ? `<span>✏️ Edited ${fmtDate(note.editedAt)}</span>` : ''}
       <span>💬 ${(note.replies||[]).length} ${(note.replies||[]).length===1?'reply':'replies'}</span>
     </div>
