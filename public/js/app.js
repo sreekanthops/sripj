@@ -1546,10 +1546,17 @@ document.getElementById('musicVol').oninput = e => {
   fileInput.addEventListener('change', () => {
     Array.from(fileInput.files).forEach(file => {
       const reader = new FileReader();
-      reader.onload = e => {
-        createSticker(e.target.result);
+      reader.onload = ev => {
+        const el = createSticker(ev.target.result);
+        if (el) {
+          el.classList.add('just-placed');
+          el.addEventListener('animationend', () => el.classList.remove('just-placed'), { once: true });
+        }
         save();
-        toast('Sticker added 🌸 — drag it anywhere!');
+        toast('Image placed 🌸 — drag anywhere, use ⟳ to rotate!');
+        // close panel after adding
+        panel.classList.add('hidden');
+        toggleBtn.classList.remove('active');
       };
       reader.readAsDataURL(file);
     });
@@ -1583,7 +1590,15 @@ document.getElementById('musicVol').oninput = e => {
   // ── Show/hide toggle based on ownership ──────────────────────────────────
   // Called after login/diary load
   window._stickerSetOwner = function(owner) {
+    const wasHidden = toggleBtn.classList.contains('hidden');
     toggleBtn.classList.toggle('hidden', !owner);
+    if (owner && wasHidden) {
+      // pulse 3 times to draw attention on first show
+      toggleBtn.classList.remove('pulse');
+      void toggleBtn.offsetWidth; // reflow to restart animation
+      toggleBtn.classList.add('pulse');
+      toggleBtn.addEventListener('animationend', () => toggleBtn.classList.remove('pulse'), { once: true });
+    }
     if (!owner) {
       panel.classList.add('hidden');
       toggleBtn.classList.remove('active');

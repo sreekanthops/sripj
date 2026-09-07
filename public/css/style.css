@@ -1080,9 +1080,27 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   user-select: none;
   pointer-events: all;
   touch-action: none;
-  /* controls hidden by default */
+  border-radius: 6px;
+  transition: outline .15s;
+  outline: 2px dashed transparent;
+  outline-offset: 4px;
+}
+.sticker:hover,
+.sticker.active {
+  outline-color: rgba(140,109,63,.4);
 }
 .sticker:active { cursor: grabbing; }
+
+/* Entrance pop animation for newly placed stickers — applied to the img so
+   it doesn't conflict with the inline transform (rotation) on the wrapper */
+@keyframes stickerPop {
+  0%   { transform: scale(0.35); opacity: 0; }
+  70%  { transform: scale(1.1);  opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+.sticker.just-placed img {
+  animation: stickerPop .38s cubic-bezier(.34,1.56,.64,1) both;
+}
 
 /* The image itself */
 .sticker img {
@@ -1096,7 +1114,7 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   filter: drop-shadow(2px 4px 8px rgba(0,0,0,.22));
 }
 
-/* Controls bar — shown on hover / touch */
+/* Controls bar — shown on hover / touch; faintly visible by default */
 .sticker-controls {
   position: absolute;
   bottom: calc(100% + 8px);
@@ -1109,7 +1127,7 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   backdrop-filter: blur(8px);
   border-radius: 20px;
   padding: 5px 8px;
-  opacity: 0;
+  opacity: 0.2;           /* faintly visible by default */
   pointer-events: none;
   transition: opacity .18s;
   white-space: nowrap;
@@ -1135,21 +1153,21 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 .sticker-btn:hover { background: rgba(255,255,255,.28); transform: scale(1.12); }
 .sticker-btn:active { transform: scale(.88); }
 
-/* Rotate handle — sits at top-right corner of sticker */
+/* Rotate handle — sits at top-right corner of sticker, always faintly visible */
 .sticker-rotate-handle {
   position: absolute;
   top: -18px;
   right: -18px;
-  width: 28px; height: 28px;
+  width: 30px; height: 30px;
   border-radius: 50%;
-  background: rgba(47,90,110,.90);
-  border: 2px solid rgba(255,255,255,.7);
+  background: rgba(47,90,110,.88);
+  border: 2px solid rgba(255,255,255,.8);
   color: #fff;
-  font-size: 14px;
+  font-size: 15px;
   cursor: crosshair;
   display: flex; align-items: center; justify-content: center;
-  opacity: 0;
-  transition: opacity .18s;
+  opacity: 0.45;          /* always slightly visible */
+  transition: opacity .18s, transform .15s;
   z-index: 10;
   pointer-events: all;
   touch-action: none;
@@ -1158,19 +1176,20 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 .sticker:hover .sticker-rotate-handle,
 .sticker.active .sticker-rotate-handle {
   opacity: 1;
+  transform: scale(1.1);
 }
 
-/* Resize corner */
+/* Resize corner — always faintly visible */
 .sticker-resize-handle {
   position: absolute;
   bottom: -10px; right: -10px;
-  width: 20px; height: 20px;
+  width: 22px; height: 22px;
   border-radius: 50%;
-  background: rgba(140,109,63,.9);
-  border: 2px solid rgba(255,255,255,.7);
+  background: rgba(140,109,63,.88);
+  border: 2px solid rgba(255,255,255,.8);
   cursor: nwse-resize;
-  opacity: 0;
-  transition: opacity .18s;
+  opacity: 0.45;          /* always slightly visible */
+  transition: opacity .18s, transform .15s;
   z-index: 10;
   pointer-events: all;
   touch-action: none;
@@ -1178,6 +1197,7 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 .sticker:hover .sticker-resize-handle,
 .sticker.active .sticker-resize-handle {
   opacity: 1;
+  transform: scale(1.15);
 }
 
 /* ── Sticker panel (upload + clear) ── */
@@ -1245,23 +1265,52 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   bottom: 28px;
   right: 20px;
   z-index: 160;
-  width: 52px; height: 52px;
+  width: 56px; height: 56px;
   border-radius: 50%;
-  border: none;
-  background: rgba(250,246,240,.95);
+  border: 1.5px solid var(--border2);
+  background: rgba(250,246,240,.96);
   backdrop-filter: blur(12px);
   box-shadow: 0 4px 20px rgba(0,0,0,.16), 0 1px 4px rgba(0,0,0,.08);
-  font-size: 22px;
+  font-size: 24px;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: transform .18s, box-shadow .18s;
-  border: 1.5px solid var(--border2);
+  transition: transform .18s, box-shadow .18s, background .18s;
+  flex-direction: column;
+  gap: 0;
 }
-.sticker-toggle:hover { transform: scale(1.1) rotate(10deg); box-shadow: 0 8px 28px rgba(0,0,0,.2); }
-.sticker-toggle.active { transform: scale(1.05) rotate(-5deg); background: var(--accent); }
+.sticker-toggle::after {
+  content: 'Images';
+  font-size: 9px;
+  font-family: var(--sans);
+  color: var(--ink3);
+  letter-spacing: .3px;
+  margin-top: 1px;
+  display: block;
+  font-weight: 600;
+}
+.sticker-toggle:hover { transform: scale(1.1) rotate(8deg); box-shadow: 0 8px 28px rgba(0,0,0,.2); }
+.sticker-toggle.active { transform: scale(1.05) rotate(-5deg); background: var(--accent); color: #fff; }
+.sticker-toggle.active::after { color: rgba(255,255,255,.8); }
 .sticker-toggle.hidden { display: none !important; }
+
+/* Pulse animation on first appearance to draw attention */
+@keyframes stickerPulse {
+  0%   { box-shadow: 0 4px 20px rgba(0,0,0,.16), 0 0 0 0 rgba(var(--accent-rgb, 140,109,63),.45); }
+  70%  { box-shadow: 0 4px 20px rgba(0,0,0,.16), 0 0 0 12px rgba(var(--accent-rgb, 140,109,63),0); }
+  100% { box-shadow: 0 4px 20px rgba(0,0,0,.16), 0 0 0 0 rgba(var(--accent-rgb, 140,109,63),0); }
+}
+.sticker-toggle.pulse { animation: stickerPulse 1.8s ease 0.4s 3; }
+
+/* ── Sticker panel upload hint ── */
+.sticker-panel-hint {
+  font-size: 11px;
+  color: var(--ink4);
+  font-family: var(--sans);
+  line-height: 1.5;
+  padding: 4px 0 2px;
+}
 
 @media(max-width:600px){
   .sticker-panel { bottom: 80px; right: 12px; }
-  .sticker-toggle { bottom: 20px; right: 12px; width: 46px; height: 46px; font-size: 20px; }
+  .sticker-toggle { bottom: 20px; right: 12px; width: 50px; height: 50px; font-size: 20px; }
 }
