@@ -497,16 +497,25 @@ function buildSlider(items, size, noteId) {
       nextBtn.disabled = cur === items.length-1;
     }
 
-    prevBtn.onclick = e => {
-      e.preventDefault();
-      e.stopPropagation();
-      goTo(cur - 1);
-    };
-    nextBtn.onclick = e => {
-      e.preventDefault();
-      e.stopPropagation();
-      goTo(cur + 1);
-    };
+    function handlePrev(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      goTo(cur > 0 ? cur - 1 : items.length - 1);
+    }
+    function handleNext(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      goTo(cur < items.length - 1 ? cur + 1 : 0);
+    }
+
+    prevBtn.onclick = handlePrev;
+    nextBtn.onclick = handleNext;
+    prevBtn.disabled = false;
+    nextBtn.disabled = false;
     root.appendChild(prevBtn); root.appendChild(nextBtn);
 
     // touch swipe

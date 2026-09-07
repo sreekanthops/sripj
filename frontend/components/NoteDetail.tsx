@@ -212,18 +212,18 @@ export default function NoteDetail({ noteId, notes, isOwner, currentUser, onClos
             </motion.button>
           </div>
 
-          {/* Prev/Next */}
-          <div className="nav-btns">
+          {/* Prev/Next Post Navigation */}
+          <div className="nav-btns" style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:20, paddingTop:16, borderTop:"1px solid var(--c-border)" }}>
             {prevId
               ? <motion.button whileTap={{ scale:0.97 }} className="btn-outline"
                   onClick={() => loadNote(prevId)}>
-                  <ChevronLeft size={13}/>{notes.find(n=>n.id===prevId)?.title||"← Prev"}
+                  <ChevronLeft size={14}/>Previous Entry
                 </motion.button>
               : <span/>}
             {nextId
               ? <motion.button whileTap={{ scale:0.97 }} className="btn-outline"
                   onClick={() => loadNote(nextId)}>
-                  {notes.find(n=>n.id===nextId)?.title||"Next →"}<ChevronRight size={13}/>
+                  Next Entry<ChevronRight size={14}/>
                 </motion.button>
               : <span/>}
           </div>
@@ -251,23 +251,59 @@ function MediaSlider({ items, noteId, isOwner, onRemove }: {
   noteId:string; isOwner:boolean; onRemove:(id:string)=>void;
 }) {
   const [cur, setCur] = useState(0);
+
+  // keep index safe if items array length changes
+  const activeIdx = Math.min(cur, Math.max(0, items.length - 1));
+
+  const goPrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCur(prev => (prev > 0 ? prev - 1 : items.length - 1));
+  };
+
+  const goNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCur(prev => (prev < items.length - 1 ? prev + 1 : 0));
+  };
+
   return (
-    <div className="media-slider">
-      {items[cur].mimetype.startsWith("video/")
-        ? <video src={items[cur].url} controls playsInline loop />
+    <div className="media-slider" style={{ position: "relative", userSelect: "none" }}>
+      {items[activeIdx].mimetype.startsWith("video/")
+        ? <video key={items[activeIdx].id} src={items[activeIdx].url} controls playsInline loop />
         // eslint-disable-next-line @next/next/no-img-element
-        : <img src={items[cur].url} alt=""/>}
+        : <img key={items[activeIdx].id} src={items[activeIdx].url} alt=""/>}
       {isOwner && (
-        <button onClick={() => onRemove(items[cur].id)} className="slide-del-btn">✕ Remove</button>
+        <button onClick={() => onRemove(items[activeIdx].id)} className="slide-del-btn">✕ Remove</button>
       )}
       {items.length > 1 && (
         <>
-          <span className="sl-counter">{cur+1} / {items.length}</span>
-          {cur > 0 && <button className="sl-arrow sl-prev" onClick={() => setCur(cur-1)}>‹</button>}
-          {cur < items.length-1 && <button className="sl-arrow sl-next" onClick={() => setCur(cur+1)}>›</button>}
+          <span className="sl-counter">{activeIdx+1} / {items.length}</span>
+          <button
+            type="button"
+            className="sl-arrow sl-prev"
+            aria-label="Previous image"
+            onClick={goPrev}
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            className="sl-arrow sl-next"
+            aria-label="Next image"
+            onClick={goNext}
+          >
+            ›
+          </button>
           <div className="sl-dots">
-            {items.map((_,i) => (
-              <button key={i} className={`sl-dot${i===cur?" active":""}`} onClick={() => setCur(i)}/>
+            {items.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`sl-dot${i === activeIdx ? " active" : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCur(i);
+                }}
+              />
             ))}
           </div>
         </>

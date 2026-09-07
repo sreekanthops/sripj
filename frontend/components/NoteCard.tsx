@@ -88,20 +88,23 @@ export default function NoteCard({ note, isOwner, onClick, onReact }: Props) {
 
 function CardMediaSlider({ media }: { media: Note["media"] }) {
   const [cur, setCur] = useState(0);
+  const activeIdx = Math.min(cur, Math.max(0, media.length - 1));
 
   return (
-    <div className="card-media" onClick={e => e.stopPropagation()} style={{ position:"relative" }}>
-      {media[cur].mimetype.startsWith("video/")
-        ? <video src={media[cur].url} muted playsInline loop />
+    <div className="card-media" onClick={e => e.stopPropagation()} style={{ position:"relative", userSelect:"none" }}>
+      {media[activeIdx].mimetype.startsWith("video/")
+        ? <video key={media[activeIdx].id} src={media[activeIdx].url} muted playsInline loop />
         // eslint-disable-next-line @next/next/no-img-element
-        : <img src={media[cur].url} alt="" />}
+        : <img key={media[activeIdx].id} src={media[activeIdx].url} alt="" />}
       {media.length > 1 && (
         <>
-          <span className="card-media-count">{cur + 1} / {media.length}</span>
+          <span className="card-media-count">{activeIdx + 1} / {media.length}</span>
           <button
+            type="button"
             className="sl-arrow sl-prev"
-            style={{ width: 26, height: 26, fontSize: 14, left: 6 }}
+            style={{ width: 30, height: 30, fontSize: 16, left: 8, zIndex: 30 }}
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               setCur((prev) => (prev > 0 ? prev - 1 : media.length - 1));
             }}
@@ -109,9 +112,11 @@ function CardMediaSlider({ media }: { media: Note["media"] }) {
             ‹
           </button>
           <button
+            type="button"
             className="sl-arrow sl-next"
-            style={{ width: 26, height: 26, fontSize: 14, right: 6 }}
+            style={{ width: 30, height: 30, fontSize: 16, right: 8, zIndex: 30 }}
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               setCur((prev) => (prev < media.length - 1 ? prev + 1 : 0));
             }}
