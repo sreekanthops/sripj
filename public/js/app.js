@@ -666,14 +666,16 @@ function renderGrid() {
       btn.onclick = async e => {
         e.stopPropagation();
         try {
+          const noteObj = notes.find(x => x.id === btn.dataset.nid);
+          const hadReacted = (noteObj?.userReactions || []).includes(btn.dataset.em);
           const res = await api('POST', `/notes/${btn.dataset.nid}/react`, { emoji: btn.dataset.em });
-          const n = notes.find(x => x.id === btn.dataset.nid);
-          if (n) {
-            n.reactions = res.reactions;
-            n.userReactions = res.userReactions;
+          if (noteObj) {
+            noteObj.reactions = res.reactions;
+            noteObj.userReactions = res.userReactions;
             renderGrid();
           }
-          toast(res.isReacted ? ('Reacted ' + btn.dataset.em) : ('Removed ' + btn.dataset.em));
+          const isAdded = res.isReacted !== undefined ? res.isReacted : !hadReacted;
+          toast(isAdded ? ('Reacted ' + btn.dataset.em) : ('Removed ' + btn.dataset.em));
         } catch (err) { toast('Error: ' + err.message); }
       };
     });
@@ -823,11 +825,14 @@ function renderDetail(note) {
   cont.querySelectorAll('.btn-react').forEach(btn => {
     btn.onclick = async () => {
       try {
+        const noteObj = notes.find(x => x.id === btn.dataset.id);
+        const hadReacted = (noteObj?.userReactions || []).includes(btn.dataset.em);
         const res = await api('POST', `/notes/${btn.dataset.id}/react`, { emoji: btn.dataset.em });
         const up = await api('GET', `/notes/${btn.dataset.id}`);
         const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
         renderDetail(up); renderGrid();
-        toast(res.isReacted ? ('Reacted ' + btn.dataset.em) : ('Removed ' + btn.dataset.em));
+        const isAdded = res.isReacted !== undefined ? res.isReacted : !hadReacted;
+        toast(isAdded ? ('Reacted ' + btn.dataset.em) : ('Removed ' + btn.dataset.em));
       } catch (err) { toast('Error: ' + err.message); }
     };
   });
@@ -835,11 +840,14 @@ function renderDetail(note) {
   cont.querySelectorAll('.btn-reply-react').forEach(btn => {
     btn.onclick = async () => {
       try {
+        const replyObj = (note.replies || []).find(x => x.id === btn.dataset.rid);
+        const hadReacted = (replyObj?.userReactions || []).includes(btn.dataset.em);
         const res = await api('POST', `/notes/${btn.dataset.nid}/replies/${btn.dataset.rid}/react`, { emoji: btn.dataset.em });
         const up = await api('GET', `/notes/${btn.dataset.nid}`);
         const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
         renderDetail(up); renderGrid();
-        toast(res.isReacted ? ('Reacted ' + btn.dataset.em) : ('Removed ' + btn.dataset.em));
+        const isAdded = res.isReacted !== undefined ? res.isReacted : !hadReacted;
+        toast(isAdded ? ('Reacted ' + btn.dataset.em) : ('Removed ' + btn.dataset.em));
       } catch (err) { toast('Error: ' + err.message); }
     };
   });

@@ -59,10 +59,19 @@ body {
   background: var(--bg);
   color: var(--ink);
   min-height: 100vh;
-  display: flex;
+  display: block;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+#appScreen {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+#appScreen.hidden {
+  display: none;
 }
 
 /* ── Scrollbar ── */
@@ -872,28 +881,57 @@ footer {
 @media (max-width: 768px) {
   :root { --sidebar-w: 0px; }
 
-  #sidebar {
+  body {
+    flex-direction: column;
     width: 100%;
-    min-height: unset;
-    flex-direction: row;
-    align-items: center;
-    padding: 14px 18px;
-    position: sticky;
-    top: 0;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    gap: 16px;
-    background: rgba(250,248,245,.92);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
   }
 
-  .sidebar-logo { flex: 1; }
-  .logo-tagline { display: none; }
-  .logo-name { font-size: 16px; }
+  #appScreen {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100vh;
+  }
+  #appScreen.hidden {
+    display: none;
+  }
 
-  .sidebar-nav { flex-direction: row; flex: unset; }
-  #headerActions { flex-direction: row; gap: 6px; }
+  #sidebar {
+    width: 100%;
+    min-height: auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+    background: rgba(250,248,245,.95);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    z-index: 100;
+    overflow-x: auto;
+  }
+
+  .sidebar-logo { flex: 0 0 auto; gap: 8px; }
+  .logo-tagline { display: none; }
+  .logo-name { font-size: 15px; }
+
+  .sidebar-nav { flex-direction: row; flex: 1; justify-content: flex-end; }
+  #headerActions {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  #headerActions .btn {
+    padding: 7px 11px;
+    font-size: 12px;
+  }
 
   #musicBar {
     position: fixed;
