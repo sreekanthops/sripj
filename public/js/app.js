@@ -113,11 +113,12 @@ document.getElementById('loginPwd').onkeydown = e => { if (e.key==='Enter') tryL
 async function verifyStoredToken() {
   if (!token) return;
   try {
-    await api('GET', '/notes');
+    await api('GET', '/auth/verify');
     isAdmin = true;
     document.body.classList.add('is-admin');
   } catch {
     token = null;
+    isAdmin = false;
     sessionStorage.removeItem('diary_token');
   }
 }
