@@ -19,6 +19,7 @@ export interface Reply {
   text: string;
   createdAt: string;
   reactions?: Record<string, number>;
+  userReactions?: string[];
 }
 
 export interface Note {
@@ -35,6 +36,7 @@ export interface Note {
   createdAt: string;
   editedAt: string | null;
   reactions: Record<string, number>;
+  userReactions?: string[];
   replies: Reply[];
   media: MediaItem[];
 }

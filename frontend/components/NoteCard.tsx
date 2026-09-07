@@ -52,28 +52,52 @@ export default function NoteCard({ note, isOwner, onClick, onReact }: Props) {
 
       {/* Quick Emojis Bar on Card */}
       <div className="card-quick-react" onClick={e => e.stopPropagation()} style={{ display:"flex", alignItems:"center", gap:4, padding:"6px 20px 0" }}>
-        {["❤️", "😂", "🔥", "😍", "👏"].map(e => (
-          <motion.button key={e} whileTap={{ scale:0.8 }}
-            onClick={(ev) => {
-              ev.stopPropagation();
-              onReact?.(note.id, e);
-            }}
-            style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, padding:"2px 4px", borderRadius:4 }}
-            title={`React ${e}`}>
-            {e}
-          </motion.button>
-        ))}
+        {["❤️", "😂", "🔥", "😍", "👏"].map(e => {
+          const isUserReacted = note.userReactions?.includes(e);
+          return (
+            <motion.button key={e} whileTap={{ scale:0.8 }}
+              onClick={(ev) => {
+                ev.stopPropagation();
+                onReact?.(note.id, e);
+              }}
+              style={{
+                background: isUserReacted ? "var(--c-accent-light)" : "none",
+                border: isUserReacted ? "1px solid var(--c-accent-ring)" : "1px solid transparent",
+                cursor: "pointer",
+                fontSize: 14,
+                padding: "2px 5px",
+                borderRadius: 6,
+                transform: isUserReacted ? "scale(1.15)" : "none",
+              }}
+              title={isUserReacted ? `Remove ${e}` : `React ${e}`}>
+              {e}
+            </motion.button>
+          );
+        })}
       </div>
 
       {/* Footer */}
       <div className="card-footer">
         <div className="card-reactions">
           {reactions.length > 0
-            ? reactions.map(([emoji,count]) => (
-                <span key={emoji} className="react-chip" onClick={(e) => { e.stopPropagation(); onReact?.(note.id, emoji); }}>
-                  {emoji} {count}
-                </span>
-              ))
+            ? reactions.map(([emoji,count]) => {
+                const isUserReacted = note.userReactions?.includes(emoji);
+                return (
+                  <span
+                    key={emoji}
+                    className="react-chip"
+                    onClick={(e) => { e.stopPropagation(); onReact?.(note.id, emoji); }}
+                    style={{
+                      background: isUserReacted ? "var(--c-accent-light)" : "var(--c-paper)",
+                      borderColor: isUserReacted ? "var(--c-accent-ring)" : "var(--c-border)",
+                      fontWeight: isUserReacted ? "700" : "400",
+                    }}
+                    title={isUserReacted ? `Click to remove ${emoji}` : `Click to react ${emoji}`}
+                  >
+                    {emoji} {count}
+                  </span>
+                );
+              })
             : <span style={{ fontSize:11, color:"var(--c-ink4)" }}>No reactions</span>}
         </div>
         <div className="card-chips">

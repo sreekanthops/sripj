@@ -130,8 +130,8 @@ function DiaryPage() {
                     isOwner={isOwner}
                     onClick={() => setOpenNoteId(n.id)}
                     onReact={async (noteId, emoji) => {
-                      const reactions = await api.post<Record<string, number>>(`/notes/${noteId}/react`, { emoji });
-                      setNotes(prev => prev.map(x => x.id === noteId ? { ...x, reactions } : x));
+                      const res = await api.post<{ reactions: Record<string, number>; userReactions: string[]; isReacted: boolean }>(`/notes/${noteId}/react`, { emoji });
+                      setNotes(prev => prev.map(x => x.id === noteId ? { ...x, reactions: res.reactions, userReactions: res.userReactions } : x));
                     }}
                   />
                 ))}

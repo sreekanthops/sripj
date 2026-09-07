@@ -53,8 +53,8 @@ export default function NoteDetail({ noteId, notes, isOwner, currentUser, onClos
 
   const react = async (emoji: string) => {
     if (!note) return;
-    const reactions = await api.post<Record<string,number>>(`/notes/${note.id}/react`, { emoji });
-    const updated = { ...note, reactions };
+    const res = await api.post<{ reactions: Record<string, number>; userReactions: string[]; isReacted: boolean }>(`/notes/${note.id}/react`, { emoji });
+    const updated = { ...note, reactions: res.reactions, userReactions: res.userReactions };
     setNote(updated);
     onNotesUpdate(notes.map(x => x.id===updated.id ? updated : x));
   };
@@ -132,15 +132,46 @@ export default function NoteDetail({ noteId, notes, isOwner, currentUser, onClos
           {/* Reactions */}
           <p className="section-label">React</p>
           <div className="emoji-grid">
-            {EMOJIS.map(e => (
-              <motion.button key={e} whileTap={{ scale:0.84 }} onClick={() => react(e)} className="emoji-btn">{e}</motion.button>
-            ))}
+            {EMOJIS.map(e => {
+              const isUserReacted = note.userReactions?.includes(e);
+              return (
+                <motion.button
+                  key={e}
+                  whileTap={{ scale:0.84 }}
+                  onClick={() => react(e)}
+                  className="emoji-btn"
+                  style={{
+                    background: isUserReacted ? "var(--c-accent-light)" : "var(--c-paper)",
+                    borderColor: isUserReacted ? "var(--c-accent)" : "var(--c-border)",
+                    transform: isUserReacted ? "scale(1.12)" : "none",
+                  }}
+                  title={isUserReacted ? `Click to remove ${e}` : `Click to react ${e}`}
+                >
+                  {e}
+                </motion.button>
+              );
+            })}
           </div>
           <div className="react-display">
             {Object.entries(note.reactions||{}).filter(([,v])=>v>0).length > 0
-              ? Object.entries(note.reactions||{}).filter(([,v])=>v>0).map(([e,c]) => (
-                  <span key={e} className="rcnt">{e} <b>{c}</b></span>
-                ))
+              ? Object.entries(note.reactions||{}).filter(([,v])=>v>0).map(([e,c]) => {
+                  const isUserReacted = note.userReactions?.includes(e);
+                  return (
+                    <span
+                      key={e}
+                      className="rcnt"
+                      onClick={() => react(e)}
+                      style={{
+                        cursor: "pointer",
+                        background: isUserReacted ? "var(--c-accent-light)" : "var(--c-paper)",
+                        borderColor: isUserReacted ? "var(--c-accent)" : "var(--c-border)",
+                      }}
+                      title={isUserReacted ? `Click to remove ${e}` : `Click to react ${e}`}
+                    >
+                      {e} <b>{c}</b>
+                    </span>
+                  );
+                })
               : <span style={{ fontSize:12, color:"var(--c-ink4)" }}>Be the first to react!</span>}
           </div>
 
@@ -169,27 +200,64 @@ export default function NoteDetail({ noteId, notes, isOwner, currentUser, onClos
                       {/* Reply Reactions */}
                       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:8, paddingTop:6, borderTop:"1px solid var(--c-border)" }}>
                         <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
-                          {replyReacts.length > 0 && replyReacts.map(([e,c]) => (
-                            <span key={e} className="react-chip" style={{ fontSize:11, padding:"2px 7px" }}>{e} {c}</span>
-                          ))}
+                          {replyReacts.length > 0 && replyReacts.map(([e,c]) => {
+                            const isUserReacted = r.userReactions?.includes(e);
+                            return (
+                              <span
+                                key={e}
+                                className="react-chip"
+                                onClick={async () => {
+                                  const res = await api.post<{ reactions: Record<string, number>; userReactions: string[]; isReacted: boolean }>(`/notes/${note.id}/replies/${r.id}/react`, { emoji: e });
+                                  const updated = {
+                                    ...note,
+                                    replies: note.replies.map(x => x.id === r.id ? { ...x, reactions: res.reactions, userReactions: res.userReactions } : x),
+                                  };
+                                  setNote(updated);
+                                  onNotesUpdate(notes.map(x => x.id===updated.id ? updated : x));
+                                }}
+                                style={{
+                                  fontSize: 11,
+                                  padding: "2px 7px",
+                                  cursor: "pointer",
+                                  background: isUserReacted ? "var(--c-accent-light)" : "var(--c-paper)",
+                                  borderColor: isUserReacted ? "var(--c-accent-ring)" : "var(--c-border)",
+                                  fontWeight: isUserReacted ? "700" : "400",
+                                }}
+                                title={isUserReacted ? `Click to remove ${e}` : `Click to react ${e}`}
+                              >
+                                {e} {c}
+                              </span>
+                            );
+                          })}
                         </div>
                         <div style={{ display:"flex", gap:3 }}>
-                          {EMOJIS.slice(0, 5).map(e => (
-                            <motion.button key={e} whileTap={{ scale:0.8 }}
-                              onClick={async () => {
-                                const reacts = await api.post<Record<string,number>>(`/notes/${note.id}/replies/${r.id}/react`, { emoji: e });
-                                const updated = {
-                                  ...note,
-                                  replies: note.replies.map(x => x.id === r.id ? { ...x, reactions: reacts } : x),
-                                };
-                                setNote(updated);
-                                onNotesUpdate(notes.map(x => x.id===updated.id ? updated : x));
-                              }}
-                              style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, padding:"2px 4px", borderRadius:4 }}
-                              title={`React ${e}`}>
-                              {e}
-                            </motion.button>
-                          ))}
+                          {EMOJIS.slice(0, 5).map(e => {
+                            const isUserReacted = r.userReactions?.includes(e);
+                            return (
+                              <motion.button key={e} whileTap={{ scale:0.8 }}
+                                onClick={async () => {
+                                  const res = await api.post<{ reactions: Record<string, number>; userReactions: string[]; isReacted: boolean }>(`/notes/${note.id}/replies/${r.id}/react`, { emoji: e });
+                                  const updated = {
+                                    ...note,
+                                    replies: note.replies.map(x => x.id === r.id ? { ...x, reactions: res.reactions, userReactions: res.userReactions } : x),
+                                  };
+                                  setNote(updated);
+                                  onNotesUpdate(notes.map(x => x.id===updated.id ? updated : x));
+                                }}
+                                style={{
+                                  background: isUserReacted ? "var(--c-accent-light)" : "none",
+                                  border: isUserReacted ? "1px solid var(--c-accent-ring)" : "1px solid transparent",
+                                  cursor: "pointer",
+                                  fontSize: 14,
+                                  padding: "2px 4px",
+                                  borderRadius: 4,
+                                  transform: isUserReacted ? "scale(1.15)" : "none",
+                                }}
+                                title={isUserReacted ? `Remove ${e}` : `React ${e}`}>
+                                {e}
+                              </motion.button>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>

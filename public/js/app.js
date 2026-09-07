@@ -624,8 +624,10 @@ function renderGrid() {
       card.appendChild(body);
 
       const reacts = Object.entries(n.reactions||{}).filter(([,v])=>v>0)
-        .map(([e,c]) => `<span class="react-chip btn-card-react" data-nid="${n.id}" data-em="${e}">${e} ${c}</span>`).join('') ||
-        `<span style="font-size:11px;color:var(--ink4);font-family:var(--sans)">No reactions</span>`;
+        .map(([e,c]) => {
+          const isUser = (n.userReactions||[]).includes(e);
+          return `<span class="react-chip btn-card-react" data-nid="${n.id}" data-em="${e}" style="${isUser?'background:var(--accent-bg);border-color:var(--accent-border);font-weight:700':''}">${e} ${c}</span>`;
+        }).join('') || `<span style="font-size:11px;color:var(--ink4);font-family:var(--sans)">No reactions</span>`;
       const chips = [
         n.musicUrl ? `<span class="chip">♫ Music</span>` : '',
         n.media?.length ? `<span class="chip">🎬 ${n.media.length}</span>` : '',
@@ -637,7 +639,10 @@ function renderGrid() {
       quickBar.className = 'card-quick-bar';
       quickBar.style.cssText = 'display:flex;align-items:center;gap:4px;padding:6px 20px 0;';
       quickBar.innerHTML = ['❤️', '😂', '🔥', '😍', '👏']
-        .map(e => `<button class="btn-card-react" data-nid="${n.id}" data-em="${e}" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;border-radius:4px" title="React ${e}">${e}</button>`)
+        .map(e => {
+          const isUser = (n.userReactions||[]).includes(e);
+          return `<button class="btn-card-react" data-nid="${n.id}" data-em="${e}" style="background:${isUser?'var(--accent-bg)':'none'};border:${isUser?'1px solid var(--accent-border)':'1px solid transparent'};cursor:pointer;font-size:14px;padding:2px 5px;border-radius:6px;transform:${isUser?'scale(1.15)':'none'}" title="${isUser?'Remove '+e:'React '+e}">${e}</button>`;
+        })
         .join('');
       card.appendChild(quickBar);
 
@@ -661,13 +666,14 @@ function renderGrid() {
       btn.onclick = async e => {
         e.stopPropagation();
         try {
-          const reactions = await api('POST', `/notes/${btn.dataset.nid}/react`, { emoji: btn.dataset.em });
+          const res = await api('POST', `/notes/${btn.dataset.nid}/react`, { emoji: btn.dataset.em });
           const n = notes.find(x => x.id === btn.dataset.nid);
           if (n) {
-            n.reactions = reactions;
+            n.reactions = res.reactions;
+            n.userReactions = res.userReactions;
             renderGrid();
           }
-          toast('Reacted ' + btn.dataset.em);
+          toast(res.isReacted ? ('Reacted ' + btn.dataset.em) : ('Removed ' + btn.dataset.em));
         } catch (err) { toast('Error: ' + err.message); }
       };
     });
@@ -703,16 +709,24 @@ function renderDetail(note) {
   const nextId = idx < allIds.length-1 ? allIds[idx+1] : null;
 
   const reactHtml = Object.entries(note.reactions||{}).filter(([,v])=>v>0)
-    .map(([e,c]) => `<span class="rcnt">${e} <b>${c}</b></span>`).join('') ||
-    `<span style="color:var(--ink4);font-size:12px;font-family:var(--sans)">Be the first to react!</span>`;
+    .map(([e,c]) => {
+      const isUser = (note.userReactions||[]).includes(e);
+      return `<span class="rcnt btn-react" data-id="${note.id}" data-em="${e}" style="cursor:pointer;background:${isUser?'var(--accent-bg)':'var(--bg)'};border-color:${isUser?'var(--accent-border)':'var(--border)'}">${e} <b>${c}</b></span>`;
+    }).join('') || `<span style="color:var(--ink4);font-size:12px;font-family:var(--sans)">Be the first to react!</span>`;
 
   const repliesHtml = (note.replies||[]).map(r => {
     // can delete own reply (if logged in as author) OR owner can delete any reply
     const canEdit = currentUser && (r.userId === currentUser.userId || isOwner);
     const replyReacts = Object.entries(r.reactions||{}).filter(([,v])=>v>0)
-      .map(([e,c]) => `<span class="react-chip btn-reply-react" data-nid="${note.id}" data-rid="${r.id}" data-em="${e}" style="font-size:11px;padding:2px 7px">${e} ${c}</span>`).join('');
+      .map(([e,c]) => {
+        const isUser = (r.userReactions||[]).includes(e);
+        return `<span class="react-chip btn-reply-react" data-nid="${note.id}" data-rid="${r.id}" data-em="${e}" style="font-size:11px;padding:2px 7px;cursor:pointer;background:${isUser?'var(--accent-bg)':'var(--bg)'};border-color:${isUser?'var(--accent-border)':'var(--border)'};font-weight:${isUser?'700':'400'}">${e} ${c}</span>`;
+      }).join('');
     const quickReplyReacts = ['❤️','😂','🔥','😍','👏']
-      .map(e => `<button class="btn-reply-react" data-nid="${note.id}" data-rid="${r.id}" data-em="${e}" style="background:none;border:none;cursor:pointer;font-size:13px;padding:1px 3px;border-radius:4px" title="React ${e}">${e}</button>`).join('');
+      .map(e => {
+        const isUser = (r.userReactions||[]).includes(e);
+        return `<button class="btn-reply-react" data-nid="${note.id}" data-rid="${r.id}" data-em="${e}" style="background:${isUser?'var(--accent-bg)':'none'};border:${isUser?'1px solid var(--accent-border)':'1px solid transparent'};cursor:pointer;font-size:13px;padding:1px 4px;border-radius:4px;transform:${isUser?'scale(1.15)':'none'}" title="${isUser?'Remove '+e:'React '+e}">${e}</button>`;
+      }).join('');
 
     return `
     <div class="reply-item" data-rid="${r.id}">
@@ -751,7 +765,10 @@ function renderDetail(note) {
     <div class="detail-body" style="font-family:${esc(note.font)};font-size:${note.fontSize||14}px;${fsCss};border-left-color:${p.accent}">${esc(note.body)}</div>
     <hr class="sep">
     <div class="section-label">React</div>
-    <div class="emoji-grid">${EMOJIS.map(e=>`<button class="emoji-btn btn-react" data-em="${e}" data-id="${note.id}">${e}</button>`).join('')}</div>
+    <div class="emoji-grid">${EMOJIS.map(e=>{
+      const isUser = (note.userReactions||[]).includes(e);
+      return `<button class="emoji-btn btn-react" data-em="${e}" data-id="${note.id}" style="${isUser?'background:var(--accent-bg);border-color:var(--accent);transform:scale(1.12)':''}" title="${isUser?'Remove '+e:'React '+e}">${e}</button>`;
+    }).join('')}</div>
     <div class="react-display" id="rdisplay">${reactHtml}</div>
     <hr class="sep">
     <div class="section-label">💬 Replies (${(note.replies||[]).length})</div>
@@ -806,13 +823,11 @@ function renderDetail(note) {
   cont.querySelectorAll('.btn-react').forEach(btn => {
     btn.onclick = async () => {
       try {
-        const reactions = await api('POST', `/notes/${btn.dataset.id}/react`, { emoji: btn.dataset.em });
-        document.getElementById('rdisplay').innerHTML =
-          Object.entries(reactions).filter(([,v])=>v>0)
-            .map(([e,c])=>`<span class="rcnt">${e} <b>${c}</b></span>`).join('');
-        const n = notes.find(x => x.id === btn.dataset.id);
-        if (n) { n.reactions = reactions; renderGrid(); }
-        toast('Reacted ' + btn.dataset.em);
+        const res = await api('POST', `/notes/${btn.dataset.id}/react`, { emoji: btn.dataset.em });
+        const up = await api('GET', `/notes/${btn.dataset.id}`);
+        const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
+        renderDetail(up); renderGrid();
+        toast(res.isReacted ? ('Reacted ' + btn.dataset.em) : ('Removed ' + btn.dataset.em));
       } catch (err) { toast('Error: ' + err.message); }
     };
   });
@@ -820,10 +835,11 @@ function renderDetail(note) {
   cont.querySelectorAll('.btn-reply-react').forEach(btn => {
     btn.onclick = async () => {
       try {
-        const reactions = await api('POST', `/notes/${btn.dataset.nid}/replies/${btn.dataset.rid}/react`, { emoji: btn.dataset.em });
+        const res = await api('POST', `/notes/${btn.dataset.nid}/replies/${btn.dataset.rid}/react`, { emoji: btn.dataset.em });
         const up = await api('GET', `/notes/${btn.dataset.nid}`);
         const i  = notes.findIndex(x => x.id === up.id); if (i !== -1) notes[i] = up;
-        renderDetail(up); renderGrid(); toast('Reacted ' + btn.dataset.em);
+        renderDetail(up); renderGrid();
+        toast(res.isReacted ? ('Reacted ' + btn.dataset.em) : ('Removed ' + btn.dataset.em));
       } catch (err) { toast('Error: ' + err.message); }
     };
   });

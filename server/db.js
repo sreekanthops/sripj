@@ -35,12 +35,13 @@ db.exec(`
     edited_at   TEXT
   );
 
-  CREATE TABLE IF NOT EXISTS reactions (
-    id       TEXT PRIMARY KEY,
-    note_id  TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
-    emoji    TEXT NOT NULL,
-    count    INTEGER NOT NULL DEFAULT 0,
-    UNIQUE(note_id, emoji)
+  CREATE TABLE IF NOT EXISTS note_reactions (
+    id          TEXT PRIMARY KEY,
+    note_id     TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+    emoji       TEXT NOT NULL,
+    reactor_key TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    UNIQUE(note_id, emoji, reactor_key)
   );
 
   CREATE TABLE IF NOT EXISTS replies (
@@ -52,11 +53,12 @@ db.exec(`
   );
 
   CREATE TABLE IF NOT EXISTS reply_reactions (
-    id         TEXT PRIMARY KEY,
-    reply_id   TEXT NOT NULL REFERENCES replies(id) ON DELETE CASCADE,
-    emoji      TEXT NOT NULL,
-    count      INTEGER NOT NULL DEFAULT 0,
-    UNIQUE(reply_id, emoji)
+    id          TEXT PRIMARY KEY,
+    reply_id    TEXT NOT NULL REFERENCES replies(id) ON DELETE CASCADE,
+    emoji       TEXT NOT NULL,
+    reactor_key TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    UNIQUE(reply_id, emoji, reactor_key)
   );
 
   CREATE TABLE IF NOT EXISTS media (
@@ -106,6 +108,33 @@ if (!hasColumn('notes', 'user_id')) {
 // replies.user_id
 if (!hasColumn('replies', 'user_id')) {
   db.exec(`ALTER TABLE replies ADD COLUMN user_id TEXT`);
+}
+
+// migrate note_reactions table if not present
+db.exec(`
+  CREATE TABLE IF NOT EXISTS note_reactions (
+    id          TEXT PRIMARY KEY,
+    note_id     TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+    emoji       TEXT NOT NULL,
+    reactor_key TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    UNIQUE(note_id, emoji, reactor_key)
+  );
+`);
+
+// migrate reply_reactions table if it has old schema (count column instead of reactor_key)
+if (hasTable('reply_reactions') && hasColumn('reply_reactions', 'count')) {
+  db.exec(`DROP TABLE reply_reactions`);
+  db.exec(`
+    CREATE TABLE reply_reactions (
+      id          TEXT PRIMARY KEY,
+      reply_id    TEXT NOT NULL REFERENCES replies(id) ON DELETE CASCADE,
+      emoji       TEXT NOT NULL,
+      reactor_key TEXT NOT NULL,
+      created_at  TEXT NOT NULL,
+      UNIQUE(reply_id, emoji, reactor_key)
+    )
+  `);
 }
 
 // Re-enable FK enforcement
