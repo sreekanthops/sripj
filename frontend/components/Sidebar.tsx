@@ -27,10 +27,21 @@ export default function Sidebar({
   const [profName, setProfName] = useState(user.displayName || "");
   const [profBio,  setProfBio]  = useState(user.bio || "");
   const [saving,   setSaving]   = useState(false);
+  const [copied,   setCopied]   = useState(false);
 
   const copyLink = () => {
     const url = `${window.location.origin}/u/${user.username}`;
-    navigator.clipboard?.writeText(url).then(() => {}).catch(() => {});
+    const doFallback = () => {
+      // HTTP / no clipboard API — show the URL in a prompt so user can copy manually
+      window.prompt("Copy your diary link:", url);
+    };
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url)
+        .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })
+        .catch(doFallback);
+    } else {
+      doFallback();
+    }
   };
 
   const saveProfile = async () => {
@@ -65,7 +76,9 @@ export default function Sidebar({
           {isOwner ? (
             <>
               <SideBtn icon={<PenLine size={14}/>} primary onClick={onNewEntry}>+ New Entry</SideBtn>
-              <SideBtn icon={<Link2 size={14}/>} onClick={copyLink}>Share Diary</SideBtn>
+              <SideBtn icon={<Link2 size={14}/>} onClick={copyLink}>
+                {copied ? "✓ Link Copied!" : "Share Diary"}
+              </SideBtn>
               <SideBtn icon={<UserRound size={14}/>} onClick={() => { setProfName(user.displayName); setProfBio(user.bio||""); setProfOpen(true); }}>
                 Edit Profile
               </SideBtn>
