@@ -1149,37 +1149,29 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 }
 .sticker:hover .sticker-text-edit,
 .sticker.active .sticker-text-edit {
-  border-color: rgba(47,90,110,.4);
-  background: rgba(255,255,255,.08);
+  border-color: rgba(47,90,110,.3);
+  background: rgba(255,255,255,.06);
 }
-
-/* ── Drag handle — grip bar shown on hover below each sticker ── */
-.sticker-drag-handle {
-  position: absolute;
-  bottom: -22px; left: 50%;
-  transform: translateX(-50%);
-  display: flex; gap: 3px; align-items: center; justify-content: center;
-  padding: 5px 10px;
-  background: rgba(44,36,22,.75);
-  backdrop-filter: blur(6px);
-  border-radius: 99px;
-  cursor: grab;
-  opacity: 0;
+/* editing state — dashed blue border, text cursor */
+.sticker.editing .sticker-text-edit {
+  border-color: var(--accent);
+  background: rgba(255,255,255,.12);
+  cursor: text;
+  user-select: text;
+}
+.sticker.editing { outline-color: var(--accent) !important; }
+/* hint label shown on hover (not editing) */
+.sticker-text-edit::after {
+  content: 'double-click to edit';
+  display: block;
+  font-size: 10px; font-family: var(--sans);
+  color: var(--ink4); font-style: italic;
+  margin-top: 4px; opacity: 0;
+  transition: opacity .15s;
   pointer-events: none;
-  transition: opacity .18s;
-  z-index: 12;
-  touch-action: none;
+  user-select: none;
 }
-.sticker-drag-handle span {
-  display: block; width: 3px; height: 10px;
-  border-radius: 2px; background: rgba(255,255,255,.7);
-}
-.sticker:hover .sticker-drag-handle,
-.sticker.active .sticker-drag-handle {
-  opacity: 1;
-  pointer-events: all;
-}
-.sticker-drag-handle:active { cursor: grabbing; }
+.sticker:hover:not(.editing) .sticker-text-edit::after { opacity: 1; }
 
 /* Colour picker inside toolbar */
 .sticker-color-pick {

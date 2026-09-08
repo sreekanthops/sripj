@@ -1497,24 +1497,15 @@ document.getElementById('musicVol').oninput = e => {
     resH.addEventListener('pointerup',   () => { resizing=false; el.classList.remove('active'); save(); });
     el.appendChild(resH);
 
-    // ── drag handle (visible grip bar) ───────────────────────────────
-    const dragH = document.createElement('div');
-    dragH.className = 'sticker-drag-handle';
-    dragH.title = 'Drag to move';
-    dragH.innerHTML = '<span></span><span></span><span></span>';
-    el.appendChild(dragH);
-
-    // ── drag to move — triggered by drag handle OR image body (non-text) ─
+    // ── drag to move ─────────────────────────────────────────────────
+    // Any pointerdown on the element body starts a drag.
+    // Text stickers use double-click to enter edit mode (see createTextItem).
     let dragging=false, dOX=0, dOY=0;
-    function startDrag(e) {
+    el.addEventListener('pointerdown', e => {
+      if (e.target.closest('.sticker-controls,.sticker-rotate-handle,.sticker-resize-handle,.sticker-del')) return;
       dragging=true;
       dOX=(e.clientX+window.scrollX)-state.x; dOY=(e.clientY+window.scrollY)-state.y;
       el.setPointerCapture(e.pointerId); el.classList.add('active'); el.style.zIndex=200+_zTop;
-    }
-    dragH.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); startDrag(e); });
-    el.addEventListener('pointerdown', e => {
-      if (e.target.closest('.sticker-controls,.sticker-rotate-handle,.sticker-resize-handle,.sticker-del,.sticker-text-edit,.sticker-drag-handle')) return;
-      startDrag(e);
     });
     el.addEventListener('pointermove', e => { if(!dragging) return; state.x=(e.clientX+window.scrollX)-dOX; state.y=(e.clientY+window.scrollY)-dOY; applyTransform(); });
     el.addEventListener('pointerup',   () => { dragging=false; el.classList.remove('active'); el.style.zIndex=state.z; save(); });
@@ -1581,14 +1572,35 @@ document.getElementById('musicVol').oninput = e => {
     }
     applyTransform();
 
-    // Editable text area
+    // Editable text area — double-click to enter edit mode, single-click+drag to move
     const ed = document.createElement('div');
     ed.className = 'sticker-text-edit';
-    ed.contentEditable = 'true';
+    ed.contentEditable = 'false'; // starts non-editable; enabled on dblclick
     ed.spellcheck = false;
     ed.textContent = state.text;
-    ed.addEventListener('input',  () => { state.text = ed.textContent; save(); });
-    ed.addEventListener('pointerdown', e => e.stopPropagation()); // don't drag while editing
+    ed.style.cursor = 'grab';
+    ed.addEventListener('input', () => { state.text = ed.innerText; save(); });
+
+    // Double-click → enter edit mode
+    ed.addEventListener('dblclick', e => {
+      e.stopPropagation();
+      ed.contentEditable = 'true';
+      ed.style.cursor = 'text';
+      el.classList.add('editing');
+      ed.focus();
+    });
+
+    // Click outside → exit edit mode
+    document.addEventListener('pointerdown', e => {
+      if (el.classList.contains('editing') && !el.contains(e.target)) {
+        ed.contentEditable = 'false';
+        ed.style.cursor = 'grab';
+        el.classList.remove('editing');
+        state.text = ed.innerText;
+        save();
+      }
+    }, true);
+
     el.appendChild(ed);
     applyStyle();
 
@@ -1614,8 +1626,13 @@ document.getElementById('musicVol').oninput = e => {
     bar.appendChild(colorInput);
 
     layer.appendChild(el);
-    // Focus for immediate typing on new items (not on load)
-    if (!text) requestAnimationFrame(() => { ed.focus(); selectAll(ed); });
+    // New items: immediately enter edit mode so user can start typing
+    if (!text) requestAnimationFrame(() => {
+      ed.contentEditable = 'true';
+      ed.style.cursor = 'text';
+      el.classList.add('editing');
+      ed.focus(); selectAll(ed);
+    });
     return el;
   }
 
