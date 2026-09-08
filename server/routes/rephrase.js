@@ -2,9 +2,13 @@ const router = require('express').Router();
 const { verifyToken } = require('../auth');
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-// Primary model — strong free model; fallback if rate-limited
-const PRIMARY_MODEL  = 'nvidia/nemotron-3-ultra-550b-a55b:free';
-const FALLBACK_MODEL = 'nvidia/nemotron-3-super-120b-a12b:free';
+// Fast, cheap models — llama-3.1-8b responds in ~1s
+const PRIMARY_MODEL  = 'meta-llama/llama-3.1-8b-instruct';
+const FALLBACK_MODEL = 'meta-llama/llama-3.3-70b-instruct';
+
+const SYSTEM_PROMPT =
+  'Fix the grammar and spelling of the text the user sends. ' +
+  'Return ONLY the corrected text. No explanations, no bullet points, no markdown.';
 
 async function callOpenRouter(model, text) {
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -17,16 +21,10 @@ async function callOpenRouter(model, text) {
     },
     body: JSON.stringify({
       model,
+      max_tokens: 1000,
       messages: [
-        {
-          role: 'system',
-          content:
-            'You are a grammar-correction assistant. ' +
-            'When given text, return ONLY the corrected version with proper grammar and spelling. ' +
-            'Do not add any explanation, commentary, bullet points, or markdown. ' +
-            'Output only the corrected text as plain prose.',
-        },
-        { role: 'user', content: text.trim() },
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user',   content: text.trim() },
       ],
     }),
   });
