@@ -267,6 +267,34 @@
 </div>
 
 <div id="toast"></div>
+
+<!-- ══ UPGRADE PROMPT ══════════════════════════════════════════════════════ -->
+<div class="overlay center" id="upgradeOverlay">
+  <div class="sheet upgrade-sheet">
+    <div class="upgrade-icon">✦</div>
+    <div class="upgrade-title">You've reached your free limit</div>
+    <div class="upgrade-sub">Free accounts can keep up to <strong>5 diary entries</strong>. Upgrade to write without limits.</div>
+    <div class="upgrade-plans">
+      <a href="/pricing" class="upgrade-plan upgrade-plan-popular">
+        <div class="upgrade-plan-name">Pro Monthly</div>
+        <div class="upgrade-plan-price">$4.99<span>/mo</span></div>
+        <div class="upgrade-plan-desc">Unlimited entries · uploads · canvas</div>
+      </a>
+      <a href="/pricing" class="upgrade-plan">
+        <div class="upgrade-plan-name">Pro Yearly</div>
+        <div class="upgrade-plan-price">$39.99<span>/yr</span></div>
+        <div class="upgrade-plan-desc">Save 33% vs monthly</div>
+      </a>
+      <a href="/pricing" class="upgrade-plan">
+        <div class="upgrade-plan-name">Lifetime</div>
+        <div class="upgrade-plan-price">$99<span> once</span></div>
+        <div class="upgrade-plan-desc">Pay once, use forever</div>
+      </a>
+    </div>
+    <a href="/pricing" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px;padding:13px">View all plans →</a>
+    <button class="btn btn-outline" id="upgradeClose" style="width:100%;justify-content:center;margin-top:10px">Maybe later</button>
+  </div>
+</div>
 <audio id="bgAudio" loop></audio>
 
 <!-- ══ STICKER LAYER ═══════════════════════════════════════════════════════ -->

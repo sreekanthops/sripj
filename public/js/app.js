@@ -86,7 +86,11 @@ async function api(method, path, body) {
   if (body)  opts.body = JSON.stringify(body);
   const res  = await fetch(API + path, opts);
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(data.error || `HTTP ${res.status}`);
+    err.limitReached = !!data.limitReached;
+    throw err;
+  }
   return data;
 }
 async function apiUpload(noteId, files) {
@@ -161,14 +165,15 @@ document.getElementById('signupPwd').onkeydown = e => {
 function openOv(id)  { document.getElementById(id).classList.add('open'); }
 function closeOv(id) { document.getElementById(id).classList.remove('open'); }
 
-['detailOverlay','formOverlay','profileOverlay'].forEach(id => {
+['detailOverlay','formOverlay','profileOverlay','upgradeOverlay'].forEach(id => {
   document.getElementById(id).addEventListener('click', e => {
     if (e.target === document.getElementById(id)) closeOv(id);
   });
 });
-document.getElementById('detailClose').onclick  = () => closeOv('detailOverlay');
-document.getElementById('formClose').onclick    = () => closeOv('formOverlay');
-document.getElementById('profileClose').onclick = () => closeOv('profileOverlay');
+document.getElementById('detailClose').onclick   = () => closeOv('detailOverlay');
+document.getElementById('formClose').onclick     = () => closeOv('formOverlay');
+document.getElementById('profileClose').onclick  = () => closeOv('profileOverlay');
+document.getElementById('upgradeClose').onclick  = () => closeOv('upgradeOverlay');
 
 // ── SIDEBAR DRAWER ─────────────────────────────────────────────────────────
 function openSidebar() {
@@ -483,7 +488,14 @@ document.getElementById('fSave').onclick = async () => {
       toast('Uploaded ✅');
     }
     closeOv('formOverlay'); await loadAndRender();
-  } catch (err) { toast('Error: ' + err.message); }
+  } catch (err) {
+    if (err.limitReached) {
+      closeOv('formOverlay');
+      openOv('upgradeOverlay');
+    } else {
+      toast('Error: ' + err.message);
+    }
+  }
 };
 
 // ── REPHRASE ───────────────────────────────────────────────────────────────
