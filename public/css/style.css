@@ -1087,6 +1087,7 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   pointer-events: all;
   touch-action: none;
   border-radius: 6px;
+  background: transparent;
   transition: outline .15s;
   outline: 2px dashed transparent;
   outline-offset: 4px;
@@ -1116,11 +1117,10 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   object-fit: contain;
   pointer-events: none;
   border-radius: 4px;
-  /* drop-shadow for depth */
   filter: drop-shadow(2px 4px 8px rgba(0,0,0,.22));
 }
 
-/* Controls bar — shown on hover / touch; faintly visible by default */
+/* Controls bar — hidden until hover */
 .sticker-controls {
   position: absolute;
   bottom: calc(100% + 8px);
@@ -1133,7 +1133,7 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   backdrop-filter: blur(8px);
   border-radius: 20px;
   padding: 5px 8px;
-  opacity: 0.2;           /* faintly visible by default */
+  opacity: 0;
   pointer-events: none;
   transition: opacity .18s;
   white-space: nowrap;
@@ -1144,6 +1144,35 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   opacity: 1;
   pointer-events: all;
 }
+
+/* Dedicated delete button — top-left, red, appears on hover only */
+.sticker-del {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: rgba(184,50,50,.9);
+  border: 2px solid #fff;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s, transform .12s, background .12s;
+  z-index: 20;
+  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+}
+.sticker:hover .sticker-del,
+.sticker.active .sticker-del {
+  opacity: 1;
+  pointer-events: all;
+}
+.sticker-del:hover { background: #c0392b; transform: scale(1.15); }
+.sticker-del:active { transform: scale(.88); }
 
 .sticker-btn {
   width: 28px; height: 28px;

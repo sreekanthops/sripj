@@ -1432,13 +1432,27 @@ document.getElementById('musicVol').oninput = e => {
     }
     applyTransform();
 
-    // Image
+    // Image — assign src after element is appended to avoid broken-image flash
     const img = document.createElement('img');
-    img.src = src;
     img.draggable = false;
+    img.alt = '';
     el.appendChild(img);
+    requestAnimationFrame(() => { img.src = src; });
 
-    // ── Controls bar ──────────────────────────────────────────────────────
+    // Dedicated red delete button — top-left corner, appears on hover
+    const btnDelTop = document.createElement('button');
+    btnDelTop.className = 'sticker-del';
+    btnDelTop.title = 'Remove';
+    btnDelTop.textContent = '✕';
+    btnDelTop.addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      el.remove();
+      stickers = stickers.filter(s => s.id !== id);
+      save();
+    });
+    el.appendChild(btnDelTop);
+
+    // Controls bar (rotate / size)
     const controls = document.createElement('div');
     controls.className = 'sticker-controls';
 
@@ -1473,20 +1487,6 @@ document.getElementById('musicVol').oninput = e => {
     btnGrow.textContent = '+';
     btnGrow.addEventListener('pointerdown', e => { e.stopPropagation(); state.w = Math.min(600, state.w + 20); applyTransform(); save(); });
     controls.appendChild(btnGrow);
-
-    // Delete
-    const btnDel = document.createElement('button');
-    btnDel.className = 'sticker-btn';
-    btnDel.title = 'Remove';
-    btnDel.textContent = '✕';
-    btnDel.style.background = 'rgba(184,50,50,.6)';
-    btnDel.addEventListener('pointerdown', e => {
-      e.stopPropagation();
-      el.remove();
-      stickers = stickers.filter(s => s.id !== id);
-      save();
-    });
-    controls.appendChild(btnDel);
 
     el.appendChild(controls);
 
