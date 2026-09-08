@@ -1773,6 +1773,19 @@ document.getElementById('musicVol').oninput = e => {
   // Build the shared control toolbar (rotate, send-back, bring-front, delete)
   // plus optional extra buttons injected via extraBtns array [{text,title,onclick}]
   function buildControls(state, el, applyTransform, extraBtns) {
+    // ── click-to-lock: single click makes sticker 'active' so controls
+    //    stay visible without needing to keep the mouse perfectly on it ──
+    el.addEventListener('pointerdown', e => {
+      if (e.target.closest('.sticker-controls,.sticker-rotate-handle,.sticker-resize-handle,.sticker-del')) return;
+      // deactivate any other sticker first
+      layer.querySelectorAll('.sticker.active').forEach(s => { if (s !== el) s.classList.remove('active'); });
+      el.classList.add('active');
+    }, true);
+    // clicking outside (on the layer or document) deactivates
+    document.addEventListener('pointerdown', e => {
+      if (!el.contains(e.target)) el.classList.remove('active');
+    }, true);
+
     // ── delete button top-left ─────────────────────────────────────────
     const btnDel = document.createElement('button');
     btnDel.className = 'sticker-del';

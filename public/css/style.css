@@ -1430,32 +1430,32 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 .sticker-color-pick::-webkit-color-swatch-wrapper { padding: 0; border-radius: 50%; }
 .sticker-color-pick::-webkit-color-swatch { border: none; border-radius: 50%; }
 
-/* Controls bar — hidden until hover */
+/* Controls bar — hidden until hover/active */
 .sticker-controls {
   position: absolute;
-  bottom: calc(100% + 4px); /* reduced gap so hover bridge is smaller */
+  bottom: calc(100% + 2px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 4px;
-  background: rgba(44,36,22,.82);
+  background: rgba(44,36,22,.88);
   backdrop-filter: blur(8px);
   border-radius: 20px;
-  padding: 5px 8px;
+  padding: 5px 10px;
   opacity: 0;
   pointer-events: none;
-  transition: opacity .18s;
+  transition: opacity .15s;
   white-space: nowrap;
   z-index: 10;
 }
-/* Transparent bridge fills gap between toolbar and sticker so hover isn't lost */
+/* Wide transparent bridge — covers gap + extra so cursor can travel to toolbar */
 .sticker-controls::after {
   content: '';
   position: absolute;
   top: 100%;
-  left: 0; right: 0;
-  height: 12px; /* covers the gap + a little extra */
+  left: -20px; right: -20px; /* wider than the bar so edges are forgiving */
+  height: 32px;
   background: transparent;
 }
 /* Toolbar + delete only shown for owner */
@@ -1470,20 +1470,20 @@ body.is-owner .sticker-controls:hover {
 /* Dedicated delete button — top-left, red, owner only */
 .sticker-del {
   position: absolute;
-  top: -10px; left: -10px;
-  width: 24px; height: 24px;
+  top: -12px; left: -12px;
+  width: 26px; height: 26px;
   border-radius: 50%;
-  background: rgba(184,50,50,.9);
+  background: rgba(184,50,50,.92);
   border: 2px solid #fff;
   color: #fff;
-  font-size: 12px; font-weight: 700; line-height: 1;
+  font-size: 13px; font-weight: 700; line-height: 1;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   opacity: 0;
   pointer-events: none;
   transition: opacity .15s, transform .12s, background .12s;
   z-index: 20;
-  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
 }
 body.is-owner .sticker:hover .sticker-del,
 body.is-owner .sticker.active .sticker-del {
@@ -1510,17 +1510,17 @@ body.is-owner .sticker.active .sticker-del {
 /* Rotate handle */
 .sticker-rotate-handle {
   position: absolute;
-  top: -18px; right: -18px;
-  width: 30px; height: 30px;
+  top: -20px; right: -20px;
+  width: 32px; height: 32px;
   border-radius: 50%;
-  background: rgba(47,90,110,.88);
-  border: 2px solid rgba(255,255,255,.8);
+  background: rgba(47,90,110,.9);
+  border: 2px solid rgba(255,255,255,.85);
   color: #fff;
-  font-size: 15px;
+  font-size: 16px;
   cursor: crosshair;
   display: flex; align-items: center; justify-content: center;
   opacity: 0;
-  transition: opacity .18s, transform .15s;
+  transition: opacity .15s, transform .12s;
   z-index: 10;
   pointer-events: none;
   touch-action: none;
@@ -1529,14 +1529,14 @@ body.is-owner .sticker.active .sticker-del {
 /* Resize corner */
 .sticker-resize-handle {
   position: absolute;
-  bottom: -10px; right: -10px;
-  width: 22px; height: 22px;
+  bottom: -12px; right: -12px;
+  width: 26px; height: 26px;
   border-radius: 50%;
-  background: rgba(140,109,63,.88);
-  border: 2px solid rgba(255,255,255,.8);
+  background: rgba(140,109,63,.9);
+  border: 2px solid rgba(255,255,255,.85);
   cursor: nwse-resize;
   opacity: 0;
-  transition: opacity .18s, transform .15s;
+  transition: opacity .15s, transform .12s;
   z-index: 10;
   pointer-events: none;
   touch-action: none;
