@@ -73,11 +73,6 @@ router.get('/admin/list', verifyAdminToken, (req, res) => {
 //   Body: { userId, planId, expiresAt? }
 //   - planId can be 'free' | 'monthly' | 'yearly' | 'lifetime'
 //   - expiresAt: ISO string or null; ignored for 'lifetime'
-//   - When planId is 'free' and expiresAt is set, it acts as a "free courtesy"
-//     plan with a time-limit (e.g. admin gift for 3 months free Pro access).
-//     But if planId is 'free' the user still gets the free plan limits unless
-//     the admin intends a paid plan granted for free — use the paid plan id with
-//     expiresAt instead.
 router.put('/admin/assign', verifyAdminToken, (req, res) => {
   const { userId, planId, expiresAt } = req.body;
   if (!userId || !planId) return res.status(400).json({ error: 'userId and planId required' });
@@ -108,6 +103,46 @@ router.put('/admin/assign', verifyAdminToken, (req, res) => {
   }
 
   res.json({ ok: true, planId, expiresAt: exp });
+});
+
+// POST /api/subscriptions/admin/grant-free
+//   Grant a free (admin-courtesy) paid plan to a user for a fixed time period.
+//   expiresAt is REQUIRED — admin must always set a time limit for free grants.
+//   Body: { userId, planId, expiresAt }   planId must be 'monthly' | 'yearly' | 'lifetime'
+router.post('/admin/grant-free', verifyAdminToken, (req, res) => {
+  const { userId, planId, expiresAt } = req.body;
+  if (!userId || !planId) return res.status(400).json({ error: 'userId and planId required' });
+  if (!expiresAt) return res.status(400).json({ error: 'expiresAt is required for a free courtesy grant — you must set a time period.' });
+  if (planId === 'free') return res.status(400).json({ error: 'Use planId monthly/yearly/lifetime to grant free access to a paid plan.' });
+
+  const expDate = new Date(expiresAt);
+  if (isNaN(expDate.getTime()) || expDate <= new Date()) {
+    return res.status(400).json({ error: 'expiresAt must be a valid future date.' });
+  }
+
+  const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const plan = db.prepare('SELECT id FROM subscription_plans WHERE id = ?').get(planId);
+  if (!plan) return res.status(400).json({ error: `Unknown planId: ${planId}` });
+
+  const existing = db.prepare('SELECT id FROM user_subscriptions WHERE user_id = ?').get(userId);
+  const now = new Date().toISOString();
+
+  if (existing) {
+    db.prepare(`
+      UPDATE user_subscriptions
+      SET plan_id = ?, expires_at = ?, granted_by = ?, starts_at = ?
+      WHERE user_id = ?
+    `).run(planId, expiresAt, req.admin.adminId, now, userId);
+  } else {
+    db.prepare(`
+      INSERT INTO user_subscriptions (id, user_id, plan_id, granted_by, starts_at, expires_at, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(uuidv4(), userId, planId, req.admin.adminId, now, expiresAt, now);
+  }
+
+  res.json({ ok: true, planId, expiresAt, grantedFree: true });
 });
 
 // DELETE /api/subscriptions/admin/revoke/:userId

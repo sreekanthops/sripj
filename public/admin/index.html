@@ -185,14 +185,33 @@ tr:hover td{background:#fafbff}
 .plan-stat{font-size:20px;font-weight:700;color:var(--ink);margin-top:8px}
 .plan-stat-label{font-size:10px;color:var(--ink4);text-transform:uppercase;letter-spacing:.5px}
 
-/* assign modal overlay */
-#assignModal{
+/* grant-free panel */
+.grant-panel{
+  background:var(--surface);border:1.5px solid var(--green);border-radius:var(--r);
+  padding:22px 24px;box-shadow:var(--shadow);margin-bottom:28px;
+}
+.grant-panel-title{font-size:13px;font-weight:700;color:var(--green);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.grant-panel-row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.grant-panel-row .field{margin:0;flex:1;min-width:160px}
+.preset-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.preset-btn{
+  padding:4px 12px;font-size:11px;font-weight:600;border-radius:99px;cursor:pointer;
+  background:var(--green-bg);border:1.5px solid var(--green);color:var(--green);
+  font-family:var(--sans);transition:background .12s,color .12s;
+}
+.preset-btn:hover{background:var(--green);color:#fff}
+.badge-granted{background:var(--green-bg);color:var(--green);font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;border:1px solid var(--green);margin-left:6px}
+.badge-expiring{background:var(--amber-bg);color:var(--amber);font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;border:1px solid var(--amber);margin-left:4px}
+.days-chip{font-size:10px;color:var(--ink4);margin-left:4px}
+
+/* assign / grant modal overlay */
+#assignModal,#grantFreeModal{
   position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.4);
   display:flex;align-items:center;justify-content:center;
 }
 .modal-card{
   background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
-  padding:32px 36px;max-width:420px;width:100%;box-shadow:var(--shadow2);
+  padding:32px 36px;max-width:440px;width:100%;box-shadow:var(--shadow2);
 }
 .modal-title{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:20px}
 .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
@@ -201,6 +220,7 @@ select.field-select{
   padding:10px 14px;font-size:14px;color:var(--ink);font-family:var(--sans);outline:none;
 }
 select.field-select:focus{border-color:var(--accent)}
+.modal-note{font-size:11px;color:var(--ink3);margin-top:8px;line-height:1.5;background:var(--green-bg);border:1px solid var(--green);border-radius:var(--r3);padding:8px 12px}
 
 /* ── EMOJI BAR ── */
 .emoji-grid{
@@ -285,6 +305,7 @@ select.field-select:focus{border-color:var(--accent)}
     <button class="nav-tab" data-page="users">Users</button>
     <button class="nav-tab" data-page="reactions">Reactions</button>
     <button class="nav-tab" data-page="subscriptions">Subscriptions</button>
+    <button class="nav-tab" data-page="grant">Grant Free Access</button>
     <button class="nav-tab" data-page="settings">Settings</button>
   </nav>
 
@@ -338,6 +359,78 @@ select.field-select:focus{border-color:var(--accent)}
             </tr>
           </thead>
           <tbody id="usersTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRANT FREE ACCESS PAGE -->
+  <div class="page" id="page-grant">
+    <div class="section">
+      <div class="section-title">Grant Free Subscription to a User</div>
+      <div class="grant-panel">
+        <div class="grant-panel-title">&#127381; Free Courtesy Access — Admin Override</div>
+        <p style="font-size:12px;color:var(--ink3);margin-bottom:16px;line-height:1.6">
+          Give any user free access to a paid plan for a limited time period.
+          An expiry date is <b>required</b> — free grants automatically revert to the Free plan when they expire.
+        </p>
+        <div class="grant-panel-row">
+          <div class="field" style="flex:2;min-width:200px">
+            <label>User</label>
+            <select class="field-select" id="grantUserId">
+              <option value="">— select a user —</option>
+            </select>
+          </div>
+          <div class="field" style="flex:2;min-width:180px">
+            <label>Plan to Grant (free)</label>
+            <select class="field-select" id="grantPlanId">
+              <option value="monthly">Pro Monthly (free)</option>
+              <option value="yearly">Pro Yearly (free)</option>
+              <option value="lifetime">Lifetime (free)</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:14px">
+          <label style="font-size:12px;font-weight:600;color:var(--ink2);display:block;margin-bottom:8px">Duration Presets</label>
+          <div class="preset-row">
+            <button class="preset-btn" data-days="7">7 days</button>
+            <button class="preset-btn" data-days="14">14 days</button>
+            <button class="preset-btn" data-days="30">30 days</button>
+            <button class="preset-btn" data-days="60">60 days</button>
+            <button class="preset-btn" data-days="90">90 days</button>
+            <button class="preset-btn" data-days="180">6 months</button>
+            <button class="preset-btn" data-days="365">1 year</button>
+          </div>
+          <div class="field" style="margin-top:10px;max-width:260px">
+            <label>Or pick a custom expiry date <span style="color:var(--ink4);font-weight:400">(required)</span></label>
+            <input type="date" id="grantExpiryDate" class="field-select" style="cursor:pointer">
+          </div>
+        </div>
+        <p class="err" id="grantErr" style="margin-top:8px"></p>
+        <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
+          <button class="btn btn-primary" id="grantFreeBtn" style="background:var(--green)">Grant Free Access</button>
+          <span id="grantSuccess" style="font-size:12px;color:var(--green);font-weight:600;display:none">&#10003; Granted successfully!</span>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Currently Admin-Granted Users
+        <button class="btn btn-ghost" id="grantListRefreshBtn" style="margin-left:auto;padding:5px 14px;font-size:12px">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Username</th>
+              <th>Plan</th>
+              <th>Granted</th>
+              <th>Expires</th>
+              <th>Days Left</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="grantedUsersTable"></tbody>
         </table>
       </div>
     </div>
@@ -407,6 +500,7 @@ select.field-select:focus{border-color:var(--accent)}
               <th>Effective Plan</th>
               <th>Expires</th>
               <th>Granted By</th>
+              <th>Days Left</th>
               <th>Entries</th>
               <th>Actions</th>
             </tr>
@@ -468,12 +562,52 @@ select.field-select:focus{border-color:var(--accent)}
     </div>
     <div class="field" id="assignExpiryField">
       <label>Expires At <span style="color:var(--ink4);font-weight:400">(leave blank = no expiry)</span></label>
+      <div class="preset-row" id="assignPresetRow" style="margin-bottom:8px">
+        <button type="button" class="preset-btn assign-preset" data-days="7">7d</button>
+        <button type="button" class="preset-btn assign-preset" data-days="30">30d</button>
+        <button type="button" class="preset-btn assign-preset" data-days="90">90d</button>
+        <button type="button" class="preset-btn assign-preset" data-days="180">6mo</button>
+        <button type="button" class="preset-btn assign-preset" data-days="365">1yr</button>
+      </div>
       <input type="date" id="assignExpiryDate" class="field-select" style="cursor:pointer">
     </div>
     <p class="err" id="assignErr"></p>
     <div class="modal-footer">
       <button class="btn btn-ghost" id="assignCancelBtn">Cancel</button>
       <button class="btn btn-primary" id="assignSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── GRANT FREE MODAL (from Users tab quick-action) ──────────────── -->
+<div id="grantFreeModal" class="hidden">
+  <div class="modal-card">
+    <div class="modal-title" id="grantFreeModalTitle" style="color:var(--green)">&#127381; Grant Free Access</div>
+    <div class="field">
+      <label>Plan to Grant (free)</label>
+      <select class="field-select" id="gfPlanSel">
+        <option value="monthly">Pro Monthly (free)</option>
+        <option value="yearly">Pro Yearly (free)</option>
+        <option value="lifetime">Lifetime (free)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Duration <span style="color:var(--red);font-weight:500">*required</span></label>
+      <div class="preset-row" style="margin-bottom:8px">
+        <button type="button" class="preset-btn gf-preset" data-days="7">7 days</button>
+        <button type="button" class="preset-btn gf-preset" data-days="14">14 days</button>
+        <button type="button" class="preset-btn gf-preset" data-days="30">30 days</button>
+        <button type="button" class="preset-btn gf-preset" data-days="90">90 days</button>
+        <button type="button" class="preset-btn gf-preset" data-days="180">6 months</button>
+        <button type="button" class="preset-btn gf-preset" data-days="365">1 year</button>
+      </div>
+      <input type="date" id="gfExpiryDate" class="field-select" style="cursor:pointer">
+    </div>
+    <div class="modal-note">Free grants automatically expire on the chosen date and revert to the Free plan. An expiry date is mandatory.</div>
+    <p class="err" id="gfErr"></p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="gfCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="gfSaveBtn" style="background:var(--green)">Grant Free Access</button>
     </div>
   </div>
 </div>
@@ -660,9 +794,11 @@ function renderUsers() {
       <td>${fmtDate(u.created_at)}</td>
       <td>${u.note_count}</td>
       <td>${u.total_views.toLocaleString()}</td>
-      <td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px">
         <button class="btn btn-danger" style="padding:4px 10px;font-size:11px"
           data-del="${u.id}" data-uname="${u.username}">Delete</button>
+        <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;color:var(--green);border-color:var(--green)"
+          data-grantfree="${u.id}" data-uname="${u.username}">Free Grant</button>
       </td>
     </tr>
   `).join('');
@@ -676,6 +812,10 @@ function renderUsers() {
         await loadStats();
       } catch (e) { toast('Error: ' + e.message); }
     };
+  });
+
+  tbody.querySelectorAll('[data-grantfree]').forEach(btn => {
+    btn.onclick = () => openGrantFreeModal(btn.dataset.grantfree, btn.dataset.uname);
   });
 }
 
@@ -810,10 +950,25 @@ function renderSubStats(planCounts) {
   });
 }
 
+function daysLeft(isoDate) {
+  if (!isoDate) return null;
+  const diff = Math.ceil((new Date(isoDate) - new Date()) / 86400000);
+  return diff;
+}
+
+function daysLeftCell(u) {
+  if (!u.expiresAt) return u.effectivePlan === 'lifetime' ? '<span style="color:var(--green);font-size:11px">Never</span>' : '—';
+  const d = daysLeft(u.expiresAt);
+  if (d <= 0) return '<span style="color:var(--red);font-size:11px;font-weight:600">Expired</span>';
+  if (d <= 7)  return `<span class="badge-expiring">${d}d left</span>`;
+  if (d <= 30) return `<span style="color:var(--amber);font-size:11px;font-weight:600">${d}d left</span>`;
+  return `<span style="font-size:11px;color:var(--ink3)">${d}d left</span>`;
+}
+
 function renderSubUsers(users) {
   const tbody = document.getElementById('subUsersTable');
   if (!users.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--ink4);padding:30px">No users yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--ink4);padding:30px">No users yet</td></tr>';
     return;
   }
   tbody.innerHTML = users.map((u, i) => {
@@ -821,19 +976,23 @@ function renderSubUsers(users) {
     const expiresCell  = u.expiresAt
       ? fmtDate(u.expiresAt) + expiredLabel
       : (u.effectivePlan === 'lifetime' ? '<span style="color:var(--green);font-size:11px">Never</span>' : '—');
+    const grantedBadge = u.grantedBy ? '<span class="badge-granted">Admin gift</span>' : '';
     return `
       <tr>
         <td style="color:var(--ink4)">${i + 1}</td>
-        <td><span class="badge badge-gold">@${u.username}</span>${u.displayName ? `<span style="color:var(--ink3);margin-left:6px;font-size:11px">${u.displayName}</span>` : ''}</td>
+        <td><span class="badge badge-gold">@${u.username}</span>${grantedBadge}${u.displayName ? `<span style="color:var(--ink3);margin-left:6px;font-size:11px">${u.displayName}</span>` : ''}</td>
         <td>${planBadge(u.effectivePlan)}</td>
         <td style="font-size:12px">${expiresCell}</td>
         <td style="font-size:12px;color:var(--ink3)">${u.grantedBy ? '<span title="Admin assigned">Admin</span>' : (u.subId ? 'Self' : '—')}</td>
+        <td>${daysLeftCell(u)}</td>
         <td>${u.noteCount}</td>
         <td style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px">
           <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px"
             data-assign="${u.userId}" data-uname="${u.username}" data-plan="${u.effectivePlan}" data-expires="${u.expiresAt || ''}">
             Assign Plan
           </button>
+          <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;color:var(--green);border-color:var(--green)"
+            data-grantfree="${u.userId}" data-uname="${u.username}">Free Grant</button>
           ${u.subId ? `<button class="btn btn-danger" style="padding:4px 10px;font-size:11px"
             data-revoke="${u.userId}" data-uname="${u.username}">Revoke</button>` : ''}
         </td>
@@ -844,6 +1003,11 @@ function renderSubUsers(users) {
   // Bind Assign buttons
   tbody.querySelectorAll('[data-assign]').forEach(btn => {
     btn.onclick = () => openAssignModal(btn.dataset.assign, btn.dataset.uname, btn.dataset.plan, btn.dataset.expires);
+  });
+
+  // Bind Free Grant buttons
+  tbody.querySelectorAll('[data-grantfree]').forEach(btn => {
+    btn.onclick = () => openGrantFreeModal(btn.dataset.grantfree, btn.dataset.uname);
   });
 
   // Bind Revoke buttons
@@ -862,6 +1026,12 @@ function renderSubUsers(users) {
 // ── Assign modal ────────────────────────────────────────────────────────────
 let assignTargetId = null;
 
+function addDays(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 function openAssignModal(userId, username, currentPlan, currentExpires) {
   assignTargetId = userId;
   document.getElementById('assignModalTitle').textContent = `Assign Plan — @${username}`;
@@ -874,9 +1044,16 @@ function openAssignModal(userId, username, currentPlan, currentExpires) {
 
 function toggleExpiryField(planId) {
   document.getElementById('assignExpiryField').style.display = planId === 'lifetime' ? 'none' : '';
+  document.getElementById('assignPresetRow').style.display = planId === 'lifetime' ? 'none' : '';
 }
 
 document.getElementById('assignPlanSel').addEventListener('change', e => toggleExpiryField(e.target.value));
+
+document.querySelectorAll('.assign-preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('assignExpiryDate').value = addDays(parseInt(btn.dataset.days, 10));
+  });
+});
 
 document.getElementById('assignCancelBtn').onclick = () => {
   document.getElementById('assignModal').classList.add('hidden');
@@ -902,6 +1079,151 @@ document.getElementById('assignSaveBtn').onclick = async () => {
 };
 
 document.getElementById('subRefreshBtn').onclick = () => loadSubscriptions();
+
+// ── Grant Free modal ─────────────────────────────────────────────────────────
+let grantFreeTargetId = null;
+
+function openGrantFreeModal(userId, username) {
+  grantFreeTargetId = userId;
+  document.getElementById('grantFreeModalTitle').textContent = `\u{1F381} Grant Free Access — @${username}`;
+  document.getElementById('gfPlanSel').value = 'monthly';
+  document.getElementById('gfExpiryDate').value = '';
+  document.getElementById('gfErr').textContent = '';
+  document.getElementById('grantFreeModal').classList.remove('hidden');
+}
+
+document.querySelectorAll('.gf-preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('gfExpiryDate').value = addDays(parseInt(btn.dataset.days, 10));
+  });
+});
+
+document.getElementById('gfCancelBtn').onclick = () => {
+  document.getElementById('grantFreeModal').classList.add('hidden');
+};
+
+document.getElementById('grantFreeModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('grantFreeModal'))
+    document.getElementById('grantFreeModal').classList.add('hidden');
+});
+
+document.getElementById('gfSaveBtn').onclick = async () => {
+  const planId    = document.getElementById('gfPlanSel').value;
+  const expiryVal = document.getElementById('gfExpiryDate').value;
+  const errEl     = document.getElementById('gfErr');
+  errEl.textContent = '';
+  if (!expiryVal) { errEl.textContent = 'You must set an expiry date for a free grant.'; return; }
+  const expiresAt = new Date(expiryVal + 'T23:59:59').toISOString();
+  if (new Date(expiresAt) <= new Date()) { errEl.textContent = 'Expiry date must be in the future.'; return; }
+  try {
+    await subsApi('POST', '/admin/grant-free', { userId: grantFreeTargetId, planId, expiresAt });
+    document.getElementById('grantFreeModal').classList.add('hidden');
+    toast(`\u2728 Free ${planId} granted — expires ${fmtDate(expiresAt)}`);
+    await loadSubscriptions();
+    if (!document.getElementById('page-grant').classList.contains('active')) return;
+    await loadGrantedList();
+  } catch (e) { errEl.textContent = e.message; }
+};
+
+// ── Grant Free page logic ─────────────────────────────────────────────────────
+let grantPageLoaded = false;
+
+document.querySelectorAll('.preset-btn[data-days]').forEach(btn => {
+  if (btn.classList.contains('assign-preset') || btn.classList.contains('gf-preset')) return;
+  btn.addEventListener('click', () => {
+    document.getElementById('grantExpiryDate').value = addDays(parseInt(btn.dataset.days, 10));
+  });
+});
+
+document.getElementById('grantFreeBtn').onclick = async () => {
+  const userId    = document.getElementById('grantUserId').value;
+  const planId    = document.getElementById('grantPlanId').value;
+  const expiryVal = document.getElementById('grantExpiryDate').value;
+  const errEl     = document.getElementById('grantErr');
+  const successEl = document.getElementById('grantSuccess');
+  errEl.textContent = '';
+  successEl.style.display = 'none';
+  if (!userId)    { errEl.textContent = 'Please select a user.'; return; }
+  if (!expiryVal) { errEl.textContent = 'An expiry date is required.'; return; }
+  const expiresAt = new Date(expiryVal + 'T23:59:59').toISOString();
+  if (new Date(expiresAt) <= new Date()) { errEl.textContent = 'Expiry date must be in the future.'; return; }
+  try {
+    await subsApi('POST', '/admin/grant-free', { userId, planId, expiresAt });
+    successEl.style.display = '';
+    toast(`\u2728 Free ${planId} granted — expires ${fmtDate(expiresAt)}`);
+    document.getElementById('grantExpiryDate').value = '';
+    await loadGrantedList();
+  } catch (e) { errEl.textContent = e.message; }
+};
+
+document.getElementById('grantListRefreshBtn').onclick = () => loadGrantedList();
+
+async function populateGrantUserSelect() {
+  try {
+    const listData = await subsApi('GET', '/admin/list');
+    const sel = document.getElementById('grantUserId');
+    sel.innerHTML = '<option value="">— select a user —</option>' +
+      listData.users.map(u => `<option value="${u.userId}">@${u.username}${u.displayName ? ' — ' + u.displayName : ''}</option>`).join('');
+  } catch { /* ignore */ }
+}
+
+async function loadGrantedList() {
+  try {
+    const listData = await subsApi('GET', '/admin/list');
+    const granted  = listData.users.filter(u => u.grantedBy);
+    const tbody    = document.getElementById('grantedUsersTable');
+    if (!granted.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--ink4);padding:30px">No admin-granted subscriptions yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = granted.map((u, i) => {
+      const d = u.expiresAt ? daysLeft(u.expiresAt) : null;
+      const dCell = d === null ? '<span style="color:var(--green);font-size:11px">Never</span>'
+        : d <= 0  ? '<span style="color:var(--red);font-weight:600">Expired</span>'
+        : d <= 7  ? `<span class="badge-expiring">${d}d left</span>`
+        : `<span style="color:var(--ink2);font-size:12px">${d}d left</span>`;
+      return `<tr>
+        <td style="color:var(--ink4)">${i + 1}</td>
+        <td><span class="badge badge-gold">@${u.username}</span>${u.displayName ? `<span style="color:var(--ink3);margin-left:6px;font-size:11px">${u.displayName}</span>` : ''}</td>
+        <td>${planBadge(u.effectivePlan)}</td>
+        <td style="font-size:12px">${fmtDate(u.startsAt)}</td>
+        <td style="font-size:12px">${u.expiresAt ? fmtDate(u.expiresAt) : '—'}</td>
+        <td>${dCell}</td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px">
+          <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;color:var(--green);border-color:var(--green)"
+            data-grantfree="${u.userId}" data-uname="${u.username}">Extend</button>
+          <button class="btn btn-danger" style="padding:4px 10px;font-size:11px"
+            data-revoke="${u.userId}" data-uname="${u.username}">Revoke</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    tbody.querySelectorAll('[data-grantfree]').forEach(btn => {
+      btn.onclick = () => openGrantFreeModal(btn.dataset.grantfree, btn.dataset.uname);
+    });
+    tbody.querySelectorAll('[data-revoke]').forEach(btn => {
+      btn.onclick = async () => {
+        if (!confirm(`Revoke free grant for @${btn.dataset.uname}?`)) return;
+        try {
+          await subsApi('DELETE', `/admin/revoke/${btn.dataset.revoke}`);
+          toast('Free grant revoked');
+          await loadGrantedList();
+        } catch (e) { toast('Error: ' + e.message); }
+      };
+    });
+  } catch (e) { toast('Failed to load granted list: ' + e.message); }
+}
+
+// ── Tabs — lazy-load grant page ───────────────────────────────────────────────
+const _origNavClick = document.getElementById('navTabs').onclick;
+document.getElementById('navTabs').addEventListener('click', e => {
+  const tab = e.target.closest('.nav-tab');
+  if (tab && tab.dataset.page === 'grant' && !grantPageLoaded) {
+    grantPageLoaded = true;
+    populateGrantUserSelect();
+    loadGrantedList();
+  }
+});
 
 // ── AUTO-LOGIN on page load ───────────────────────────────────────────────────
 (async () => {
