@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Sparkles } from "lucide-react";
 import Modal from "./Modal";
 import { api, uploadMedia, PALETTE } from "@/lib/api";
 import type { Note } from "@/lib/api";
@@ -22,6 +22,8 @@ const WEIGHTS = [
   { value:"bold italic",  label:"Bold+Italic" },
 ];
 
+const WORD_PRESETS = [40, 80, 150, 250];
+
 interface Props { open:boolean; note?:Note|null; onClose:()=>void; onSaved:()=>void; }
 
 export default function NoteForm({ open, note, onClose, onSaved }: Props) {
@@ -38,7 +40,15 @@ export default function NoteForm({ open, note, onClose, onSaved }: Props) {
   const [pending,    setPending]    = useState<File[]>([]);
   const [saving,     setSaving]     = useState(false);
   const [error,      setError]      = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
+
+  // AI expand state
+  const [aiWords,    setAiWords]    = useState(80);
+  const [aiLoading,  setAiLoading]  = useState(false);
+  const [aiError,    setAiError]    = useState("");
+  const [aiMode,     setAiMode]     = useState<"append"|"replace">("append");
+
+  const fileRef    = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -52,7 +62,7 @@ export default function NoteForm({ open, note, onClose, onSaved }: Props) {
       setFontSize(14); setFontWeight("normal"); setColorIdx(0); setMusicUrl("");
       setTags([]);
     }
-    setTagInput(""); setPending([]); setError("");
+    setTagInput(""); setPending([]); setError(""); setAiError("");
   }, [open, isEdit, note]);
 
   const addTag = (raw: string) => {
@@ -65,6 +75,33 @@ export default function NoteForm({ open, note, onClose, onSaved }: Props) {
 
   const addFiles = (files: FileList|File[]) => {
     setPending(prev => [...prev, ...Array.from(files).filter(f => f.type.startsWith("image/")||f.type.startsWith("video/"))]);
+  };
+
+  // ── AI expand ──────────────────────────────────────────────────────────────
+  const handleAiExpand = async () => {
+    const seed = body.trim();
+    if (!seed) { setAiError("Write a few words first — the AI will expand on what you've started."); return; }
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const data = await api.post<{ result: string }>("/ai/expand", { text: seed, words: aiWords });
+      if (aiMode === "replace") {
+        setBody(data.result);
+      } else {
+        // append with a blank line separator
+        setBody(prev => prev.trimEnd() + "\n\n" + data.result);
+      }
+      // scroll textarea to bottom
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+        }
+      });
+    } catch (e: unknown) {
+      setAiError((e as Error).message || "AI request failed");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const save = async () => {
@@ -117,9 +154,77 @@ export default function NoteForm({ open, note, onClose, onSaved }: Props) {
 
       {/* Body */}
       <div className="f-field">
-        <label className="f-label">Content</label>
-        <textarea value={body} onChange={e=>setBody(e.target.value)}
-          placeholder="Write your thoughts here…"
+        <div className="ai-content-label">
+          <label className="f-label" style={{marginBottom:0}}>Content</label>
+
+          {/* AI toolbar */}
+          <div className="ai-toolbar">
+            {/* word count presets */}
+            <div className="ai-word-presets">
+              {WORD_PRESETS.map(w => (
+                <button
+                  key={w}
+                  type="button"
+                  onClick={() => setAiWords(w)}
+                  className={`ai-preset-btn${aiWords === w ? " active" : ""}`}
+                >
+                  ~{w}w
+                </button>
+              ))}
+              <input
+                type="number"
+                value={aiWords}
+                min={20}
+                max={400}
+                onChange={e => setAiWords(Math.min(400, Math.max(20, +e.target.value || 80)))}
+                className="ai-words-input"
+                title="Target word count"
+              />
+            </div>
+
+            {/* append / replace toggle */}
+            <div className="ai-mode-toggle">
+              <button
+                type="button"
+                onClick={() => setAiMode("append")}
+                className={`ai-mode-btn${aiMode === "append" ? " active" : ""}`}
+                title="Append AI text after your writing"
+              >+ Append</button>
+              <button
+                type="button"
+                onClick={() => setAiMode("replace")}
+                className={`ai-mode-btn${aiMode === "replace" ? " active" : ""}`}
+                title="Replace your text with AI-generated version"
+              >↺ Replace</button>
+            </div>
+
+            {/* AI button */}
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.95 }}
+              onClick={handleAiExpand}
+              disabled={aiLoading}
+              className="btn-ai-expand"
+              title="Generate diary text from your seed using AI"
+            >
+              {aiLoading
+                ? <span className="ai-spinner"/>
+                : <Sparkles size={13} style={{flexShrink:0}}/>
+              }
+              {aiLoading ? "Writing…" : "AI Write"}
+            </motion.button>
+          </div>
+        </div>
+
+        {aiError && (
+          <p className="ai-error">{aiError}</p>
+        )}
+
+        <textarea
+          ref={textareaRef}
+          value={body}
+          onChange={e=>setBody(e.target.value)}
+          placeholder="Write a few words and click ✦ AI Write to expand, or just write freely…"
           className="f-textarea lined-ta"
           style={{ fontFamily:font, fontSize }}/>
       </div>

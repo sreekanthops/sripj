@@ -15,6 +15,7 @@ app.use('/api/auth',          require('./routes/auth'));
 app.use('/api/upload',        require('./routes/upload'));
 app.use('/api/admin',         require('./routes/admin'));
 app.use('/api/rephrase',      require('./routes/rephrase'));
+app.use('/api/ai',            require('./routes/ai'));
 app.use('/api/stickers',      require('./routes/stickers'));
 app.use('/api/subscriptions', require('./routes/subscriptions'));
 
