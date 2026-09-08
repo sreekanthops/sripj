@@ -1415,8 +1415,9 @@ document.getElementById('musicVol').oninput = e => {
   // ── Create a sticker DOM element ────────────────────────────────────────
   function createSticker(src, x, y, w, rot, id) {
     id  = id  || ('s' + Date.now() + Math.random().toString(36).slice(2,6));
-    x   = x  ?? (window.innerWidth  * 0.3 + Math.random() * window.innerWidth  * 0.3);
-    y   = y  ?? (window.innerHeight * 0.2 + Math.random() * window.innerHeight * 0.4);
+    // Place new stickers at page-absolute coords (viewport centre + scroll offset)
+    x   = x  ?? (window.scrollX + window.innerWidth  * 0.3 + Math.random() * window.innerWidth  * 0.3);
+    y   = y  ?? (window.scrollY + window.innerHeight * 0.2 + Math.random() * window.innerHeight * 0.4);
     w   = w  ?? 140;
     rot = rot ?? 0;
 
@@ -1571,18 +1572,20 @@ document.getElementById('musicVol').oninput = e => {
       // Don't start drag if clicking a handle or control button
       if (e.target.closest('.sticker-controls') ||
           e.target.closest('.sticker-rotate-handle') ||
-          e.target.closest('.sticker-resize-handle')) return;
+          e.target.closest('.sticker-resize-handle') ||
+          e.target.closest('.sticker-del')) return;
       dragging = true;
-      dragOX   = e.clientX - state.x;
-      dragOY   = e.clientY - state.y;
+      // Store offset relative to page coords (clientX + scrollX)
+      dragOX = (e.clientX + window.scrollX) - state.x;
+      dragOY = (e.clientY + window.scrollY) - state.y;
       el.setPointerCapture(e.pointerId);
       el.classList.add('active');
       el.style.zIndex = '200';
     });
     el.addEventListener('pointermove', e => {
       if (!dragging) return;
-      state.x = e.clientX - dragOX;
-      state.y = e.clientY - dragOY;
+      state.x = (e.clientX + window.scrollX) - dragOX;
+      state.y = (e.clientY + window.scrollY) - dragOY;
       applyTransform();
     });
     el.addEventListener('pointerup', () => {
