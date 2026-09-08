@@ -17,7 +17,8 @@ const storage = multer.diskStorage({
   },
 });
 
-const ALLOWED = ['video/mp4','video/webm','video/ogg','video/quicktime'];
+const ALLOWED = ['video/mp4','video/webm','video/ogg','video/quicktime',
+                 'image/jpeg','image/png','image/gif','image/webp'];
 
 const upload = multer({
   storage,

@@ -70,6 +70,12 @@ db.exec(`
     sort_order INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS page_stickers (
+    user_id    TEXT NOT NULL PRIMARY KEY,
+    data       TEXT NOT NULL DEFAULT '[]',
+    updated_at TEXT NOT NULL
+  );
 `);
 
 // ── MIGRATIONS (idempotent — safe to run on every start) ─────────────────────

@@ -268,7 +268,7 @@ async function enterOwnDiary() {
   setupUploadZone();
   showApp();
   window._stickerSetOwner?.(true);
-  window._stickerLoad?.();
+  window._stickerLoad?.(currentUser.username);
   await loadAndRender();
 }
 
@@ -291,7 +291,7 @@ async function enterPublicDiary(username) {
     setupUploadZone();
     showApp();
     window._stickerSetOwner?.(isOwner);
-    window._stickerLoad?.();
+    window._stickerLoad?.(viewingUser.username);
     renderGrid();
   } catch {
     if (!currentUser) { showAuth(); } else { toast('Diary not found'); await enterOwnDiary(); }
@@ -363,12 +363,12 @@ function setupUploadZone() {
 function addFiles(files) {
   const prev = document.getElementById('uploadPreviews');
   files.forEach(f => {
-    if (!f.type.startsWith('video/')) return;
+    if (!f.type.startsWith('image/') && !f.type.startsWith('video/')) return;
     pendingFiles.push(f);
     const wrap = document.createElement('div'); wrap.className = 'up-prev';
-    const el   = document.createElement('video');
+    const el   = isVid(f.type) ? document.createElement('video') : document.createElement('img');
     el.src = URL.createObjectURL(f);
-    el.muted = true; el.playsInline = true;
+    if (isVid(f.type)) { el.muted = true; el.playsInline = true; }
     const del  = document.createElement('button'); del.className = 'up-prev-del'; del.textContent = '×';
     del.onclick = () => { pendingFiles.splice(pendingFiles.indexOf(f), 1); wrap.remove(); };
     wrap.appendChild(el); wrap.appendChild(del);
@@ -379,10 +379,11 @@ function addFiles(files) {
 function renderExistMedia(note) {
   const row = document.getElementById('existMediaRow');
   row.innerHTML = '';
-  (note.media||[]).filter(m => isVid(m.mimetype)).forEach(m => {
+  (note.media||[]).forEach(m => {
     const wrap = document.createElement('div'); wrap.className = 'exist-thumb';
-    const el   = document.createElement('video');
-    el.src = m.url; el.muted = true; el.playsInline = true;
+    const el   = isVid(m.mimetype) ? document.createElement('video') : document.createElement('img');
+    el.src = m.url;
+    if (isVid(m.mimetype)) { el.muted = true; el.playsInline = true; }
     const del  = document.createElement('button'); del.className = 'exist-thumb-del'; del.textContent = '×';
     del.onclick = async () => {
       try {
@@ -1377,33 +1378,37 @@ document.getElementById('musicVol').oninput = e => {
   const clearAllBtn = document.getElementById('stickerClearAll');
   if (!layer || !panel || !toggleBtn) return;
 
-  // Storage key per diary page (username from URL or 'own')
-  function storageKey() {
-    const m = location.pathname.match(/\/u\/([^/]+)/);
-    return 'stickers_' + (m ? m[1] : 'home');
-  }
-
   // ── State ──────────────────────────────────────────────────────────────
   let stickers = [];   // [{ id, src, x, y, w, rot }]
+  let _saveTimer = null;
 
-  // ── Persistence ────────────────────────────────────────────────────────
+  // ── Server persistence ─────────────────────────────────────────────────
+  // Debounced save — owner only
   function save() {
-    // Store everything except the full base64 src — store it directly (it's already base64)
-    try {
-      const data = stickers.map(s => ({
-        id: s.id, src: s.src,
-        x: Math.round(s.x), y: Math.round(s.y),
-        w: Math.round(s.w), rot: Math.round(s.rot * 100) / 100
-      }));
-      localStorage.setItem(storageKey(), JSON.stringify(data));
-    } catch(e) { /* storage quota */ }
+    if (!token) return;
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(async () => {
+      try {
+        const data = stickers.map(s => ({
+          id: s.id, src: s.src,
+          x: Math.round(s.x), y: Math.round(s.y),
+          w: Math.round(s.w), rot: Math.round(s.rot * 100) / 100
+        }));
+        await fetch('/api/stickers', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ stickers: data }),
+        });
+      } catch(e) { /* silent */ }
+    }, 800);
   }
 
-  function load() {
+  // Load stickers for a username (public endpoint — works for visitors too)
+  async function loadForUser(username) {
     try {
-      const raw = localStorage.getItem(storageKey());
-      if (!raw) return;
-      JSON.parse(raw).forEach(d => createSticker(d.src, d.x, d.y, d.w, d.rot, d.id));
+      const res  = await fetch(`/api/stickers/${encodeURIComponent(username)}`);
+      const data = await res.json().catch(() => ({}));
+      (data.stickers || []).forEach(d => createSticker(d.src, d.x, d.y, d.w, d.rot, d.id));
     } catch(e) {}
   }
 
@@ -1654,11 +1659,10 @@ document.getElementById('musicVol').oninput = e => {
     }
   };
 
-  // Load persisted stickers on boot
-  // (delayed slightly so URL routing has settled)
-  window._stickerLoad = function() {
+  // Load stickers for a username — called from enterOwnDiary / enterPublicDiary
+  window._stickerLoad = function(username) {
     layer.innerHTML = '';
     stickers = [];
-    load();
+    if (username) loadForUser(username);
   };
 })();
