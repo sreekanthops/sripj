@@ -230,6 +230,7 @@ document.getElementById('headerActions').addEventListener('click', e => {
     token = null; currentUser = null; isOwner = false; viewingUser = null;
     localStorage.removeItem('diary_token');
     document.body.classList.remove('is-owner');
+    window._chatbotSetOwner?.(false);
     history.replaceState({}, '', '/');
     showAuth();
   } else if (action === 'go-home') {
@@ -274,6 +275,7 @@ async function enterOwnDiary() {
   showApp();
   window._stickerSetOwner?.(true);
   window._stickerLoad?.(currentUser.username);
+  window._chatbotSetOwner?.(true);
   await loadAndRender();
 }
 
@@ -1428,6 +1430,161 @@ document.getElementById('musicVol').oninput = e => {
   audio.muted  = false;
   document.getElementById('btnMute').textContent = '♪';
 };
+
+// ── CHATBOT ────────────────────────────────────────────────────────────────
+;(function initChatbot() {
+  const fab        = document.getElementById('chatbotFab');
+  const win        = document.getElementById('chatbotWindow');
+  const msgsEl     = document.getElementById('chatbotMessages');
+  const inputEl    = document.getElementById('chatbotInput');
+  const sendBtn    = document.getElementById('chatbotSendBtn');
+  const closeBtn   = document.getElementById('chatbotCloseBtn');
+  const clearBtn   = document.getElementById('chatbotClearBtn');
+  const fsBtn      = document.getElementById('chatbotFullscreenBtn');
+  if (!fab) return;
+
+  let chatHistory = [];      // [{role, content}, …] — in-memory + localStorage
+  let isFullscreen = false;
+
+  // ── Persistence helpers ──────────────────────────────────────────────────
+  function storageKey() {
+    return currentUser ? `chat_history_${currentUser.userId}` : null;
+  }
+  function saveHistory() {
+    const k = storageKey();
+    if (k) localStorage.setItem(k, JSON.stringify(chatHistory));
+  }
+  function loadHistory() {
+    const k = storageKey();
+    if (!k) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(k) || '[]');
+      chatHistory = saved;
+      // Restore messages in DOM (skip the default welcome if we have history)
+      if (saved.length) {
+        msgsEl.innerHTML = '';
+        saved.forEach(m => appendBubble(m.role === 'user' ? 'user' : 'ai', m.content));
+      }
+    } catch { chatHistory = []; }
+  }
+
+  // ── DOM helpers ─────────────────────────────────────────────────────────
+  function appendBubble(who, text) {
+    const wrap = document.createElement('div');
+    wrap.className = `chatbot-msg chatbot-msg-${who}`;
+    const bub = document.createElement('div');
+    bub.className = 'chatbot-bubble';
+    bub.textContent = text;
+    wrap.appendChild(bub);
+    msgsEl.appendChild(wrap);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+    return wrap;
+  }
+
+  function showTyping() {
+    const wrap = document.createElement('div');
+    wrap.className = 'chatbot-msg chatbot-msg-ai';
+    wrap.id = 'chatbotTyping';
+    wrap.innerHTML = '<div class="chatbot-bubble chatbot-typing"><span class="chatbot-dot"></span><span class="chatbot-dot"></span><span class="chatbot-dot"></span></div>';
+    msgsEl.appendChild(wrap);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+  function removeTyping() {
+    document.getElementById('chatbotTyping')?.remove();
+  }
+
+  // ── Open / close ─────────────────────────────────────────────────────────
+  function openChat() {
+    win.classList.remove('hidden');
+    fab.style.display = 'none';
+    loadHistory();
+    inputEl.focus();
+  }
+  function closeChat() {
+    win.classList.add('hidden');
+    fab.style.display = '';
+    if (isFullscreen) exitFullscreen();
+  }
+
+  // ── Fullscreen ───────────────────────────────────────────────────────────
+  function enterFullscreen() {
+    isFullscreen = true;
+    win.classList.add('fullscreen');
+    fsBtn.title = 'Exit full screen';
+    fsBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 1H1v5M10 1h5v5M1 10v5h5M15 10v5h-5"/></svg>';
+  }
+  function exitFullscreen() {
+    isFullscreen = false;
+    win.classList.remove('fullscreen');
+    fsBtn.title = 'Full screen';
+    fsBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5"/></svg>';
+  }
+
+  // ── Send message ─────────────────────────────────────────────────────────
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text || sendBtn.disabled) return;
+
+    inputEl.value = '';
+    inputEl.style.height = '';
+    appendBubble('user', text);
+    chatHistory.push({ role: 'user', content: text });
+    saveHistory();
+
+    sendBtn.disabled = true;
+    showTyping();
+
+    try {
+      const { reply } = await api('POST', '/ai/chat', {
+        message: text,
+        history: chatHistory.slice(-12),
+      });
+      removeTyping();
+      appendBubble('ai', reply);
+      chatHistory.push({ role: 'assistant', content: reply });
+      saveHistory();
+    } catch (err) {
+      removeTyping();
+      appendBubble('ai', '⚠ ' + err.message);
+    } finally {
+      sendBtn.disabled = false;
+      inputEl.focus();
+    }
+  }
+
+  // ── Clear ────────────────────────────────────────────────────────────────
+  function clearChat() {
+    if (!confirm('Clear all chat history?')) return;
+    chatHistory = [];
+    const k = storageKey();
+    if (k) localStorage.removeItem(k);
+    msgsEl.innerHTML = '';
+    appendBubble('ai', 'Chat cleared. Ask me anything about your diary!');
+  }
+
+  // ── Show / hide FAB based on login state ────────────────────────────────
+  // Called from enterOwnDiary / logout
+  window._chatbotSetOwner = (owner) => {
+    if (owner) fab.classList.remove('hidden');
+    else { fab.classList.add('hidden'); closeChat(); }
+  };
+
+  // ── Event listeners ──────────────────────────────────────────────────────
+  fab.onclick     = openChat;
+  closeBtn.onclick = closeChat;
+  clearBtn.onclick = clearChat;
+  fsBtn.onclick   = () => { if (isFullscreen) exitFullscreen(); else enterFullscreen(); };
+  sendBtn.onclick = sendMessage;
+
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+  // Auto-grow textarea
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = '';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 100) + 'px';
+  });
+})();
 
 // ── INIT ───────────────────────────────────────────────────────────────────
 (async () => {
