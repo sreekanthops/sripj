@@ -1006,9 +1006,6 @@ function buildSlider(items, size, noteId) {
     if (isVid(item.mimetype)) {
       const v = document.createElement('video');
       v.src = item.url; v.loop = true; v.muted = true; v.playsInline = true;
-      v.onloadedmetadata = () => {
-        if (v.videoWidth > v.videoHeight) v.classList.add('is-landscape');
-      };
       slide.appendChild(v);
       if (size === 'detail') {
         const ctrl = buildVideoControls(v, item, noteId);
