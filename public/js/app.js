@@ -1498,17 +1498,34 @@ document.getElementById('musicVol').oninput = e => {
     el.appendChild(resH);
 
     // ── drag to move ─────────────────────────────────────────────────
-    // Any pointerdown on the element body starts a drag.
-    // Text stickers use double-click to enter edit mode (see createTextItem).
-    let dragging=false, dOX=0, dOY=0;
+    // We wait for actual pointer movement (>4px) before committing to a drag.
+    // This lets dblclick fire normally for text edit mode.
+    let pending=false, dragging=false, dOX=0, dOY=0, downX=0, downY=0, downId=0;
     el.addEventListener('pointerdown', e => {
       if (e.target.closest('.sticker-controls,.sticker-rotate-handle,.sticker-resize-handle,.sticker-del')) return;
-      dragging=true;
-      dOX=(e.clientX+window.scrollX)-state.x; dOY=(e.clientY+window.scrollY)-state.y;
-      el.setPointerCapture(e.pointerId); el.classList.add('active'); el.style.zIndex=200+_zTop;
+      if (el.classList.contains('editing')) return; // don't drag while in text-edit mode
+      pending = true; dragging = false;
+      downX = e.clientX; downY = e.clientY; downId = e.pointerId;
+      dOX = (e.clientX + window.scrollX) - state.x;
+      dOY = (e.clientY + window.scrollY) - state.y;
     });
-    el.addEventListener('pointermove', e => { if(!dragging) return; state.x=(e.clientX+window.scrollX)-dOX; state.y=(e.clientY+window.scrollY)-dOY; applyTransform(); });
-    el.addEventListener('pointerup',   () => { dragging=false; el.classList.remove('active'); el.style.zIndex=state.z; save(); });
+    el.addEventListener('pointermove', e => {
+      if (!pending) return;
+      const moved = Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY);
+      if (!dragging && moved > 4) {
+        dragging = true;
+        el.setPointerCapture(downId);
+        el.classList.add('active'); el.style.zIndex = 200 + _zTop;
+      }
+      if (!dragging) return;
+      state.x = (e.clientX + window.scrollX) - dOX;
+      state.y = (e.clientY + window.scrollY) - dOY;
+      applyTransform();
+    });
+    el.addEventListener('pointerup', () => {
+      pending = false;
+      if (dragging) { dragging = false; el.classList.remove('active'); el.style.zIndex = state.z; save(); }
+    });
   }
 
   // ── Create IMAGE item ─────────────────────────────────────────────────
