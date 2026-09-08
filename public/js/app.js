@@ -1801,26 +1801,13 @@ document.getElementById('musicVol').oninput = e => {
       if (!el.contains(e.target)) el.classList.remove('active');
     }, true);
 
-    // ── delete button top-left ─────────────────────────────────────────
-    const btnDel = document.createElement('button');
-    btnDel.className = 'sticker-del';
-    btnDel.title = 'Remove';
-    btnDel.textContent = '✕';
-    btnDel.addEventListener('pointerdown', e => {
-      e.stopPropagation();
-      el.remove();
-      items = items.filter(s => s.id !== state.id);
-      save();
-    });
-    el.appendChild(btnDel);
-
-    // ── floating toolbar ───────────────────────────────────────────────
+    // ── floating toolbar (contains all controls including delete) ──────
     const bar = document.createElement('div');
     bar.className = 'sticker-controls';
 
-    function addBtn(text, title, onClick) {
+    function addBtn(text, title, onClick, extraClass) {
       const b = document.createElement('button');
-      b.className = 'sticker-btn'; b.title = title; b.textContent = text;
+      b.className = (extraClass || 'sticker-btn'); b.title = title; b.textContent = text;
       b.addEventListener('pointerdown', e => { e.stopPropagation(); onClick(); });
       bar.appendChild(b); return b;
     }
@@ -1840,6 +1827,14 @@ document.getElementById('musicVol').oninput = e => {
     // Send back / bring front
     addBtn('↓', 'Send back',    () => { state.z = Math.max(1, state.z - 1); el.style.zIndex = state.z; save(); });
     addBtn('↑', 'Bring front',  () => { _zTop++; state.z = _zTop; el.style.zIndex = state.z; save(); });
+
+    // Separator before delete
+    const sep2 = document.createElement('span');
+    sep2.style.cssText = 'width:1px;height:16px;background:rgba(255,255,255,.2);flex-shrink:0';
+    bar.appendChild(sep2);
+
+    // Delete — inside toolbar, always visible with the rest
+    addBtn('✕', 'Delete', () => { el.remove(); items = items.filter(s => s.id !== state.id); save(); }, 'sticker-del');
 
     el.appendChild(bar);
 

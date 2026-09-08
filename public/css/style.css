@@ -1476,28 +1476,17 @@ body.is-owner .sticker-controls:hover {
   pointer-events: all;
 }
 
-/* Dedicated delete button — top-left, red, owner only */
+/* Delete button — lives inside the toolbar, styled differently */
 .sticker-del {
-  position: absolute;
-  top: -12px; left: -12px;
-  width: 26px; height: 26px;
-  border-radius: 50%;
-  background: rgba(184,50,50,.92);
-  border: 2px solid #fff;
+  width: 28px; height: 28px;
+  border: none; border-radius: 50%;
+  background: rgba(184,50,50,.85);
   color: #fff;
   font-size: 13px; font-weight: 700; line-height: 1;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .15s, transform .12s, background .12s;
-  z-index: 20;
-  box-shadow: 0 2px 8px rgba(0,0,0,.35);
-}
-body.is-owner .sticker:hover .sticker-del,
-body.is-owner .sticker.active .sticker-del {
-  opacity: 1;
-  pointer-events: all;
+  flex-shrink: 0;
+  transition: background .12s, transform .12s;
 }
 .sticker-del:hover { background: #c0392b; transform: scale(1.15); }
 .sticker-del:active { transform: scale(.88); }
