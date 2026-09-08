@@ -44,16 +44,16 @@ router.get('/:username', optionalAuth, (req, res) => {
   res.json({ stickers });
 });
 
-// PUT /api/stickers  — save current user's sticker layout (positions/sizes only, no image data)
+// PUT /api/stickers  — save current user's sticker layout
 router.put('/', verifyToken, (req, res) => {
   const { stickers } = req.body;
   if (!Array.isArray(stickers)) return res.status(400).json({ error: 'stickers array required' });
-  // Strip any accidental base64 blobs — only store URL srcs
-  const safe = stickers.map(s => ({
-    id:  s.id,
-    src: typeof s.src === 'string' && s.src.startsWith('/') ? s.src : s.src, // keep as-is
-    x:   s.x, y: s.y, w: s.w, rot: s.rot,
-  }));
+  const safe = stickers.map(s => {
+    const d = { id: s.id, type: s.type, x: s.x, y: s.y, w: s.w, rot: s.rot, z: s.z };
+    if (s.type === 'img')  d.src = s.src;
+    if (s.type === 'text') { d.text = s.text; d.fontSize = s.fontSize; d.bold = s.bold; d.color = s.color; }
+    return d;
+  });
   const data = JSON.stringify(safe);
   db.prepare(`
     INSERT INTO page_stickers (user_id, data, updated_at) VALUES (?, ?, ?)

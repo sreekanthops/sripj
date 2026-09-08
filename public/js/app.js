@@ -1417,7 +1417,8 @@ document.getElementById('musicVol').oninput = e => {
       const data = await res.json().catch(() => ({}));
       (data.stickers || []).forEach(d => {
         if (d.type === 'text') createTextItem(d.text, d.x, d.y, d.w, d.rot, d.id, d.fontSize, d.bold, d.color, d.z);
-        else                   createImgItem(d.src, d.x, d.y, d.w, d.rot, d.id, d.z);
+        else if (d.type === 'img' && d.src) createImgItem(d.src, d.x, d.y, d.w, d.rot, d.id, d.z);
+        // skip any record missing type or src to avoid broken-image stickers
       });
       // After load, apply visitor restrictions if not owner
       if (!isOwner) {
