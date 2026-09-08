@@ -1458,6 +1458,15 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   height: 32px;
   background: transparent;
 }
+/* Flip toolbar BELOW the sticker when it's near the top of the viewport */
+.sticker-controls.below {
+  bottom: auto;
+  top: calc(100% + 2px);
+}
+.sticker-controls.below::after {
+  top: auto;
+  bottom: 100%;
+}
 /* Toolbar + delete only shown for owner */
 body.is-owner .sticker:hover .sticker-controls,
 body.is-owner .sticker.active .sticker-controls,

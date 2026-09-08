@@ -1775,11 +1775,26 @@ document.getElementById('musicVol').oninput = e => {
   function buildControls(state, el, applyTransform, extraBtns) {
     // ── click-to-lock: single click makes sticker 'active' so controls
     //    stay visible without needing to keep the mouse perfectly on it ──
+    function positionToolbar() {
+      // flip toolbar below the sticker if it would render off the top of the viewport
+      const rect = el.getBoundingClientRect();
+      const bar  = el.querySelector('.sticker-controls');
+      if (!bar) return;
+      const barH = bar.offsetHeight || 40;
+      const spaceAbove = rect.top; // px from viewport top to sticker top
+      if (spaceAbove < barH + 16) {
+        bar.classList.add('below');
+      } else {
+        bar.classList.remove('below');
+      }
+    }
+
     el.addEventListener('pointerdown', e => {
       if (e.target.closest('.sticker-controls,.sticker-rotate-handle,.sticker-resize-handle,.sticker-del')) return;
       // deactivate any other sticker first
       layer.querySelectorAll('.sticker.active').forEach(s => { if (s !== el) s.classList.remove('active'); });
       el.classList.add('active');
+      requestAnimationFrame(positionToolbar);
     }, true);
     // clicking outside (on the layer or document) deactivates
     document.addEventListener('pointerdown', e => {
