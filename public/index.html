@@ -266,7 +266,13 @@
       <input type="text" id="fMusic" placeholder="https://…/song.mp3">
     </div>
     <div class="field" id="mediaField">
-      <label>Photos &amp; Videos</label>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <label style="margin:0">Photos &amp; Videos</label>
+        <button type="button" class="btn btn-outline btn-xs" id="openLibraryBtn" style="display:none">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+          Library
+        </button>
+      </div>
       <div class="exist-media-row" id="existMediaRow"></div>
       <div class="upload-zone" id="uploadZone">
         <input type="file" id="fFiles" accept="video/*,image/*" multiple>
@@ -328,6 +334,27 @@
     <button class="btn btn-outline" id="upgradeClose" style="width:100%;justify-content:center;margin-top:10px">Maybe later</button>
   </div>
 </div>
+<!-- ══ IMAGE LIBRARY PICKER ═══════════════════════════════════════════════════ -->
+<div class="overlay center" id="libraryOverlay">
+  <div class="sheet" id="libraryModal" style="max-width:680px;width:100%">
+    <button class="sheet-close" id="libraryClose">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+    </button>
+    <div class="sheet-title">✦ Image Library</div>
+    <p style="font-size:12px;color:var(--ink4);margin:0 0 14px;font-family:var(--sans)">
+      Pick one or more images to attach to your entry. Tap to select / deselect.
+    </p>
+    <div id="libraryGrid" class="lib-grid">
+      <div class="lib-loading">Loading…</div>
+    </div>
+    <div id="librarySelRow" style="display:none;margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span id="librarySelCount" style="font-size:12px;color:var(--ink3);font-family:var(--sans)"></span>
+      <button class="btn btn-primary btn-sm" id="libraryAddBtn" style="margin-left:auto">Add to Entry</button>
+      <button class="btn btn-outline btn-sm" id="libraryCancelSel">Deselect All</button>
+    </div>
+  </div>
+</div>
+
 <audio id="bgAudio" loop></audio>
 
 <!-- ══ STICKER LAYER ═══════════════════════════════════════════════════════ -->

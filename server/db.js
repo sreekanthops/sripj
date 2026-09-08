@@ -103,6 +103,15 @@ db.exec(`
     ended_at   TEXT
   );
 
+  -- ── GLOBAL IMAGES — admin-curated library visible to all users ─────────────
+  CREATE TABLE IF NOT EXISTS global_images (
+    id         TEXT PRIMARY KEY,
+    filename   TEXT NOT NULL,
+    label      TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+  );
+
   -- ── SUBSCRIPTION TABLES ────────────────────────────────────────────────────
   --  Plans: free / monthly / yearly / lifetime
   CREATE TABLE IF NOT EXISTS subscription_plans (

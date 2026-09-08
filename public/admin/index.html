@@ -237,6 +237,39 @@ select.field-select:focus{border-color:var(--accent)}
 .emoji-count{font-size:20px;font-weight:700;color:var(--ink)}
 .emoji-pct{font-size:11px;color:var(--ink4);margin-top:1px}
 
+/* ── GLOBAL IMAGES ── */
+.gi-upload-zone{
+  border:2px dashed var(--border2);border-radius:var(--r);
+  padding:32px 24px;text-align:center;cursor:pointer;
+  background:var(--surface2);transition:border-color .15s,background .15s;
+}
+.gi-upload-zone:hover,.gi-upload-zone.drag{border-color:var(--accent);background:var(--accent-bg)}
+.gi-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;
+}
+.gi-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;box-shadow:var(--shadow);position:relative;
+}
+.gi-card img{width:100%;height:130px;object-fit:cover;display:block}
+.gi-card-body{padding:10px 12px}
+.gi-label-input{
+  width:100%;background:transparent;border:none;border-bottom:1.5px solid var(--border);
+  padding:3px 0;font-size:12px;color:var(--ink2);font-family:var(--sans);outline:none;
+}
+.gi-label-input:focus{border-bottom-color:var(--accent)}
+.gi-card-foot{display:flex;gap:6px;margin-top:8px}
+.gi-del-btn{
+  padding:4px 10px;font-size:11px;font-weight:600;border-radius:var(--r3);cursor:pointer;
+  background:var(--red-bg);border:1.5px solid var(--red);color:var(--red);font-family:var(--sans);
+}
+.gi-del-btn:hover{background:var(--red);color:#fff}
+.gi-save-btn{
+  padding:4px 10px;font-size:11px;font-weight:600;border-radius:var(--r3);cursor:pointer;
+  background:var(--green-bg);border:1.5px solid var(--green);color:var(--green);font-family:var(--sans);
+}
+.gi-save-btn:hover{background:var(--green);color:#fff}
+
 /* ── SETTINGS ── */
 .settings-card{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
@@ -306,6 +339,7 @@ select.field-select:focus{border-color:var(--accent)}
     <button class="nav-tab" data-page="reactions">Reactions</button>
     <button class="nav-tab" data-page="subscriptions">Subscriptions</button>
     <button class="nav-tab" data-page="grant">Grant Free Access</button>
+    <button class="nav-tab" data-page="global-images">Global Images</button>
     <button class="nav-tab" data-page="settings">Settings</button>
   </nav>
 
@@ -507,6 +541,43 @@ select.field-select:focus{border-color:var(--accent)}
           </thead>
           <tbody id="subUsersTable"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- GLOBAL IMAGES -->
+  <div class="page" id="page-global-images">
+    <div class="section">
+      <div class="section-title">Upload Images to the Global Library</div>
+      <div class="settings-card" style="max-width:600px">
+        <p style="font-size:12px;color:var(--ink3);line-height:1.6;margin-bottom:16px">
+          Images uploaded here are visible to <b>all users</b> as a predefined library they can pick from when creating diary entries.
+          Supports JPG, PNG, GIF, WebP (max 20 MB each).
+        </p>
+        <div class="gi-upload-zone" id="giUploadZone">
+          <input type="file" id="giFileInput" accept="image/jpeg,image/png,image/gif,image/webp" multiple style="display:none">
+          <div style="font-size:22px;margin-bottom:8px;color:var(--accent)">↑</div>
+          <div style="font-size:13px;color:var(--ink2)">Drop images here or <b>click to choose</b></div>
+          <small style="color:var(--ink4)">JPG · PNG · GIF · WebP · up to 20 MB each</small>
+        </div>
+        <div id="giPreviewsWrap" style="display:none;margin-top:14px">
+          <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:8px">Selected files:</div>
+          <div id="giPreviews" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+          <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+            <button class="btn btn-primary" id="giUploadBtn">Upload to Library</button>
+            <button class="btn btn-ghost" id="giCancelBtn">Clear</button>
+            <span id="giUploadStatus" style="font-size:12px;color:var(--ink3)"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Current Library
+        <span id="giCount" style="font-size:11px;color:var(--ink4);font-weight:400;margin-left:4px"></span>
+        <button class="btn btn-ghost" id="giRefreshBtn" style="margin-left:auto;padding:5px 14px;font-size:12px">Refresh</button>
+      </div>
+      <div id="giGrid" class="gi-grid">
+        <div style="padding:30px;text-align:center;color:var(--ink4);font-size:12px">Loading…</div>
       </div>
     </div>
   </div>
@@ -1236,6 +1307,158 @@ document.getElementById('navTabs').addEventListener('click', e => {
     }
   }
 })();
+
+// ── GLOBAL IMAGES ─────────────────────────────────────────────────────────────
+const GI_API = '/api/global-images';
+let giPendingFiles = [];
+
+async function giApi(method, path, body) {
+  const opts = {
+    method,
+    headers: { ...(adminToken ? { Authorization: 'Bearer ' + adminToken } : {}) },
+  };
+  if (body instanceof FormData) {
+    opts.body = body;
+  } else if (body) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  const res  = await fetch(GI_API + path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Error');
+  return data;
+}
+
+async function loadGlobalImages() {
+  const grid = document.getElementById('giGrid');
+  const countEl = document.getElementById('giCount');
+  grid.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ink4);font-size:12px">Loading…</div>';
+  try {
+    const { images } = await giApi('GET', '');
+    countEl.textContent = images.length ? `(${images.length} image${images.length !== 1 ? 's' : ''})` : '';
+    if (!images.length) {
+      grid.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ink4);font-size:12px">No images yet — upload some above.</div>';
+      return;
+    }
+    grid.innerHTML = '';
+    images.forEach(img => {
+      const card = document.createElement('div');
+      card.className = 'gi-card';
+      card.innerHTML = `
+        <img src="${img.url}" alt="${img.label}" loading="lazy">
+        <div class="gi-card-body">
+          <input class="gi-label-input" type="text" value="${img.label}" placeholder="Label…" data-id="${img.id}">
+          <div class="gi-card-foot">
+            <button class="gi-save-btn" data-id="${img.id}">Save</button>
+            <button class="gi-del-btn" data-id="${img.id}" data-label="${img.label}">Delete</button>
+          </div>
+        </div>
+      `;
+      card.querySelector('.gi-save-btn').onclick = async () => {
+        const input = card.querySelector('.gi-label-input');
+        try {
+          await giApi('PATCH', '/' + img.id, { label: input.value });
+          toast('Label saved \u2705');
+          img.label = input.value;
+        } catch (e) { toast('Error: ' + e.message); }
+      };
+      card.querySelector('.gi-del-btn').onclick = async () => {
+        if (!confirm('Delete "' + img.label + '" from the global library?')) return;
+        try {
+          await giApi('DELETE', '/' + img.id);
+          card.remove();
+          const remaining = grid.querySelectorAll('.gi-card').length;
+          countEl.textContent = remaining ? '(' + remaining + ' image' + (remaining !== 1 ? 's' : '') + ')' : '';
+          if (!remaining) grid.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ink4);font-size:12px">No images yet — upload some above.</div>';
+          toast('Image deleted');
+        } catch (e) { toast('Error: ' + e.message); }
+      };
+      grid.appendChild(card);
+    });
+  } catch (e) {
+    grid.innerHTML = '<div style="padding:30px;text-align:center;color:var(--red);font-size:12px">Failed to load: ' + e.message + '</div>';
+  }
+}
+
+// Upload zone wiring
+const giZone  = document.getElementById('giUploadZone');
+const giInput = document.getElementById('giFileInput');
+
+giZone.addEventListener('click', () => giInput.click());
+giZone.addEventListener('dragover', e => { e.preventDefault(); giZone.classList.add('drag'); });
+giZone.addEventListener('dragleave', () => giZone.classList.remove('drag'));
+giZone.addEventListener('drop', e => {
+  e.preventDefault(); giZone.classList.remove('drag');
+  addGiFiles(Array.from(e.dataTransfer.files));
+});
+giInput.addEventListener('change', () => addGiFiles(Array.from(giInput.files)));
+
+function addGiFiles(files) {
+  const allowed = ['image/jpeg','image/png','image/gif','image/webp'];
+  files = files.filter(f => allowed.includes(f.type));
+  if (!files.length) { toast('Only image files are allowed.'); return; }
+  giPendingFiles = giPendingFiles.concat(files);
+  renderGiPreviews();
+}
+
+function renderGiPreviews() {
+  const wrap   = document.getElementById('giPreviewsWrap');
+  const prevEl = document.getElementById('giPreviews');
+  if (!giPendingFiles.length) { wrap.style.display = 'none'; prevEl.innerHTML = ''; return; }
+  wrap.style.display = '';
+  prevEl.innerHTML = '';
+  giPendingFiles.forEach((f, i) => {
+    const item = document.createElement('div');
+    item.style.cssText = 'position:relative;width:80px;';
+    const img  = document.createElement('img');
+    img.src = URL.createObjectURL(f);
+    img.style.cssText = 'width:80px;height:60px;object-fit:cover;border-radius:6px;display:block;';
+    const del = document.createElement('button');
+    del.textContent = '\u00d7';
+    del.style.cssText = 'position:absolute;top:2px;right:2px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:99px;width:18px;height:18px;font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;';
+    del.onclick = () => { giPendingFiles.splice(i, 1); renderGiPreviews(); };
+    item.appendChild(img); item.appendChild(del);
+    prevEl.appendChild(item);
+  });
+}
+
+document.getElementById('giCancelBtn').onclick = () => {
+  giPendingFiles = []; giInput.value = ''; renderGiPreviews();
+};
+
+document.getElementById('giUploadBtn').onclick = async () => {
+  if (!giPendingFiles.length) return;
+  const btn    = document.getElementById('giUploadBtn');
+  const status = document.getElementById('giUploadStatus');
+  btn.disabled = true;
+  status.textContent = 'Uploading ' + giPendingFiles.length + ' file(s)\u2026';
+  try {
+    const fd = new FormData();
+    giPendingFiles.forEach(f => fd.append('files', f));
+    await giApi('POST', '', fd);
+    toast('\u2705 ' + giPendingFiles.length + ' image(s) added to the global library!');
+    giPendingFiles = []; giInput.value = ''; renderGiPreviews();
+    status.textContent = '';
+    await loadGlobalImages();
+  } catch (e) {
+    status.textContent = 'Upload failed: ' + e.message;
+    toast('Upload failed: ' + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+document.getElementById('giRefreshBtn').onclick = () => loadGlobalImages();
+
+// Lazy-load global images tab on first open
+let giTabLoaded = false;
+document.getElementById('navTabs').addEventListener('click', e => {
+  const tab = e.target.closest('.nav-tab');
+  if (tab && tab.dataset.page === 'global-images' && !giTabLoaded) {
+    giTabLoaded = true;
+    loadGlobalImages();
+  }
+});
 </script>
 </body>
 </html>
