@@ -887,6 +887,7 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 .lined {
   background-image: repeating-linear-gradient(var(--surface2),var(--surface2) 27px, rgba(120,100,70,.15) 28px);
   background-size: 100% 28px; line-height: 28px;
+  transition: font-family .15s, font-size .12s, border-left-color .2s;
 }
 
 .rephrase-bar { display: flex; align-items: center; gap: 10px; margin-top: 8px; }

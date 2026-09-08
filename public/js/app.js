@@ -310,6 +310,7 @@ function buildSwatches(selIdx = 0) {
     s.onclick = () => {
       c.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
       s.classList.add('active');
+      applyBodyPreview();
     };
     c.appendChild(s);
   });
@@ -318,6 +319,31 @@ function activeCI() {
   const a = document.querySelector('.swatch.active');
   return a ? parseInt(a.dataset.ci) : 0;
 }
+
+// ── LIVE PREVIEW — applies current style controls to the textarea ──────────
+function applyBodyPreview() {
+  const ta     = document.getElementById('fBody');
+  const font   = document.getElementById('fFont').value;
+  const size   = parseInt(document.getElementById('fSize').value) || 14;
+  const weight = document.getElementById('fWeight').value;
+  const p      = PALETTE[activeCI()] || PALETTE[0];
+
+  ta.style.fontFamily  = font;
+  ta.style.fontSize    = size + 'px';
+  ta.style.fontWeight  = weight === 'bold' || weight === 'bold italic' ? 'bold'   : 'normal';
+  ta.style.fontStyle   = weight === 'italic' || weight === 'bold italic' ? 'italic' : 'normal';
+  ta.style.borderLeftColor = p.accent;
+  ta.style.borderLeftWidth = '3px';
+  ta.style.borderLeftStyle = 'solid';
+}
+
+// Wire live preview to all style controls (called once at page load)
+;(function wirePreviewControls() {
+  ['fFont', 'fSize', 'fWeight'].forEach(id => {
+    document.getElementById(id).addEventListener('input',  applyBodyPreview);
+    document.getElementById(id).addEventListener('change', applyBodyPreview);
+  });
+})();
 
 // ── UPLOAD ZONE ────────────────────────────────────────────────────────────
 function setupUploadZone() {
@@ -410,6 +436,7 @@ function openNewForm() {
   document.getElementById('existMediaRow').innerHTML = '';
   renderTagsChips();
   buildSwatches(0); setupUploadZone();
+  applyBodyPreview();
   openOv('formOverlay');
   setTimeout(() => document.getElementById('fTitle').focus(), 120);
 }
@@ -426,6 +453,7 @@ function openEditForm(note) {
   renderTagsChips();
   buildSwatches(note.colorIdx || 0);
   renderExistMedia(note); setupUploadZone();
+  applyBodyPreview();
   openOv('formOverlay');
 }
 
