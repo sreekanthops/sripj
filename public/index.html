@@ -266,13 +266,7 @@
       <input type="text" id="fMusic" placeholder="https://…/song.mp3">
     </div>
     <div class="field" id="mediaField">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-        <label style="margin:0">Photos &amp; Videos</label>
-        <button type="button" class="btn btn-outline btn-xs" id="openLibraryBtn" style="display:none">
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
-          Library
-        </button>
-      </div>
+      <label>Photos &amp; Videos</label>
       <div class="exist-media-row" id="existMediaRow"></div>
       <div class="upload-zone" id="uploadZone">
         <input type="file" id="fFiles" accept="video/*,image/*" multiple>
@@ -342,14 +336,14 @@
     </button>
     <div class="sheet-title">✦ Image Library</div>
     <p style="font-size:12px;color:var(--ink4);margin:0 0 14px;font-family:var(--sans)">
-      Pick one or more images to attach to your entry. Tap to select / deselect.
+      Pick images to place on your canvas as decorations. Tap to select / deselect, then click <b>Place on Canvas</b>.
     </p>
     <div id="libraryGrid" class="lib-grid">
       <div class="lib-loading">Loading…</div>
     </div>
-    <div id="librarySelRow" style="display:none;margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div id="librarySelRow" style="margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <span id="librarySelCount" style="font-size:12px;color:var(--ink3);font-family:var(--sans)"></span>
-      <button class="btn btn-primary btn-sm" id="libraryAddBtn" style="margin-left:auto">Add to Entry</button>
+      <button class="btn btn-primary btn-sm" id="libraryAddBtn" style="margin-left:auto">Place on Canvas</button>
       <button class="btn btn-outline btn-sm" id="libraryCancelSel">Deselect All</button>
     </div>
   </div>
@@ -369,6 +363,13 @@
     </svg>
     Upload Image
   </label>
+  <button class="sticker-upload-btn" id="stickerFromLibrary" title="Choose from predefined image library">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/>
+      <rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/>
+    </svg>
+    Library
+  </button>
   <button class="sticker-upload-btn" id="stickerAddText" title="Add a draggable text box">
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
       <line x1="2" y1="3" x2="11" y2="3"/><line x1="6.5" y1="3" x2="6.5" y2="11"/>

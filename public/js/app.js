@@ -177,12 +177,15 @@ document.getElementById('upgradeClose').onclick  = () => closeOv('upgradeOverlay
 document.getElementById('libraryClose').onclick  = () => closeOv('libraryOverlay');
 
 // ── IMAGE LIBRARY PICKER ───────────────────────────────────────────────────
-let _libraryImages    = null;   // cached after first load
-let _librarySelected  = new Set();
+// Opens from the Canvas panel; places chosen images directly as canvas stickers.
+// _libraryOnConfirm is set by whoever opens the picker (currently initStickers).
+let _libraryImages   = null;   // cached after first fetch
+let _librarySelected = new Set();
+let _libraryOnConfirm = null;  // callback(selectedImages[])
 
-async function openLibraryPicker() {
+async function openLibraryPicker(onConfirm) {
+  _libraryOnConfirm = onConfirm || null;
   _librarySelected.clear();
-  document.getElementById('librarySelRow').style.display = 'none';
   document.getElementById('librarySelCount').textContent = '';
   openOv('libraryOverlay');
 
@@ -229,11 +232,9 @@ function renderLibraryGrid() {
 }
 
 function updateLibrarySelBar() {
-  const row   = document.getElementById('librarySelRow');
   const count = _librarySelected.size;
-  row.style.display = count ? 'flex' : 'none';
   document.getElementById('librarySelCount').textContent =
-    count + ' image' + (count !== 1 ? 's' : '') + ' selected';
+    count ? count + ' image' + (count !== 1 ? 's' : '') + ' selected' : '';
 }
 
 document.getElementById('libraryCancelSel').onclick = () => {
@@ -241,32 +242,12 @@ document.getElementById('libraryCancelSel').onclick = () => {
   renderLibraryGrid();
 };
 
-document.getElementById('libraryAddBtn').onclick = async () => {
+document.getElementById('libraryAddBtn').onclick = () => {
   if (!_librarySelected.size) return;
   const chosen = (_libraryImages || []).filter(img => _librarySelected.has(img.id));
   closeOv('libraryOverlay');
-
-  // Convert each chosen global image URL → File object and add to pendingFiles
-  const prev = document.getElementById('uploadPreviews');
-  for (const img of chosen) {
-    try {
-      const resp = await fetch(img.url);
-      const blob = await resp.blob();
-      const ext  = img.url.split('.').pop().split('?')[0] || 'png';
-      const file = new File([blob], (img.label || 'image') + '.' + ext, { type: blob.type || 'image/png' });
-      pendingFiles.push(file);
-      const wrap = document.createElement('div'); wrap.className = 'up-prev';
-      const el   = document.createElement('img'); el.src = URL.createObjectURL(file);
-      const del  = document.createElement('button'); del.className = 'up-prev-del'; del.textContent = '×';
-      del.onclick = () => { pendingFiles.splice(pendingFiles.indexOf(file), 1); wrap.remove(); };
-      wrap.appendChild(el); wrap.appendChild(del);
-      prev.appendChild(wrap);
-    } catch { toast('Failed to load one image'); }
-  }
-  toast(chosen.length + ' image' + (chosen.length !== 1 ? 's' : '') + ' added ✅');
+  if (_libraryOnConfirm) _libraryOnConfirm(chosen);
 };
-
-document.getElementById('openLibraryBtn').onclick = openLibraryPicker;
 
 // ── SIDEBAR DRAWER ─────────────────────────────────────────────────────────
 function openSidebar() {
@@ -535,7 +516,6 @@ function openNewForm() {
   document.getElementById('fMusic').value  = '';
   document.getElementById('fTags').value   = '';
   document.getElementById('existMediaRow').innerHTML = '';
-  document.getElementById('openLibraryBtn').style.display = '';
   renderTagsChips();
   buildSwatches(0); setupUploadZone();
   applyBodyPreview();
@@ -552,7 +532,6 @@ function openEditForm(note) {
   document.getElementById('fWeight').value = note.fontWeight || 'normal';
   document.getElementById('fMusic').value  = note.musicUrl || '';
   document.getElementById('fTags').value   = '';
-  document.getElementById('openLibraryBtn').style.display = '';
   renderTagsChips();
   buildSwatches(note.colorIdx || 0);
   renderExistMedia(note); setupUploadZone();
@@ -2041,6 +2020,25 @@ document.getElementById('musicVol').oninput = e => {
       } catch(e) { toast('Upload error: '+e.message); }
     }
   });
+
+  // ── Library button → pick global image → place as sticker ─────────────
+  const fromLibBtn = document.getElementById('stickerFromLibrary');
+  if (fromLibBtn) {
+    fromLibBtn.addEventListener('click', () => {
+      panel.classList.add('hidden'); toggleBtn.classList.remove('active');
+      openLibraryPicker(chosen => {
+        chosen.forEach(img => {
+          const el = createImgItem(img.url);
+          if (el) {
+            el.classList.add('just-placed');
+            el.addEventListener('animationend', () => el.classList.remove('just-placed'), { once: true });
+          }
+        });
+        save();
+        toast(chosen.length + ' image' + (chosen.length !== 1 ? 's' : '') + ' placed on canvas 🌸');
+      });
+    });
+  }
 
   // ── Add text button ────────────────────────────────────────────────────
   addTextBtn && addTextBtn.addEventListener('click', () => {
