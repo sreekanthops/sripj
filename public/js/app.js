@@ -337,12 +337,12 @@ function setupUploadZone() {
 function addFiles(files) {
   const prev = document.getElementById('uploadPreviews');
   files.forEach(f => {
-    if (!f.type.startsWith('image/') && !f.type.startsWith('video/')) return;
+    if (!f.type.startsWith('video/')) return;
     pendingFiles.push(f);
     const wrap = document.createElement('div'); wrap.className = 'up-prev';
-    const el   = isVid(f.type) ? document.createElement('video') : document.createElement('img');
+    const el   = document.createElement('video');
     el.src = URL.createObjectURL(f);
-    if (isVid(f.type)) { el.muted = true; el.playsInline = true; }
+    el.muted = true; el.playsInline = true;
     const del  = document.createElement('button'); del.className = 'up-prev-del'; del.textContent = '×';
     del.onclick = () => { pendingFiles.splice(pendingFiles.indexOf(f), 1); wrap.remove(); };
     wrap.appendChild(el); wrap.appendChild(del);
@@ -353,11 +353,10 @@ function addFiles(files) {
 function renderExistMedia(note) {
   const row = document.getElementById('existMediaRow');
   row.innerHTML = '';
-  (note.media||[]).forEach(m => {
+  (note.media||[]).filter(m => isVid(m.mimetype)).forEach(m => {
     const wrap = document.createElement('div'); wrap.className = 'exist-thumb';
-    const el   = isVid(m.mimetype) ? document.createElement('video') : document.createElement('img');
-    el.src = m.url;
-    if (isVid(m.mimetype)) { el.muted = true; el.playsInline = true; }
+    const el   = document.createElement('video');
+    el.src = m.url; el.muted = true; el.playsInline = true;
     const del  = document.createElement('button'); del.className = 'exist-thumb-del'; del.textContent = '×';
     del.onclick = async () => {
       try {
@@ -456,6 +455,28 @@ document.getElementById('fSave').onclick = async () => {
     }
     closeOv('formOverlay'); await loadAndRender();
   } catch (err) { toast('Error: ' + err.message); }
+};
+
+// ── REPHRASE ───────────────────────────────────────────────────────────────
+document.getElementById('rephraseBtn').onclick = async () => {
+  const bodyEl  = document.getElementById('fBody');
+  const hintEl  = document.getElementById('rephraseHint');
+  const btn     = document.getElementById('rephraseBtn');
+  const text    = bodyEl.value.trim();
+  if (!text) { toast('Write something first ✍'); return; }
+  btn.disabled  = true;
+  hintEl.textContent = 'Rephrasing…';
+  try {
+    const { rephrased } = await api('POST', '/rephrase', { text });
+    bodyEl.value = rephrased;
+    hintEl.textContent = 'Grammar corrected ✓';
+    setTimeout(() => { hintEl.textContent = ''; }, 3000);
+  } catch (err) {
+    hintEl.textContent = '';
+    toast('Rephrase failed: ' + err.message);
+  } finally {
+    btn.disabled = false;
+  }
 };
 
 // ── LOAD & RENDER ──────────────────────────────────────────────────────────

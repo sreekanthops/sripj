@@ -889,6 +889,11 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   background-size: 100% 28px; line-height: 28px;
 }
 
+.rephrase-bar { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.rephrase-hint { font-size: 11px; color: var(--accent); font-family: var(--sans); }
+#rephraseBtn { display: inline-flex; align-items: center; gap: 5px; }
+#rephraseBtn:disabled { opacity: .55; cursor: not-allowed; }
+
 .style-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .style-row select, .style-row input[type=number] {
   padding: 7px 10px; border: 1px solid var(--border2); border-radius: 8px;

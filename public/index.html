@@ -215,6 +215,13 @@
     <div class="field">
       <label>Content</label>
       <textarea id="fBody" class="lined" placeholder="Write your thoughts here…"></textarea>
+      <div class="rephrase-bar">
+        <button type="button" class="btn btn-outline btn-xs" id="rephraseBtn">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4h10M6 1l-5 3 5 3"/><path d="M15 12H5m5 3 5-3-5-3"/></svg>
+          Rephrase
+        </button>
+        <span class="rephrase-hint" id="rephraseHint"></span>
+      </div>
     </div>
     <div class="field" id="tagsField">
       <label>Tags <span class="auth-hint">Enter or comma to add</span></label>
@@ -226,13 +233,13 @@
       <input type="text" id="fMusic" placeholder="https://…/song.mp3">
     </div>
     <div class="field" id="mediaField">
-      <label>Photos &amp; Videos</label>
+      <label>Videos</label>
       <div class="exist-media-row" id="existMediaRow"></div>
       <div class="upload-zone" id="uploadZone">
-        <input type="file" id="fFiles" accept="video/*,image/*" multiple>
+        <input type="file" id="fFiles" accept="video/*" multiple>
         <div class="uz-icon">↑</div>
         <div>Drop files or <b>tap to choose</b></div>
-        <small>JPG · PNG · MP4 · MOV · up to 200 MB</small>
+        <small>MP4 · MOV · WebM · up to 200 MB</small>
       </div>
       <div class="upload-previews" id="uploadPreviews"></div>
     </div>
