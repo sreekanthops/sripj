@@ -26,6 +26,11 @@ app.get('/admin/*splat', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'admin', 'index.html'));
 });
 
+// Pricing page — explicit route before SPA fallback
+app.get('/pricing', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'pricing.html'));
+});
+
 // SPA fallback
 app.get('/{*splat}', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
