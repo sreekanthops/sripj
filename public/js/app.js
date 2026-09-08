@@ -1773,33 +1773,30 @@ document.getElementById('musicVol').oninput = e => {
   // Build the shared control toolbar (rotate, send-back, bring-front, delete)
   // plus optional extra buttons injected via extraBtns array [{text,title,onclick}]
   function buildControls(state, el, applyTransform, extraBtns) {
-    // ── click-to-lock: single click makes sticker 'active' so controls
-    //    stay visible without needing to keep the mouse perfectly on it ──
+    // ── click-to-lock ─────────────────────────────────────────────────
+    // Clicking the sticker activates it (controls stay visible).
+    // Clicking anything outside deactivates it.
+    // Use a flag so the sticker's own click doesn't also trigger the
+    // outside-click handler on the same event.
     function positionToolbar() {
-      // flip toolbar below the sticker if it would render off the top of the viewport
-      const rect = el.getBoundingClientRect();
-      const bar  = el.querySelector('.sticker-controls');
-      if (!bar) return;
-      const barH = bar.offsetHeight || 40;
-      const spaceAbove = rect.top; // px from viewport top to sticker top
-      if (spaceAbove < barH + 16) {
-        bar.classList.add('below');
-      } else {
-        bar.classList.remove('below');
-      }
+      const rect   = el.getBoundingClientRect();
+      const ctrlEl = el.querySelector('.sticker-controls');
+      if (!ctrlEl) return;
+      const spaceAbove = rect.top;
+      const barH = ctrlEl.offsetHeight || 40;
+      ctrlEl.classList.toggle('below', spaceAbove < barH + 16);
     }
 
     el.addEventListener('pointerdown', e => {
-      if (e.target.closest('.sticker-controls,.sticker-rotate-handle,.sticker-resize-handle,.sticker-del')) return;
-      // deactivate any other sticker first
+      e._stickerHandled = true;          // flag: this click is ON a sticker
       layer.querySelectorAll('.sticker.active').forEach(s => { if (s !== el) s.classList.remove('active'); });
       el.classList.add('active');
       requestAnimationFrame(positionToolbar);
-    }, true);
-    // clicking outside (on the layer or document) deactivates
+    });
+
     document.addEventListener('pointerdown', e => {
-      if (!el.contains(e.target)) el.classList.remove('active');
-    }, true);
+      if (!e._stickerHandled) el.classList.remove('active');
+    });
 
     // ── floating toolbar (contains all controls including delete) ──────
     const bar = document.createElement('div');
