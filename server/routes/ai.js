@@ -5,7 +5,7 @@ const db = require('../db');
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const PRIMARY_MODEL  = 'meta-llama/llama-3.1-8b-instruct';
 const FALLBACK_MODEL = 'meta-llama/llama-3.3-70b-instruct';
-const CHAT_MODEL     = 'x-ai/grok-4';
+const CHAT_MODEL     = 'x-ai/grok-4.3';
 
 async function callOpenRouter(model, systemPrompt, userText) {
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
