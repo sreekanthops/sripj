@@ -1122,6 +1122,51 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   filter: drop-shadow(2px 4px 8px rgba(0,0,0,.22));
 }
 
+/* ── Text sticker ── */
+.sticker.sticker-text {
+  height: auto !important; /* text sticker height is content-driven */
+  min-width: 80px;
+  background: transparent;
+}
+.sticker-text-edit {
+  display: block;
+  min-width: 80px; min-height: 28px;
+  padding: 6px 10px;
+  font-family: var(--serif);
+  font-size: 20px;
+  line-height: 1.4;
+  color: #2c2416;
+  white-space: pre-wrap;
+  word-break: break-word;
+  outline: none;
+  cursor: text;
+  /* visible border only when sticker is active/hovered */
+  border: 1.5px dashed transparent;
+  border-radius: 4px;
+  transition: border-color .15s;
+  text-shadow: 0 1px 4px rgba(0,0,0,.15);
+  background: transparent;
+}
+.sticker:hover .sticker-text-edit,
+.sticker.active .sticker-text-edit {
+  border-color: rgba(47,90,110,.4);
+  background: rgba(255,255,255,.08);
+}
+
+/* Colour picker inside toolbar */
+.sticker-color-pick {
+  width: 22px; height: 22px;
+  border: 2px solid rgba(255,255,255,.5);
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+  background: none;
+  flex-shrink: 0;
+  outline: none;
+}
+.sticker-color-pick::-webkit-color-swatch-wrapper { padding: 0; border-radius: 50%; }
+.sticker-color-pick::-webkit-color-swatch { border: none; border-radius: 50%; }
+
 /* Controls bar — hidden until hover */
 .sticker-controls {
   position: absolute;

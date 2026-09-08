@@ -273,19 +273,25 @@
 <div id="stickerLayer"></div>
 
 <div id="stickerPanel" class="sticker-panel hidden">
-  <div class="sticker-panel-title">🌸 Place Images</div>
-  <label class="sticker-upload-btn" title="Upload PNG / image to place on page">
+  <div class="sticker-panel-title">🌸 Canvas</div>
+  <label class="sticker-upload-btn" title="Upload PNG / image">
     <input type="file" id="stickerFileInput" accept="image/*" multiple style="display:none">
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
       <line x1="6.5" y1="1" x2="6.5" y2="12"/><line x1="1" y1="6.5" x2="12" y2="6.5"/>
     </svg>
-    Upload PNG / image
+    Upload Image
   </label>
-  <p class="sticker-panel-hint">Drag to move &nbsp;·&nbsp; ⟳ to rotate<br>Corner handles to resize &nbsp;·&nbsp; ✕ to remove</p>
-  <button class="sticker-clear-btn" id="stickerClearAll">🗑 Clear all images</button>
+  <button class="sticker-upload-btn" id="stickerAddText" title="Add a draggable text box">
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+      <line x1="2" y1="3" x2="11" y2="3"/><line x1="6.5" y1="3" x2="6.5" y2="11"/>
+    </svg>
+    Add Text
+  </button>
+  <p class="sticker-panel-hint">Drag · ⟳ rotate · corner resize<br>↑↓ layer order · ✕ remove</p>
+  <button class="sticker-clear-btn" id="stickerClearAll">🗑 Clear all</button>
 </div>
 
-<button id="stickerToggle" class="sticker-toggle hidden" title="Upload &amp; place PNG images anywhere on the page">🌸</button>
+<button id="stickerToggle" class="sticker-toggle hidden" title="Place images &amp; text anywhere on the page">🌸</button>
 
 <script src="/js/app.js"></script>
 </body>

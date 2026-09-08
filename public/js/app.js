@@ -1368,7 +1368,7 @@ document.getElementById('musicVol').oninput = e => {
 })();
 
 // ══════════════════════════════════════════════════════════════════════════
-//  STICKER SYSTEM  — upload PNG, drag anywhere, rotate, resize, persist
+//  CANVAS LAYER  — draggable images + text boxes, rotate, resize, z-order
 // ══════════════════════════════════════════════════════════════════════════
 ;(function initStickers() {
   const layer       = document.getElementById('stickerLayer');
@@ -1376,307 +1376,306 @@ document.getElementById('musicVol').oninput = e => {
   const toggleBtn   = document.getElementById('stickerToggle');
   const fileInput   = document.getElementById('stickerFileInput');
   const clearAllBtn = document.getElementById('stickerClearAll');
+  const addTextBtn  = document.getElementById('stickerAddText');
   if (!layer || !panel || !toggleBtn) return;
 
-  // ── State ──────────────────────────────────────────────────────────────
-  let stickers = [];   // [{ id, src, x, y, w, rot }]
+  // ── State ─────────────────────────────────────────────────────────────
+  // type: 'img' | 'text'
+  // img fields:  src
+  // text fields: text, fontSize, bold, color
+  let items = [];
+  let _zTop = 160;   // running z-index counter
   let _saveTimer = null;
 
-  // ── Server persistence ─────────────────────────────────────────────────
-  // Debounced save — owner only
+  // ── Server persistence ────────────────────────────────────────────────
   function save() {
     if (!token) return;
     clearTimeout(_saveTimer);
     _saveTimer = setTimeout(async () => {
       try {
-        const data = stickers.map(s => ({
-          id: s.id, src: s.src,
-          x: Math.round(s.x), y: Math.round(s.y),
-          w: Math.round(s.w), rot: Math.round(s.rot * 100) / 100
-        }));
+        const data = items.map(s => {
+          const d = { id: s.id, type: s.type,
+            x: Math.round(s.x), y: Math.round(s.y),
+            w: Math.round(s.w), rot: Math.round(s.rot * 100) / 100,
+            z: s.z };
+          if (s.type === 'img')  d.src = s.src;
+          if (s.type === 'text') { d.text = s.text; d.fontSize = s.fontSize; d.bold = s.bold; d.color = s.color; }
+          return d;
+        });
         await fetch('/api/stickers', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ stickers: data }),
         });
-      } catch(e) { /* silent */ }
+      } catch(e) {}
     }, 800);
   }
 
-  // Load stickers for a username (public endpoint — works for visitors too)
   async function loadForUser(username) {
     try {
       const res  = await fetch(`/api/stickers/${encodeURIComponent(username)}`);
       const data = await res.json().catch(() => ({}));
-      (data.stickers || []).forEach(d => createSticker(d.src, d.x, d.y, d.w, d.rot, d.id));
+      (data.stickers || []).forEach(d => {
+        if (d.type === 'text') createTextItem(d.text, d.x, d.y, d.w, d.rot, d.id, d.fontSize, d.bold, d.color, d.z);
+        else                   createImgItem(d.src, d.x, d.y, d.w, d.rot, d.id, d.z);
+      });
     } catch(e) {}
   }
 
-  // ── Create a sticker DOM element ────────────────────────────────────────
-  function createSticker(src, x, y, w, rot, id) {
-    id  = id  || ('s' + Date.now() + Math.random().toString(36).slice(2,6));
-    // Place new stickers at page-absolute coords (viewport centre + scroll offset)
-    x   = x  ?? (window.scrollX + window.innerWidth  * 0.3 + Math.random() * window.innerWidth  * 0.3);
-    y   = y  ?? (window.scrollY + window.innerHeight * 0.2 + Math.random() * window.innerHeight * 0.4);
-    w   = w  ?? 140;
-    rot = rot ?? 0;
+  // ── Shared helpers ─────────────────────────────────────────────────────
+  function randPos() {
+    return {
+      x: window.scrollX + window.innerWidth  * 0.25 + Math.random() * window.innerWidth  * 0.4,
+      y: window.scrollY + window.innerHeight * 0.2  + Math.random() * window.innerHeight * 0.35,
+    };
+  }
 
-    const state = { id, src, x, y, w, rot };
-    stickers.push(state);
+  // Build the shared control toolbar (rotate, send-back, bring-front, delete)
+  // plus optional extra buttons injected via extraBtns array [{text,title,onclick}]
+  function buildControls(state, el, applyTransform, extraBtns) {
+    // ── delete button top-left ─────────────────────────────────────────
+    const btnDel = document.createElement('button');
+    btnDel.className = 'sticker-del';
+    btnDel.title = 'Remove';
+    btnDel.textContent = '✕';
+    btnDel.addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      el.remove();
+      items = items.filter(s => s.id !== state.id);
+      save();
+    });
+    el.appendChild(btnDel);
+
+    // ── floating toolbar ───────────────────────────────────────────────
+    const bar = document.createElement('div');
+    bar.className = 'sticker-controls';
+
+    function addBtn(text, title, onClick) {
+      const b = document.createElement('button');
+      b.className = 'sticker-btn'; b.title = title; b.textContent = text;
+      b.addEventListener('pointerdown', e => { e.stopPropagation(); onClick(); });
+      bar.appendChild(b); return b;
+    }
+
+    // Rotate ±15°
+    addBtn('↺', 'Rotate left',  () => { state.rot -= 15; applyTransform(); save(); });
+    addBtn('↻', 'Rotate right', () => { state.rot += 15; applyTransform(); save(); });
+
+    // Extra type-specific buttons (font size, bold, colour for text)
+    (extraBtns || []).forEach(b => addBtn(b.text, b.title, b.onClick));
+
+    // Separator
+    const sep = document.createElement('span');
+    sep.style.cssText = 'width:1px;height:16px;background:rgba(255,255,255,.2);flex-shrink:0';
+    bar.appendChild(sep);
+
+    // Send back / bring front
+    addBtn('↓', 'Send back',    () => { state.z = Math.max(1, state.z - 1); el.style.zIndex = state.z; save(); });
+    addBtn('↑', 'Bring front',  () => { _zTop++; state.z = _zTop; el.style.zIndex = state.z; save(); });
+
+    el.appendChild(bar);
+
+    // ── free-rotate handle (top-right) ────────────────────────────────
+    const rotH = document.createElement('div');
+    rotH.className = 'sticker-rotate-handle'; rotH.title = 'Drag to rotate'; rotH.textContent = '⟳';
+    let rotating = false, rotA0 = 0, rotR0 = 0;
+    function getAngle(e) {
+      const r = el.getBoundingClientRect();
+      return Math.atan2(e.clientY - (r.top + r.height/2), e.clientX - (r.left + r.width/2)) * 180/Math.PI;
+    }
+    rotH.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); rotH.setPointerCapture(e.pointerId); rotating=true; rotA0=getAngle(e); rotR0=state.rot; el.classList.add('active'); });
+    rotH.addEventListener('pointermove', e => { if(!rotating) return; state.rot = rotR0 + getAngle(e) - rotA0; applyTransform(); });
+    rotH.addEventListener('pointerup',   e => { rotating=false; el.classList.remove('active'); save(); });
+    el.appendChild(rotH);
+
+    // ── resize handle (bottom-right) ──────────────────────────────────
+    const resH = document.createElement('div');
+    resH.className = 'sticker-resize-handle'; resH.title = 'Drag to resize';
+    let resizing=false, resX0=0, resW0=0;
+    resH.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); resH.setPointerCapture(e.pointerId); resizing=true; resX0=e.clientX; resW0=state.w; el.classList.add('active'); });
+    resH.addEventListener('pointermove', e => { if(!resizing) return; state.w=Math.max(40,Math.min(900,resW0+(e.clientX-resX0))); applyTransform(); });
+    resH.addEventListener('pointerup',   () => { resizing=false; el.classList.remove('active'); save(); });
+    el.appendChild(resH);
+
+    // ── drag to move ──────────────────────────────────────────────────
+    let dragging=false, dOX=0, dOY=0;
+    el.addEventListener('pointerdown', e => {
+      if (e.target.closest('.sticker-controls,.sticker-rotate-handle,.sticker-resize-handle,.sticker-del,.sticker-text-edit')) return;
+      dragging=true;
+      dOX=(e.clientX+window.scrollX)-state.x; dOY=(e.clientY+window.scrollY)-state.y;
+      el.setPointerCapture(e.pointerId); el.classList.add('active'); el.style.zIndex=200+_zTop;
+    });
+    el.addEventListener('pointermove', e => { if(!dragging) return; state.x=(e.clientX+window.scrollX)-dOX; state.y=(e.clientY+window.scrollY)-dOY; applyTransform(); });
+    el.addEventListener('pointerup',   () => { dragging=false; el.classList.remove('active'); el.style.zIndex=state.z; save(); });
+  }
+
+  // ── Create IMAGE item ─────────────────────────────────────────────────
+  function createImgItem(src, x, y, w, rot, id, z) {
+    const pos = randPos();
+    id  = id  || ('s'+Date.now()+Math.random().toString(36).slice(2,6));
+    x   = x  ?? pos.x; y = y ?? pos.y; w = w ?? 140; rot = rot ?? 0;
+    z   = z  ?? (++_zTop);
+    if (z > _zTop) _zTop = z;
+
+    const state = { id, type:'img', src, x, y, w, rot, z };
+    items.push(state);
 
     const el = document.createElement('div');
-    el.className = 'sticker';
-    el.dataset.id = id;
+    el.className = 'sticker'; el.dataset.id = id; el.style.zIndex = z;
 
-    // Size & position & rotation
     function applyTransform() {
-      el.style.left   = state.x + 'px';
-      el.style.top    = state.y + 'px';
-      el.style.width  = state.w + 'px';
-      el.style.height = state.w + 'px';   // square bounding box
+      el.style.left = state.x+'px'; el.style.top = state.y+'px';
+      el.style.width = state.w+'px'; el.style.height = state.w+'px';
       el.style.transform = `rotate(${state.rot}deg)`;
     }
     applyTransform();
 
-    // Image — assign src after element is appended to avoid broken-image flash
     const img = document.createElement('img');
-    img.draggable = false;
-    img.alt = '';
+    img.draggable = false; img.alt = '';
     el.appendChild(img);
     requestAnimationFrame(() => { img.src = src; });
 
-    // Dedicated red delete button — top-left corner, appears on hover
-    const btnDelTop = document.createElement('button');
-    btnDelTop.className = 'sticker-del';
-    btnDelTop.title = 'Remove';
-    btnDelTop.textContent = '✕';
-    btnDelTop.addEventListener('pointerdown', e => {
-      e.stopPropagation();
-      el.remove();
-      stickers = stickers.filter(s => s.id !== id);
-      save();
-    });
-    el.appendChild(btnDelTop);
-
-    // Controls bar (rotate / size)
-    const controls = document.createElement('div');
-    controls.className = 'sticker-controls';
-
-    // Rotate left -15°
-    const btnRotL = document.createElement('button');
-    btnRotL.className = 'sticker-btn';
-    btnRotL.title = 'Rotate left';
-    btnRotL.textContent = '↺';
-    btnRotL.addEventListener('pointerdown', e => { e.stopPropagation(); state.rot -= 15; applyTransform(); save(); });
-    controls.appendChild(btnRotL);
-
-    // Rotate right +15°
-    const btnRotR = document.createElement('button');
-    btnRotR.className = 'sticker-btn';
-    btnRotR.title = 'Rotate right';
-    btnRotR.textContent = '↻';
-    btnRotR.addEventListener('pointerdown', e => { e.stopPropagation(); state.rot += 15; applyTransform(); save(); });
-    controls.appendChild(btnRotR);
-
-    // Shrink
-    const btnShrink = document.createElement('button');
-    btnShrink.className = 'sticker-btn';
-    btnShrink.title = 'Shrink';
-    btnShrink.textContent = '−';
-    btnShrink.addEventListener('pointerdown', e => { e.stopPropagation(); state.w = Math.max(40, state.w - 20); applyTransform(); save(); });
-    controls.appendChild(btnShrink);
-
-    // Grow
-    const btnGrow = document.createElement('button');
-    btnGrow.className = 'sticker-btn';
-    btnGrow.title = 'Grow';
-    btnGrow.textContent = '+';
-    btnGrow.addEventListener('pointerdown', e => { e.stopPropagation(); state.w = Math.min(600, state.w + 20); applyTransform(); save(); });
-    controls.appendChild(btnGrow);
-
-    el.appendChild(controls);
-
-    // ── Free-rotate handle (top-right corner) ─────────────────────────────
-    const rotHandle = document.createElement('div');
-    rotHandle.className = 'sticker-rotate-handle';
-    rotHandle.title = 'Drag to rotate';
-    rotHandle.textContent = '⟳';
-
-    let rotatingSticker = false;
-    let rotStartAngle = 0, rotStartRot = 0;
-
-    function getAngle(e) {
-      const rect = el.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top  + rect.height / 2;
-      const px = e.clientX ?? (e.touches?.[0]?.clientX ?? cx);
-      const py = e.clientY ?? (e.touches?.[0]?.clientY ?? cy);
-      return Math.atan2(py - cy, px - cx) * (180 / Math.PI);
-    }
-
-    rotHandle.addEventListener('pointerdown', e => {
-      e.stopPropagation();
-      e.preventDefault();
-      rotHandle.setPointerCapture(e.pointerId);
-      rotatingSticker = true;
-      rotStartAngle   = getAngle(e);
-      rotStartRot     = state.rot;
-      el.classList.add('active');
-    });
-    rotHandle.addEventListener('pointermove', e => {
-      if (!rotatingSticker) return;
-      const delta = getAngle(e) - rotStartAngle;
-      state.rot = rotStartRot + delta;
-      applyTransform();
-    });
-    rotHandle.addEventListener('pointerup', e => {
-      rotatingSticker = false;
-      el.classList.remove('active');
-      save();
-    });
-    el.appendChild(rotHandle);
-
-    // ── Resize handle (bottom-right corner) ───────────────────────────────
-    const resizeHandle = document.createElement('div');
-    resizeHandle.className = 'sticker-resize-handle';
-    resizeHandle.title = 'Drag to resize';
-
-    let resizing = false, resizeStartX = 0, resizeStartW = 0;
-
-    resizeHandle.addEventListener('pointerdown', e => {
-      e.stopPropagation();
-      e.preventDefault();
-      resizeHandle.setPointerCapture(e.pointerId);
-      resizing     = true;
-      resizeStartX = e.clientX;
-      resizeStartW = state.w;
-      el.classList.add('active');
-    });
-    resizeHandle.addEventListener('pointermove', e => {
-      if (!resizing) return;
-      const delta = e.clientX - resizeStartX;
-      state.w = Math.max(40, Math.min(600, resizeStartW + delta));
-      applyTransform();
-    });
-    resizeHandle.addEventListener('pointerup', () => {
-      resizing = false;
-      el.classList.remove('active');
-      save();
-    });
-    el.appendChild(resizeHandle);
-
-    // ── Drag to move ───────────────────────────────────────────────────────
-    let dragging = false, dragOX = 0, dragOY = 0;
-
-    el.addEventListener('pointerdown', e => {
-      // Don't start drag if clicking a handle or control button
-      if (e.target.closest('.sticker-controls') ||
-          e.target.closest('.sticker-rotate-handle') ||
-          e.target.closest('.sticker-resize-handle') ||
-          e.target.closest('.sticker-del')) return;
-      dragging = true;
-      // Store offset relative to page coords (clientX + scrollX)
-      dragOX = (e.clientX + window.scrollX) - state.x;
-      dragOY = (e.clientY + window.scrollY) - state.y;
-      el.setPointerCapture(e.pointerId);
-      el.classList.add('active');
-      el.style.zIndex = '200';
-    });
-    el.addEventListener('pointermove', e => {
-      if (!dragging) return;
-      state.x = (e.clientX + window.scrollX) - dragOX;
-      state.y = (e.clientY + window.scrollY) - dragOY;
-      applyTransform();
-    });
-    el.addEventListener('pointerup', () => {
-      dragging = false;
-      el.classList.remove('active');
-      el.style.zIndex = '';
-      save();
-    });
+    buildControls(state, el, applyTransform, []);
 
     layer.appendChild(el);
     return el;
   }
 
-  // ── File input → upload to server → create sticker with server URL ──────
+  // ── Create TEXT item ──────────────────────────────────────────────────
+  function createTextItem(text, x, y, w, rot, id, fontSize, bold, color, z) {
+    const pos = randPos();
+    id       = id       || ('t'+Date.now()+Math.random().toString(36).slice(2,6));
+    x        = x        ?? pos.x; y = y ?? pos.y; w = w ?? 200; rot = rot ?? 0;
+    fontSize = fontSize ?? 20;
+    bold     = bold     ?? false;
+    color    = color    ?? '#2c2416';
+    z        = z        ?? (++_zTop);
+    if (z > _zTop) _zTop = z;
+
+    const state = { id, type:'text', text: text||'Type here…', x, y, w, rot, fontSize, bold, color, z };
+    items.push(state);
+
+    const el = document.createElement('div');
+    el.className = 'sticker sticker-text'; el.dataset.id = id; el.style.zIndex = z;
+
+    function applyTransform() {
+      el.style.left = state.x+'px'; el.style.top = state.y+'px';
+      el.style.width = state.w+'px';
+      el.style.transform = `rotate(${state.rot}deg)`;
+    }
+    function applyStyle() {
+      ed.style.fontSize  = state.fontSize+'px';
+      ed.style.fontWeight = state.bold ? 'bold' : 'normal';
+      ed.style.color      = state.color;
+    }
+    applyTransform();
+
+    // Editable text area
+    const ed = document.createElement('div');
+    ed.className = 'sticker-text-edit';
+    ed.contentEditable = 'true';
+    ed.spellcheck = false;
+    ed.textContent = state.text;
+    ed.addEventListener('input',  () => { state.text = ed.textContent; save(); });
+    ed.addEventListener('pointerdown', e => e.stopPropagation()); // don't drag while editing
+    el.appendChild(ed);
+    applyStyle();
+
+    // Extra toolbar buttons for text
+    const extraBtns = [
+      { text:'A+', title:'Bigger text',  onClick: () => { state.fontSize = Math.min(120, state.fontSize+4); applyStyle(); save(); } },
+      { text:'A−', title:'Smaller text', onClick: () => { state.fontSize = Math.max(8,  state.fontSize-4); applyStyle(); save(); } },
+      { text:'B',  title:'Toggle bold',  onClick: () => { state.bold = !state.bold; applyStyle(); save(); } },
+    ];
+
+    // Colour picker — inline input appended directly to bar after build
+    buildControls(state, el, applyTransform, extraBtns);
+
+    // Append colour swatch to the controls bar
+    const bar = el.querySelector('.sticker-controls');
+    const colorInput = document.createElement('input');
+    colorInput.type  = 'color';
+    colorInput.value = state.color;
+    colorInput.title = 'Text colour';
+    colorInput.className = 'sticker-color-pick';
+    colorInput.addEventListener('input', e => { state.color = e.target.value; applyStyle(); save(); });
+    colorInput.addEventListener('pointerdown', e => e.stopPropagation());
+    bar.appendChild(colorInput);
+
+    layer.appendChild(el);
+    // Focus for immediate typing on new items (not on load)
+    if (!text) requestAnimationFrame(() => { ed.focus(); selectAll(ed); });
+    return el;
+  }
+
+  function selectAll(el) {
+    const range = document.createRange(); range.selectNodeContents(el);
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+  }
+
+  // ── File input → upload → place image ─────────────────────────────────
   fileInput.addEventListener('change', async () => {
-    const files = Array.from(fileInput.files);
-    fileInput.value = '';
+    const files = Array.from(fileInput.files); fileInput.value = '';
     for (const file of files) {
       if (!file.type.startsWith('image/')) continue;
       try {
-        toast('Uploading image…', 5000);
-        const fd = new FormData();
-        fd.append('file', file);
+        toast('Uploading…', 5000);
+        const fd = new FormData(); fd.append('file', file);
         const res = await fetch('/api/stickers/upload', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: fd,
+          method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd,
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) { toast('Upload failed: ' + (data.error || res.status)); continue; }
-        const el = createSticker(data.url);
-        if (el) {
-          el.classList.add('just-placed');
-          el.addEventListener('animationend', () => el.classList.remove('just-placed'), { once: true });
-        }
+        if (!res.ok) { toast('Upload failed: '+(data.error||res.status)); continue; }
+        const el = createImgItem(data.url);
+        if (el) { el.classList.add('just-placed'); el.addEventListener('animationend', () => el.classList.remove('just-placed'), { once:true }); }
         save();
-        toast('Image placed 🌸 — drag anywhere, use ⟳ to rotate!');
-        panel.classList.add('hidden');
-        toggleBtn.classList.remove('active');
-      } catch(e) {
-        toast('Upload error: ' + e.message);
-      }
+        toast('Image placed 🌸');
+        panel.classList.add('hidden'); toggleBtn.classList.remove('active');
+      } catch(e) { toast('Upload error: '+e.message); }
     }
   });
 
-  // ── Clear all ────────────────────────────────────────────────────────────
-  clearAllBtn.addEventListener('click', () => {
-    layer.innerHTML = '';
-    stickers = [];
+  // ── Add text button ────────────────────────────────────────────────────
+  addTextBtn && addTextBtn.addEventListener('click', () => {
+    const el = createTextItem('');
+    if (el) { el.classList.add('just-placed'); el.addEventListener('animationend', () => el.classList.remove('just-placed'), {once:true}); }
     save();
-    toast('All stickers removed');
+    panel.classList.add('hidden'); toggleBtn.classList.remove('active');
   });
 
-  // ── Toggle panel ─────────────────────────────────────────────────────────
+  // ── Clear all ──────────────────────────────────────────────────────────
+  clearAllBtn.addEventListener('click', () => {
+    layer.innerHTML = ''; items = []; save(); toast('Canvas cleared');
+  });
+
+  // ── Toggle panel ──────────────────────────────────────────────────────
   toggleBtn.addEventListener('click', () => {
     const open = !panel.classList.contains('hidden');
     panel.classList.toggle('hidden', open);
     toggleBtn.classList.toggle('active', !open);
   });
-  // Close panel when clicking outside
   document.addEventListener('pointerdown', e => {
-    if (!panel.classList.contains('hidden') &&
-        !panel.contains(e.target) &&
-        e.target !== toggleBtn) {
-      panel.classList.add('hidden');
-      toggleBtn.classList.remove('active');
+    if (!panel.classList.contains('hidden') && !panel.contains(e.target) && e.target !== toggleBtn) {
+      panel.classList.add('hidden'); toggleBtn.classList.remove('active');
     }
   }, true);
 
-  // ── Show/hide toggle based on ownership ──────────────────────────────────
-  // Called after login/diary load
+  // ── Owner visibility ──────────────────────────────────────────────────
   window._stickerSetOwner = function(owner) {
     const wasHidden = toggleBtn.classList.contains('hidden');
     toggleBtn.classList.toggle('hidden', !owner);
     if (owner && wasHidden) {
-      // pulse 3 times to draw attention on first show
-      toggleBtn.classList.remove('pulse');
-      void toggleBtn.offsetWidth; // reflow to restart animation
+      toggleBtn.classList.remove('pulse'); void toggleBtn.offsetWidth;
       toggleBtn.classList.add('pulse');
-      toggleBtn.addEventListener('animationend', () => toggleBtn.classList.remove('pulse'), { once: true });
+      toggleBtn.addEventListener('animationend', () => toggleBtn.classList.remove('pulse'), {once:true});
     }
-    if (!owner) {
-      panel.classList.add('hidden');
-      toggleBtn.classList.remove('active');
-    }
+    if (!owner) { panel.classList.add('hidden'); toggleBtn.classList.remove('active'); }
+    // Make text non-editable for visitors
+    layer.querySelectorAll('.sticker-text-edit').forEach(e => { e.contentEditable = owner ? 'true' : 'false'; });
   };
 
-  // Load stickers for a username — called from enterOwnDiary / enterPublicDiary
   window._stickerLoad = function(username) {
-    layer.innerHTML = '';
-    stickers = [];
+    layer.innerHTML = ''; items = [];
     if (username) loadForUser(username);
   };
 })();
