@@ -58,10 +58,10 @@
 <!-- ══ DIARY APP ══════════════════════════════════════════════ -->
 <div id="appScreen" class="hidden">
 
-  <!-- ── TOPBAR (floating) ── -->
+  <!-- ── TOPBAR (floating) — single row ── -->
   <header id="topbar">
-    <!-- Row 1: brand + actions -->
     <div class="topbar-inner">
+      <!-- Left: hamburger + brand -->
       <div class="topbar-left">
         <button class="nav-icon-btn" id="hamburgerBtn" aria-label="Menu">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
@@ -75,12 +75,29 @@
           <span class="brand-caption" id="pageTitleCaption">about u</span>
         </div>
       </div>
+      <!-- Centre: filter controls -->
+      <div class="topbar-filters">
+        <div class="ctrl-group">
+          <select id="sortSelect" class="ctrl-select" title="Sort">
+            <option value="newest">↓ Newest</option>
+            <option value="oldest">↑ Oldest</option>
+            <option value="most-reactions">♡ Reactions</option>
+            <option value="most-comments">💬 Comments</option>
+            <option value="most-views">👁 Views</option>
+          </select>
+          <span class="ctrl-divider"></span>
+          <input type="date" class="ctrl-date" id="filterFrom" title="From">
+          <span class="ctrl-dash">—</span>
+          <input type="date" class="ctrl-date" id="filterTo" title="To">
+          <button id="btnClearFilter" class="ctrl-clear" style="display:none">✕</button>
+        </div>
+      </div>
+      <!-- Right: New + Canvas -->
       <div class="topbar-right">
         <button class="btn btn-primary btn-sm" id="quickNewBtn" style="display:none">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
           New
         </button>
-        <!-- Canvas / sticker toggle moved to topbar-right -->
         <button id="stickerToggle" class="topbar-canvas-btn hidden" title="Place images &amp; text on canvas">
           <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="2" width="18" height="18" rx="3"/>
@@ -91,24 +108,7 @@
         </button>
       </div>
     </div>
-    <!-- Row 2: filter controls (aligned under hamburger) -->
-    <div class="topbar-filter-row" id="topbarFilterRow">
-      <div class="ctrl-group">
-        <select id="sortSelect" class="ctrl-select" title="Sort">
-          <option value="newest">↓ Newest</option>
-          <option value="oldest">↑ Oldest</option>
-          <option value="most-reactions">♡ Reactions</option>
-          <option value="most-comments">💬 Comments</option>
-          <option value="most-views">👁 Views</option>
-        </select>
-        <span class="ctrl-divider"></span>
-        <input type="date" class="ctrl-date" id="filterFrom" title="From">
-        <span class="ctrl-dash">—</span>
-        <input type="date" class="ctrl-date" id="filterTo" title="To">
-        <button id="btnClearFilter" class="ctrl-clear" style="display:none">✕</button>
-      </div>
-    </div>
-    <!-- Row 3: Tag chips strip -->
+    <!-- Tag chips strip -->
     <div id="tagFilterRow" class="tag-strip" style="display:none">
       <span class="tag-strip-label">Filter</span>
       <div id="tagChips" class="tag-strip-chips"></div>

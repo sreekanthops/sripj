@@ -83,10 +83,17 @@ body {
 }
 .topbar-inner {
   max-width: 1320px; margin: 0 auto;
-  min-height: 52px; padding: 0 20px;
-  display: flex; align-items: center; gap: 12px;
+  height: 60px; padding: 0 20px;
+  display: flex; align-items: center; gap: 0;
 }
 .topbar-left { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+
+/* Centre section — filter controls sit here, pushed away from brand */
+.topbar-filters {
+  flex: 1;
+  display: flex; align-items: center;
+  padding-left: 24px;   /* gap from brand */
+}
 
 .nav-icon-btn {
   width: 36px; height: 36px; border-radius: 8px;
@@ -118,13 +125,7 @@ body {
 }
 .note-pill:empty { display: none; }
 
-.topbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-
-/* Filter row — sits below the brand row, indented to align under hamburger */
-.topbar-filter-row {
-  padding: 0 20px 8px;
-  display: flex; align-items: center;
-}
+.topbar-right { display: flex; align-items: center; gap: 8px; margin-left: 16px; flex-shrink: 0; }
 
 /* Canvas button in topbar */
 .topbar-canvas-btn {
@@ -1704,4 +1705,24 @@ body.is-owner .sticker.active .sticker-resize-handle {
 @media(max-width:480px){
   .chatbot-window { width: calc(100vw - 24px); right: 12px; bottom: 88px; }
   .chatbot-fab { bottom: 20px; right: 12px; width: 54px; height: 54px; }
+}
+
+/* ── Topbar mobile: stack filter below brand ── */
+@media(max-width:640px){
+  .topbar-inner {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 10px 14px 0;
+    gap: 8px;
+  }
+  .topbar-left  { flex: 1; }
+  .topbar-filters {
+    order: 3;
+    width: 100%;
+    padding: 0 0 10px;
+  }
+  .topbar-right { margin-left: auto; }
+  .brand-caption { display: none; }
+  .topbar-canvas-btn span { display: none; }
+  .topbar-canvas-btn { width: 36px; height: 36px; }
 }
