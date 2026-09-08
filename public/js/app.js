@@ -1596,25 +1596,36 @@ document.getElementById('musicVol').oninput = e => {
     return el;
   }
 
-  // ── File input → create sticker ─────────────────────────────────────────
-  fileInput.addEventListener('change', () => {
-    Array.from(fileInput.files).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = ev => {
-        const el = createSticker(ev.target.result);
+  // ── File input → upload to server → create sticker with server URL ──────
+  fileInput.addEventListener('change', async () => {
+    const files = Array.from(fileInput.files);
+    fileInput.value = '';
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue;
+      try {
+        toast('Uploading image…', 5000);
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch('/api/stickers/upload', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: fd,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { toast('Upload failed: ' + (data.error || res.status)); continue; }
+        const el = createSticker(data.url);
         if (el) {
           el.classList.add('just-placed');
           el.addEventListener('animationend', () => el.classList.remove('just-placed'), { once: true });
         }
         save();
         toast('Image placed 🌸 — drag anywhere, use ⟳ to rotate!');
-        // close panel after adding
         panel.classList.add('hidden');
         toggleBtn.classList.remove('active');
-      };
-      reader.readAsDataURL(file);
-    });
-    fileInput.value = '';
+      } catch(e) {
+        toast('Upload error: ' + e.message);
+      }
+    }
   });
 
   // ── Clear all ────────────────────────────────────────────────────────────
