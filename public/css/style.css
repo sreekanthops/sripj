@@ -1590,7 +1590,9 @@ body.is-owner .sticker.active .sticker-resize-handle {
 .chatbot-fab svg { width: 22px; height: 22px; }
 .chatbot-fab span { font-size: 9px; font-family: var(--sans); font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
 .chatbot-fab:hover { background: var(--accent2); transform: scale(1.08); box-shadow: 0 8px 28px rgba(47,90,110,.4); }
-.chatbot-fab.hidden { display: none !important; }
+/* Hide FAB when user is not logged-in as owner */
+body:not(.is-owner) .chatbot-fab { display: none !important; }
+body:not(.is-owner) .chatbot-window { display: none !important; }
 
 /* Chat window */
 .chatbot-window {

@@ -1562,11 +1562,10 @@ document.getElementById('musicVol').oninput = e => {
     appendBubble('ai', 'Chat cleared. Ask me anything about your diary!');
   }
 
-  // ── Show / hide FAB based on login state ────────────────────────────────
-  // Called from enterOwnDiary / logout
+  // FAB visibility is now controlled purely by CSS: body.is-owner shows it.
+  // _chatbotSetOwner still called on logout to close the window if open.
   window._chatbotSetOwner = (owner) => {
-    if (owner) fab.classList.remove('hidden');
-    else { fab.classList.add('hidden'); closeChat(); }
+    if (!owner) closeChat();
   };
 
   // ── Event listeners ──────────────────────────────────────────────────────
