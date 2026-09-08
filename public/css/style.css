@@ -1190,7 +1190,7 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 /* Controls bar — hidden until hover */
 .sticker-controls {
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 4px); /* reduced gap so hover bridge is smaller */
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -1206,8 +1206,19 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   white-space: nowrap;
   z-index: 10;
 }
+/* Transparent bridge fills gap between toolbar and sticker so hover isn't lost */
+.sticker-controls::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0; right: 0;
+  height: 12px; /* covers the gap + a little extra */
+  background: transparent;
+}
 .sticker:hover .sticker-controls,
-.sticker.active .sticker-controls {
+.sticker.active .sticker-controls,
+.sticker.editing .sticker-controls,
+.sticker-controls:hover {
   opacity: 1;
   pointer-events: all;
 }
