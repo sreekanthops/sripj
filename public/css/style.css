@@ -831,9 +831,36 @@ body.is-owner .slide-del { display: block; }
 }
 .admin-bar-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); margin-right: 2px; }
 
-/* Make edit/delete buttons easier to tap on mobile */
+/* Pin button */
+.btn-pin {
+  background: var(--surface);
+  border: 1.5px solid var(--gold3);
+  color: var(--gold2);
+  font-weight: 600;
+}
+.btn-pin:hover { background: rgba(184,145,58,.1); }
+
+/* Make edit/delete/pin buttons easier to tap on mobile */
 @media(max-width: 768px) {
   .admin-note-bar .btn { min-height: 40px; padding: 0 16px; font-size: 14px; }
+}
+
+/* Pinned card highlight */
+.note-card.is-pinned {
+  outline: 2px solid var(--gold3);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(184,145,58,.12), 0 8px 30px rgba(0,0,0,.1);
+}
+
+/* Pin badge on card */
+.pin-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 700; letter-spacing: .5px;
+  color: var(--gold2);
+  background: rgba(184,145,58,.12);
+  border: 1px solid var(--gold3);
+  border-radius: 99px; padding: 1px 7px;
+  white-space: nowrap;
 }
 
 hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }

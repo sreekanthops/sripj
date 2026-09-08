@@ -674,6 +674,8 @@ function getTimeFilteredNotes() {
     case 'most-views':     list = [...list].sort((a,b) => b.views - a.views); break;
     default:               list = [...list].sort((a,b) => b.createdAt.localeCompare(a.createdAt));
   }
+  // pinned always float to the very top regardless of sort
+  list = [...list.filter(n => n.pinned), ...list.filter(n => !n.pinned)];
   const now = new Date();
   if (tfMode === 'week') return list.filter(n => isoWeekKey(new Date(n.createdAt)) === isoWeekKey(now));
   if (tfMode === 'month') {
@@ -910,6 +912,7 @@ function buildNoteCard(n, index, total) {
   card.className = `note-card fade-enter ${rotClass}`;
   card.dataset.id = n.id;
   if (n.media && n.media.length) card.classList.add('has-media');
+  if (n.pinned) card.classList.add('is-pinned');
 
   if (n.media && n.media.length) {
     const mediaWrap = document.createElement('div');
@@ -929,7 +932,7 @@ function buildNoteCard(n, index, total) {
   body.innerHTML = `
     <div class="card-meta-row">
       <span class="card-date">📅 ${fmtDate(n.createdAt)}</span>
-      <span class="card-num">${numStr}</span>
+      <span class="card-num">${n.pinned ? '<span class="pin-badge">📌 Pinned</span>' : numStr}</span>
     </div>
     <div class="card-title">${esc(n.title)}</div>
     ${!n.media?.length && n.body
@@ -1249,8 +1252,9 @@ function renderDetail(note) {
       ${isOwner ? `
       <div class="admin-note-bar">
         <span class="admin-bar-label">Owner</span>
-        <button class="btn btn-ghost btn-sm btn-dedit" data-id="${note.id}">✏️ Edit Entry</button>
-        <button class="btn btn-red   btn-sm btn-ddel"  data-id="${note.id}">🗑 Delete Entry</button>
+        <button class="btn btn-ghost btn-sm btn-dedit" data-id="${note.id}">✏️ Edit</button>
+        <button class="btn btn-pin   btn-sm btn-dpin"  data-id="${note.id}" data-pinned="${note.pinned?'1':'0'}">${note.pinned ? '📌 Unpin' : '📌 Pin'}</button>
+        <button class="btn btn-red   btn-sm btn-ddel"  data-id="${note.id}">🗑 Delete</button>
       </div>` : ''}
     </div>`;
 
@@ -1265,6 +1269,21 @@ function renderDetail(note) {
   cont.querySelector('.btn-dedit')?.addEventListener('click', e => {
     e.stopPropagation();
     closeOv('detailOverlay'); openEditForm(note);
+  });
+  cont.querySelector('.btn-dpin')?.addEventListener('click', async e => {
+    e.stopPropagation();
+    const btn = e.currentTarget;
+    try {
+      const { pinned } = await api('PUT', `/notes/${note.id}/pin`, {});
+      // update local state
+      const idx = notes.findIndex(n => n.id === note.id);
+      if (idx !== -1) notes[idx].pinned = pinned;
+      note.pinned = pinned;
+      btn.textContent = pinned ? '📌 Unpin' : '📌 Pin';
+      btn.dataset.pinned = pinned ? '1' : '0';
+      toast(pinned ? '📌 Pinned!' : 'Unpinned');
+      renderGrid();
+    } catch (err) { toast('Error: ' + err.message); }
   });
   cont.querySelector('.btn-ddel')?.addEventListener('click', async e => {
     e.stopPropagation();

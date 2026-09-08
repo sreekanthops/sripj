@@ -145,9 +145,10 @@ if (!hasColumn('users', 'display_name'))  db.exec(`ALTER TABLE users ADD COLUMN 
 if (!hasColumn('users', 'bio'))           db.exec(`ALTER TABLE users ADD COLUMN bio           TEXT NOT NULL DEFAULT ''`);
 if (!hasColumn('users', 'password_hash')) db.exec(`ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''`);
 
-// notes.user_id / tags
+// notes.user_id / tags / pinned
 if (!hasColumn('notes', 'user_id')) db.exec(`ALTER TABLE notes ADD COLUMN user_id TEXT NOT NULL DEFAULT ''`);
 if (!hasColumn('notes', 'tags'))    db.exec(`ALTER TABLE notes ADD COLUMN tags    TEXT NOT NULL DEFAULT '[]'`);
+if (!hasColumn('notes', 'pinned'))  db.exec(`ALTER TABLE notes ADD COLUMN pinned  INTEGER NOT NULL DEFAULT 0`);
 
 // replies.user_id
 if (!hasColumn('replies', 'user_id')) db.exec(`ALTER TABLE replies ADD COLUMN user_id TEXT`);

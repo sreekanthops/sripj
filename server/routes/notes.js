@@ -88,6 +88,7 @@ function buildNote(row, req) {
     musicUrl:      row.music_url,
     tags:          tags,
     views:         row.views,
+    pinned:        row.pinned ? true : false,
     createdAt:     row.created_at,
     editedAt:      row.edited_at,
     reactions:     reactions,
@@ -177,6 +178,25 @@ router.put('/:id', verifyToken, (req, res) => {
          colorIdx ?? row.color_idx, musicUrl ?? row.music_url,
          tagsJson, new Date().toISOString(), req.params.id);
   res.json(buildNote(db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id), req));
+});
+
+// PUT /api/notes/:id/pin  — toggle pin for owner (max 3 pinned per user)
+router.put('/:id/pin', verifyToken, (req, res) => {
+  const row = db.prepare('SELECT id, user_id, pinned FROM notes WHERE id = ?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  if (row.user_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
+
+  if (!row.pinned) {
+    // pinning — check limit
+    const pinCount = db.prepare('SELECT COUNT(*) as c FROM notes WHERE user_id = ? AND pinned = 1').get(req.user.userId).c;
+    if (pinCount >= 3) return res.status(400).json({ error: 'You can pin up to 3 entries. Unpin one first.' });
+    db.prepare('UPDATE notes SET pinned = 1 WHERE id = ?').run(req.params.id);
+  } else {
+    db.prepare('UPDATE notes SET pinned = 0 WHERE id = ?').run(req.params.id);
+  }
+
+  const updated = db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
+  res.json({ pinned: !!updated.pinned });
 });
 
 // DELETE /api/notes/:id  (owner only)
