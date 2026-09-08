@@ -1419,6 +1419,11 @@ document.getElementById('musicVol').oninput = e => {
         if (d.type === 'text') createTextItem(d.text, d.x, d.y, d.w, d.rot, d.id, d.fontSize, d.bold, d.color, d.z);
         else                   createImgItem(d.src, d.x, d.y, d.w, d.rot, d.id, d.z);
       });
+      // After load, apply visitor restrictions if not owner
+      if (!isOwner) {
+        layer.querySelectorAll('.sticker-text-edit').forEach(e => { e.contentEditable = 'false'; e.style.cursor = 'default'; });
+        layer.querySelectorAll('.sticker').forEach(e => { e.style.cursor = 'default'; e.style.pointerEvents = 'none'; });
+      }
     } catch(e) {}
   }
 
@@ -1596,10 +1601,11 @@ document.getElementById('musicVol').oninput = e => {
     ed.spellcheck = false;
     ed.textContent = state.text;
     ed.style.cursor = 'grab';
-    ed.addEventListener('input', () => { state.text = ed.innerText; save(); });
+    ed.addEventListener('input', () => { state.text = ed.textContent; save(); });
 
-    // Double-click → enter edit mode
+    // Double-click → enter edit mode (owner only)
     ed.addEventListener('dblclick', e => {
+      if (!isOwner) return;
       e.stopPropagation();
       ed.contentEditable = 'true';
       ed.style.cursor = 'text';
@@ -1611,9 +1617,9 @@ document.getElementById('musicVol').oninput = e => {
     document.addEventListener('pointerdown', e => {
       if (el.classList.contains('editing') && !el.contains(e.target)) {
         ed.contentEditable = 'false';
-        ed.style.cursor = 'grab';
+        ed.style.cursor = isOwner ? 'grab' : 'default';
         el.classList.remove('editing');
-        state.text = ed.innerText;
+        state.text = ed.textContent;
         save();
       }
     }, true);
@@ -1715,8 +1721,14 @@ document.getElementById('musicVol').oninput = e => {
       toggleBtn.addEventListener('animationend', () => toggleBtn.classList.remove('pulse'), {once:true});
     }
     if (!owner) { panel.classList.add('hidden'); toggleBtn.classList.remove('active'); }
-    // Make text non-editable for visitors
-    layer.querySelectorAll('.sticker-text-edit').forEach(e => { e.contentEditable = owner ? 'true' : 'false'; });
+    // For visitors: ensure text boxes are non-interactive and stickers don't show grab cursor
+    layer.querySelectorAll('.sticker-text-edit').forEach(e => {
+      e.contentEditable = 'false';
+      e.style.cursor = 'default';
+    });
+    layer.querySelectorAll('.sticker').forEach(e => {
+      if (!owner) { e.style.cursor = 'default'; e.style.pointerEvents = 'none'; }
+    });
   };
 
   window._stickerLoad = function(username) {

@@ -1215,27 +1215,25 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   height: 12px; /* covers the gap + a little extra */
   background: transparent;
 }
-.sticker:hover .sticker-controls,
-.sticker.active .sticker-controls,
-.sticker.editing .sticker-controls,
-.sticker-controls:hover {
+/* Toolbar + delete only shown for owner */
+body.is-owner .sticker:hover .sticker-controls,
+body.is-owner .sticker.active .sticker-controls,
+body.is-owner .sticker.editing .sticker-controls,
+body.is-owner .sticker-controls:hover {
   opacity: 1;
   pointer-events: all;
 }
 
-/* Dedicated delete button — top-left, red, appears on hover only */
+/* Dedicated delete button — top-left, red, owner only */
 .sticker-del {
   position: absolute;
-  top: -10px;
-  left: -10px;
+  top: -10px; left: -10px;
   width: 24px; height: 24px;
   border-radius: 50%;
   background: rgba(184,50,50,.9);
   border: 2px solid #fff;
   color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
+  font-size: 12px; font-weight: 700; line-height: 1;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   opacity: 0;
@@ -1244,8 +1242,8 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   z-index: 20;
   box-shadow: 0 2px 6px rgba(0,0,0,.3);
 }
-.sticker:hover .sticker-del,
-.sticker.active .sticker-del {
+body.is-owner .sticker:hover .sticker-del,
+body.is-owner .sticker.active .sticker-del {
   opacity: 1;
   pointer-events: all;
 }
@@ -1266,11 +1264,10 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 .sticker-btn:hover { background: rgba(255,255,255,.28); transform: scale(1.12); }
 .sticker-btn:active { transform: scale(.88); }
 
-/* Rotate handle — sits at top-right corner of sticker, always faintly visible */
+/* Rotate handle */
 .sticker-rotate-handle {
   position: absolute;
-  top: -18px;
-  right: -18px;
+  top: -18px; right: -18px;
   width: 30px; height: 30px;
   border-radius: 50%;
   background: rgba(47,90,110,.88);
@@ -1279,20 +1276,14 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   font-size: 15px;
   cursor: crosshair;
   display: flex; align-items: center; justify-content: center;
-  opacity: 0.45;          /* always slightly visible */
+  opacity: 0;
   transition: opacity .18s, transform .15s;
   z-index: 10;
-  pointer-events: all;
+  pointer-events: none;
   touch-action: none;
   box-shadow: 0 2px 8px rgba(0,0,0,.3);
 }
-.sticker:hover .sticker-rotate-handle,
-.sticker.active .sticker-rotate-handle {
-  opacity: 1;
-  transform: scale(1.1);
-}
-
-/* Resize corner — always faintly visible */
+/* Resize corner */
 .sticker-resize-handle {
   position: absolute;
   bottom: -10px; right: -10px;
@@ -1301,16 +1292,21 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   background: rgba(140,109,63,.88);
   border: 2px solid rgba(255,255,255,.8);
   cursor: nwse-resize;
-  opacity: 0.45;          /* always slightly visible */
+  opacity: 0;
   transition: opacity .18s, transform .15s;
   z-index: 10;
-  pointer-events: all;
+  pointer-events: none;
   touch-action: none;
 }
-.sticker:hover .sticker-resize-handle,
-.sticker.active .sticker-resize-handle {
-  opacity: 1;
-  transform: scale(1.15);
+
+/* Handles only shown/interactive for the owner */
+body.is-owner .sticker:hover .sticker-rotate-handle,
+body.is-owner .sticker.active .sticker-rotate-handle {
+  opacity: 1; pointer-events: all; transform: scale(1.1);
+}
+body.is-owner .sticker:hover .sticker-resize-handle,
+body.is-owner .sticker.active .sticker-resize-handle {
+  opacity: 1; pointer-events: all; transform: scale(1.15);
 }
 
 /* ── Sticker panel (upload + clear) ── */
