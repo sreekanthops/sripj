@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pricing — My Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px;scroll-behavior:smooth}
+:root{
+  --bg:#f8f9fb;--surface:#ffffff;--border:#e2e5ea;
+  --ink:#111827;--ink2:#374151;--ink3:#6b7280;--ink4:#9ca3af;
+  --accent:#4f6ef7;--accent2:#3b54d4;--accent-bg:rgba(79,110,247,.08);
+  --green:#16a34a;--green-bg:rgba(22,163,74,.09);
+  --amber:#d97706;--amber-bg:rgba(217,119,6,.09);
+  --purple:#7c3aed;--purple-bg:rgba(124,58,237,.09);
+  --r:14px;--r2:10px;
+  --sans:'Inter',system-ui,sans-serif;
+  --shadow:0 1px 4px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.05);
+  --shadow2:0 8px 30px rgba(0,0,0,.1);
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* ── HEADER ── */
+.header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 40px;height:56px;
+}
+.header-logo{font-size:16px;font-weight:700;letter-spacing:-.3px;color:var(--ink);text-decoration:none}
+.header-logo span{color:var(--accent)}
+.header-nav{display:flex;align-items:center;gap:14px}
+.nav-link{font-size:13px;color:var(--ink3);text-decoration:none;font-weight:500;transition:color .15s}
+.nav-link:hover{color:var(--ink)}
+.btn{
+  display:inline-flex;align-items:center;gap:6px;padding:9px 20px;
+  border-radius:var(--r2);font-size:13px;font-weight:600;cursor:pointer;
+  border:none;font-family:var(--sans);text-decoration:none;transition:opacity .15s,background .15s;
+}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--ink2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-full{width:100%;justify-content:center;padding:13px 20px;font-size:14px}
+.btn-full.popular{background:var(--accent);color:#fff}
+.btn-full.popular:hover{background:var(--accent2)}
+
+/* ── HERO ── */
+.hero{text-align:center;padding:72px 24px 48px}
+.hero-eyebrow{
+  display:inline-block;font-size:12px;font-weight:700;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--accent);background:var(--accent-bg);
+  padding:5px 14px;border-radius:99px;margin-bottom:20px;
+  border:1px solid rgba(79,110,247,.2);
+}
+.hero h1{font-size:40px;font-weight:700;letter-spacing:-.8px;line-height:1.15;color:var(--ink);margin-bottom:16px}
+.hero p{font-size:17px;color:var(--ink3);line-height:1.6;max-width:560px;margin:0 auto 32px}
+
+/* ── PRICING CARDS ── */
+.pricing-section{max-width:1040px;margin:0 auto;padding:0 24px 80px}
+.pricing-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:20px;
+  align-items:start;
+}
+@media(max-width:900px){.pricing-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.pricing-grid{grid-template-columns:1fr}}
+
+.pricing-card{
+  background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);
+  padding:32px 28px;display:flex;flex-direction:column;gap:0;
+  box-shadow:var(--shadow);position:relative;
+}
+.pricing-card.popular{
+  border-color:var(--accent);border-width:2px;
+  box-shadow:0 0 0 4px rgba(79,110,247,.08),var(--shadow2);
+}
+.popular-badge{
+  position:absolute;top:-13px;left:50%;transform:translateX(-50%);
+  background:var(--accent);color:#fff;font-size:11px;font-weight:700;
+  padding:4px 16px;border-radius:99px;letter-spacing:.4px;white-space:nowrap;
+}
+.card-plan{font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--ink3);margin-bottom:12px}
+.card-price{font-size:36px;font-weight:700;letter-spacing:-.8px;color:var(--ink);line-height:1;margin-bottom:4px}
+.card-price sup{font-size:18px;font-weight:600;vertical-align:super;letter-spacing:0}
+.card-period{font-size:13px;color:var(--ink4);margin-bottom:8px}
+.card-billed{font-size:12px;color:var(--green);font-weight:600;min-height:18px;margin-bottom:20px}
+.card-divider{height:1px;background:var(--border);margin-bottom:20px}
+.card-features{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:28px;flex:1}
+.card-features li{
+  display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--ink2);line-height:1.4;
+}
+.card-features li .check{
+  width:18px;height:18px;flex-shrink:0;border-radius:50%;
+  background:var(--green-bg);color:var(--green);
+  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-top:1px;
+}
+.card-features li .cross{
+  width:18px;height:18px;flex-shrink:0;border-radius:50%;
+  background:#f3f4f6;color:var(--ink4);
+  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-top:1px;
+}
+.card-features li.dim{color:var(--ink4)}
+
+/* ── FAQ / NOTES ── */
+.notes-section{max-width:720px;margin:0 auto 80px;padding:0 24px}
+.notes-section h2{font-size:22px;font-weight:700;letter-spacing:-.3px;color:var(--ink);margin-bottom:24px;text-align:center}
+.faq-item{border:1px solid var(--border);border-radius:var(--r2);background:var(--surface);margin-bottom:10px;overflow:hidden}
+.faq-q{
+  padding:16px 20px;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+  user-select:none;
+}
+.faq-q::after{content:'＋';font-size:16px;color:var(--ink3);flex-shrink:0}
+.faq-item.open .faq-q::after{content:'－'}
+.faq-a{display:none;padding:0 20px 16px;font-size:13px;color:var(--ink3);line-height:1.7}
+.faq-item.open .faq-a{display:block}
+
+/* ── GUARANTEE ── */
+.guarantee{
+  max-width:600px;margin:0 auto 80px;text-align:center;padding:0 24px;
+}
+.guarantee-icon{font-size:32px;margin-bottom:12px}
+.guarantee h3{font-size:17px;font-weight:700;color:var(--ink);margin-bottom:8px}
+.guarantee p{font-size:13px;color:var(--ink3);line-height:1.7}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <a href="/" class="header-logo">My <span>Journal</span></a>
+  <nav class="header-nav">
+    <a href="/" class="nav-link">Home</a>
+    <a href="/login" class="nav-link">Sign in</a>
+    <a href="/register" class="btn btn-primary">Get started free</a>
+  </nav>
+</header>
+
+<!-- ── HERO ────────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-eyebrow">Pricing</div>
+  <h1>Simple, honest pricing</h1>
+  <p>Start free forever. Upgrade when you need unlimited writing, photo &amp; video uploads, and canvas stickers.</p>
+</section>
+
+<!-- ── PRICING CARDS ─────────────────────────────────────────────────── -->
+<section class="pricing-section">
+  <div class="pricing-grid">
+
+    <!-- FREE -->
+    <div class="pricing-card">
+      <div class="card-plan">Free</div>
+      <div class="card-price"><sup>$</sup>0</div>
+      <div class="card-period">forever</div>
+      <div class="card-billed">&nbsp;</div>
+      <div class="card-divider"></div>
+      <ul class="card-features">
+        <li><span class="check">✓</span>Up to <b>5 diary entries</b></li>
+        <li><span class="check">✓</span>Public shareable links</li>
+        <li><span class="check">✓</span>Emoji reactions &amp; replies</li>
+        <li class="dim"><span class="cross">✗</span>Media uploads (photos / videos)</li>
+        <li class="dim"><span class="cross">✗</span>Canvas stickers</li>
+        <li class="dim"><span class="cross">✗</span>Unlimited entries</li>
+      </ul>
+      <a href="/register" class="btn btn-outline btn-full">Start for free</a>
+    </div>
+
+    <!-- PRO MONTHLY -->
+    <div class="pricing-card popular">
+      <div class="popular-badge">Most Popular</div>
+      <div class="card-plan">Pro Monthly</div>
+      <div class="card-price"><sup>$</sup>4.99</div>
+      <div class="card-period">per month</div>
+      <div class="card-billed">Billed monthly · cancel anytime</div>
+      <div class="card-divider"></div>
+      <ul class="card-features">
+        <li><span class="check">✓</span><b>Unlimited</b> diary entries</li>
+        <li><span class="check">✓</span>Photo &amp; video uploads</li>
+        <li><span class="check">✓</span>Canvas stickers</li>
+        <li><span class="check">✓</span>Public shareable links</li>
+        <li><span class="check">✓</span>Emoji reactions &amp; replies</li>
+        <li><span class="check">✓</span>Priority support</li>
+      </ul>
+      <a href="/register" class="btn btn-full popular">Get Pro Monthly</a>
+    </div>
+
+    <!-- PRO YEARLY -->
+    <div class="pricing-card">
+      <div class="card-plan">Pro Yearly</div>
+      <div class="card-price"><sup>$</sup>39.99</div>
+      <div class="card-period">per year</div>
+      <div class="card-billed" style="color:var(--amber)">Save 33% vs monthly</div>
+      <div class="card-divider"></div>
+      <ul class="card-features">
+        <li><span class="check">✓</span><b>Unlimited</b> diary entries</li>
+        <li><span class="check">✓</span>Photo &amp; video uploads</li>
+        <li><span class="check">✓</span>Canvas stickers</li>
+        <li><span class="check">✓</span>Public shareable links</li>
+        <li><span class="check">✓</span>Emoji reactions &amp; replies</li>
+        <li><span class="check">✓</span>Priority support</li>
+      </ul>
+      <a href="/register" class="btn btn-outline btn-full">Get Pro Yearly</a>
+    </div>
+
+    <!-- LIFETIME -->
+    <div class="pricing-card">
+      <div class="card-plan">Lifetime</div>
+      <div class="card-price"><sup>$</sup>99</div>
+      <div class="card-period">one-time payment</div>
+      <div class="card-billed" style="color:var(--purple)">Pay once · use forever</div>
+      <div class="card-divider"></div>
+      <ul class="card-features">
+        <li><span class="check">✓</span><b>Unlimited</b> diary entries</li>
+        <li><span class="check">✓</span>Photo &amp; video uploads</li>
+        <li><span class="check">✓</span>Canvas stickers</li>
+        <li><span class="check">✓</span>Public shareable links</li>
+        <li><span class="check">✓</span>Emoji reactions &amp; replies</li>
+        <li><span class="check">✓</span>Lifetime updates — never pay again</li>
+      </ul>
+      <a href="/register" class="btn btn-outline btn-full">Get Lifetime Access</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── GUARANTEE ─────────────────────────────────────────────────────── -->
+<div class="guarantee">
+  <div class="guarantee-icon">🔒</div>
+  <h3>No surprises, ever</h3>
+  <p>You keep access to every entry you've written, regardless of plan. Downgrade or cancel any time — your data is always yours.</p>
+</div>
+
+<!-- ── FAQ ───────────────────────────────────────────────────────────── -->
+<section class="notes-section">
+  <h2>Frequently asked questions</h2>
+
+  <div class="faq-item">
+    <div class="faq-q">Can I try before I pay?</div>
+    <div class="faq-a">Yes — the Free plan lets you write up to 5 diary entries with no credit card required. Upgrade whenever you need more.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">What happens to my entries if I downgrade?</div>
+    <div class="faq-a">All your existing entries are preserved. You'll just be limited to creating new entries once you reach 5. No data is ever deleted.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">What file types can I upload?</div>
+    <div class="faq-a">Pro and Lifetime plans support JPEG, PNG, GIF, WebP images and MP4, WebM, OGG, QuickTime videos up to 200 MB per file.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Is the Lifetime plan really one-time?</div>
+    <div class="faq-a">Yes. Pay $99 once and you get unlimited access forever — including all future features at no extra cost.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Can an admin give me a free upgrade?</div>
+    <div class="faq-a">Yes — admins can assign any paid plan to a user at no charge, with or without an expiry date. This is used for early supporters, contributors, or special promotions.</div>
+  </div>
+</section>
+
+<script>
+document.querySelectorAll('.faq-q').forEach(q => {
+  q.addEventListener('click', () => {
+    q.closest('.faq-item').classList.toggle('open');
+  });
+});
+</script>
+
+</body>
+</html>

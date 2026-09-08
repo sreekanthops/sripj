@@ -10,12 +10,13 @@ app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-app.use('/api/notes',    require('./routes/notes'));
-app.use('/api/auth',     require('./routes/auth'));
-app.use('/api/upload',   require('./routes/upload'));
-app.use('/api/admin',    require('./routes/admin'));
-app.use('/api/rephrase', require('./routes/rephrase'));
-app.use('/api/stickers', require('./routes/stickers'));
+app.use('/api/notes',         require('./routes/notes'));
+app.use('/api/auth',          require('./routes/auth'));
+app.use('/api/upload',        require('./routes/upload'));
+app.use('/api/admin',         require('./routes/admin'));
+app.use('/api/rephrase',      require('./routes/rephrase'));
+app.use('/api/stickers',      require('./routes/stickers'));
+app.use('/api/subscriptions', require('./routes/subscriptions'));
 
 // Admin portal — explicit route before SPA fallback
 app.get('/admin', (req, res) => {

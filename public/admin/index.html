@@ -167,6 +167,40 @@ tr:hover td{background:#fafbff}
 .badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px}
 .badge-green{background:var(--green-bg);color:var(--green)}
 .badge-gold{background:var(--amber-bg);color:var(--amber)}
+.badge-blue{background:var(--blue-bg);color:var(--blue)}
+.badge-purple{background:var(--purple-bg);color:var(--purple)}
+.badge-free{background:var(--surface3);color:var(--ink3)}
+
+/* ── SUBSCRIPTION PAGE ── */
+.plan-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:28px}
+.plan-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:20px 22px;box-shadow:var(--shadow);
+}
+.plan-card.highlight{border-color:var(--accent);border-width:2px}
+.plan-name{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.plan-price{font-size:24px;font-weight:700;color:var(--accent);line-height:1;margin-bottom:6px}
+.plan-price span{font-size:12px;color:var(--ink4);font-weight:400}
+.plan-desc{font-size:12px;color:var(--ink3);line-height:1.5}
+.plan-stat{font-size:20px;font-weight:700;color:var(--ink);margin-top:8px}
+.plan-stat-label{font-size:10px;color:var(--ink4);text-transform:uppercase;letter-spacing:.5px}
+
+/* assign modal overlay */
+#assignModal{
+  position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.4);
+  display:flex;align-items:center;justify-content:center;
+}
+.modal-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
+  padding:32px 36px;max-width:420px;width:100%;box-shadow:var(--shadow2);
+}
+.modal-title{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:20px}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+select.field-select{
+  width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r2);
+  padding:10px 14px;font-size:14px;color:var(--ink);font-family:var(--sans);outline:none;
+}
+select.field-select:focus{border-color:var(--accent)}
 
 /* ── EMOJI BAR ── */
 .emoji-grid{
@@ -250,6 +284,7 @@ tr:hover td{background:#fafbff}
     <button class="nav-tab" data-page="activity">Activity</button>
     <button class="nav-tab" data-page="users">Users</button>
     <button class="nav-tab" data-page="reactions">Reactions</button>
+    <button class="nav-tab" data-page="subscriptions">Subscriptions</button>
     <button class="nav-tab" data-page="settings">Settings</button>
   </nav>
 
@@ -320,6 +355,68 @@ tr:hover td{background:#fafbff}
     </div>
   </div>
 
+  <!-- SUBSCRIPTIONS -->
+  <div class="page" id="page-subscriptions">
+
+    <!-- Plan summary cards -->
+    <div class="section">
+      <div class="section-title">Plan Distribution</div>
+      <div class="plan-grid" id="subPlanGrid">
+        <div class="plan-card highlight">
+          <div class="plan-name">Free</div>
+          <div class="plan-price">$0 <span>/ forever</span></div>
+          <div class="plan-stat" id="pc-free">—</div>
+          <div class="plan-stat-label">users</div>
+          <div class="plan-desc" style="margin-top:8px">Up to 5 entries · no uploads · no canvas</div>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">Pro Monthly</div>
+          <div class="plan-price">$4.99 <span>/ month</span></div>
+          <div class="plan-stat" id="pc-monthly">—</div>
+          <div class="plan-stat-label">users</div>
+          <div class="plan-desc" style="margin-top:8px">Unlimited entries · uploads · canvas</div>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">Pro Yearly</div>
+          <div class="plan-price">$39.99 <span>/ year</span></div>
+          <div class="plan-stat" id="pc-yearly">—</div>
+          <div class="plan-stat-label">users</div>
+          <div class="plan-desc" style="margin-top:8px">Unlimited entries · uploads · canvas · save 33%</div>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">Lifetime</div>
+          <div class="plan-price">$99 <span>one-time</span></div>
+          <div class="plan-stat" id="pc-lifetime">—</div>
+          <div class="plan-stat-label">users</div>
+          <div class="plan-desc" style="margin-top:8px">Unlimited everything · never expires</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User subscription list -->
+    <div class="section">
+      <div class="section-title">User Subscriptions
+        <button class="btn btn-primary" id="subRefreshBtn" style="margin-left:auto;padding:5px 14px;font-size:12px">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Username</th>
+              <th>Effective Plan</th>
+              <th>Expires</th>
+              <th>Granted By</th>
+              <th>Entries</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="subUsersTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- SETTINGS -->
   <div class="page" id="page-settings">
     <div class="section">
@@ -354,6 +451,31 @@ tr:hover td{background:#fafbff}
     </div>
   </div>
 
+</div>
+
+<!-- ── ASSIGN SUBSCRIPTION MODAL ──────────────────────────────────── -->
+<div id="assignModal" class="hidden">
+  <div class="modal-card">
+    <div class="modal-title" id="assignModalTitle">Assign Plan</div>
+    <div class="field">
+      <label>Plan</label>
+      <select class="field-select" id="assignPlanSel">
+        <option value="free">Free (revert to free)</option>
+        <option value="monthly">Pro Monthly — $4.99/mo</option>
+        <option value="yearly">Pro Yearly — $39.99/yr</option>
+        <option value="lifetime">Lifetime — $99 one-time</option>
+      </select>
+    </div>
+    <div class="field" id="assignExpiryField">
+      <label>Expires At <span style="color:var(--ink4);font-weight:400">(leave blank = no expiry)</span></label>
+      <input type="date" id="assignExpiryDate" class="field-select" style="cursor:pointer">
+    </div>
+    <p class="err" id="assignErr"></p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="assignCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="assignSaveBtn">Save</button>
+    </div>
+  </div>
 </div>
 
 <div id="toast"></div>
@@ -424,6 +546,8 @@ async function showApp(username) {
 }
 
 // ── TABS ────────────────────────────────────────────────────────────────────
+let subTabLoaded = false;
+
 document.getElementById('navTabs').addEventListener('click', e => {
   const tab = e.target.closest('.nav-tab');
   if (!tab) return;
@@ -431,6 +555,11 @@ document.getElementById('navTabs').addEventListener('click', e => {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   tab.classList.add('active');
   document.getElementById('page-' + tab.dataset.page).classList.add('active');
+  // Lazy-load subscriptions tab on first open
+  if (tab.dataset.page === 'subscriptions' && !subTabLoaded) {
+    subTabLoaded = true;
+    loadSubscriptions();
+  }
 });
 
 // ── LOAD STATS ───────────────────────────────────────────────────────────────
@@ -630,6 +759,149 @@ function renderBarChart(containerId, data, labelKey, valueKey, title = '', color
     </svg>
   `;
 }
+
+// ── SUBSCRIPTIONS ────────────────────────────────────────────────────────────
+const SUBS_API = '/api/subscriptions';
+
+async function subsApi(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(adminToken ? { Authorization: 'Bearer ' + adminToken } : {}) },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(SUBS_API + path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Error');
+  return data;
+}
+
+function planBadge(planId) {
+  const map = {
+    free:     '<span class="badge badge-free">Free</span>',
+    monthly:  '<span class="badge badge-blue">Pro Monthly</span>',
+    yearly:   '<span class="badge badge-purple">Pro Yearly</span>',
+    lifetime: '<span class="badge badge-gold">Lifetime</span>',
+  };
+  return map[planId] || `<span class="badge badge-free">${planId}</span>`;
+}
+
+let subUsers = [];   // cached last load
+
+async function loadSubscriptions() {
+  try {
+    const [listData, statsData] = await Promise.all([
+      subsApi('GET', '/admin/list'),
+      subsApi('GET', '/admin/stats'),
+    ]);
+    subUsers = listData.users;
+    renderSubStats(statsData.planCounts);
+    renderSubUsers(subUsers);
+  } catch (e) {
+    toast('Failed to load subscriptions: ' + e.message);
+  }
+}
+
+function renderSubStats(planCounts) {
+  const map = {};
+  planCounts.forEach(p => { map[p.plan_id] = p.user_count; });
+  ['free','monthly','yearly','lifetime'].forEach(id => {
+    const el = document.getElementById('pc-' + id);
+    if (el) el.textContent = map[id] ?? 0;
+  });
+}
+
+function renderSubUsers(users) {
+  const tbody = document.getElementById('subUsersTable');
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--ink4);padding:30px">No users yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = users.map((u, i) => {
+    const expiredLabel = u.isExpired ? '<span style="color:var(--red);font-size:10px;margin-left:4px">expired</span>' : '';
+    const expiresCell  = u.expiresAt
+      ? fmtDate(u.expiresAt) + expiredLabel
+      : (u.effectivePlan === 'lifetime' ? '<span style="color:var(--green);font-size:11px">Never</span>' : '—');
+    return `
+      <tr>
+        <td style="color:var(--ink4)">${i + 1}</td>
+        <td><span class="badge badge-gold">@${u.username}</span>${u.displayName ? `<span style="color:var(--ink3);margin-left:6px;font-size:11px">${u.displayName}</span>` : ''}</td>
+        <td>${planBadge(u.effectivePlan)}</td>
+        <td style="font-size:12px">${expiresCell}</td>
+        <td style="font-size:12px;color:var(--ink3)">${u.grantedBy ? '<span title="Admin assigned">Admin</span>' : (u.subId ? 'Self' : '—')}</td>
+        <td>${u.noteCount}</td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px">
+          <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px"
+            data-assign="${u.userId}" data-uname="${u.username}" data-plan="${u.effectivePlan}" data-expires="${u.expiresAt || ''}">
+            Assign Plan
+          </button>
+          ${u.subId ? `<button class="btn btn-danger" style="padding:4px 10px;font-size:11px"
+            data-revoke="${u.userId}" data-uname="${u.username}">Revoke</button>` : ''}
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  // Bind Assign buttons
+  tbody.querySelectorAll('[data-assign]').forEach(btn => {
+    btn.onclick = () => openAssignModal(btn.dataset.assign, btn.dataset.uname, btn.dataset.plan, btn.dataset.expires);
+  });
+
+  // Bind Revoke buttons
+  tbody.querySelectorAll('[data-revoke]').forEach(btn => {
+    btn.onclick = async () => {
+      if (!confirm(`Revoke subscription for @${btn.dataset.uname}? They will revert to the Free plan.`)) return;
+      try {
+        await subsApi('DELETE', `/admin/revoke/${btn.dataset.revoke}`);
+        toast('Subscription revoked — user is now on Free plan');
+        await loadSubscriptions();
+      } catch (e) { toast('Error: ' + e.message); }
+    };
+  });
+}
+
+// ── Assign modal ────────────────────────────────────────────────────────────
+let assignTargetId = null;
+
+function openAssignModal(userId, username, currentPlan, currentExpires) {
+  assignTargetId = userId;
+  document.getElementById('assignModalTitle').textContent = `Assign Plan — @${username}`;
+  document.getElementById('assignPlanSel').value = currentPlan || 'free';
+  document.getElementById('assignExpiryDate').value = currentExpires ? currentExpires.slice(0, 10) : '';
+  document.getElementById('assignErr').textContent = '';
+  toggleExpiryField(currentPlan || 'free');
+  document.getElementById('assignModal').classList.remove('hidden');
+}
+
+function toggleExpiryField(planId) {
+  document.getElementById('assignExpiryField').style.display = planId === 'lifetime' ? 'none' : '';
+}
+
+document.getElementById('assignPlanSel').addEventListener('change', e => toggleExpiryField(e.target.value));
+
+document.getElementById('assignCancelBtn').onclick = () => {
+  document.getElementById('assignModal').classList.add('hidden');
+};
+
+document.getElementById('assignModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('assignModal'))
+    document.getElementById('assignModal').classList.add('hidden');
+});
+
+document.getElementById('assignSaveBtn').onclick = async () => {
+  const planId    = document.getElementById('assignPlanSel').value;
+  const expiryVal = document.getElementById('assignExpiryDate').value;
+  const expiresAt = (planId !== 'lifetime' && expiryVal) ? new Date(expiryVal + 'T23:59:59').toISOString() : null;
+  const errEl = document.getElementById('assignErr');
+  errEl.textContent = '';
+  try {
+    await subsApi('PUT', '/admin/assign', { userId: assignTargetId, planId, expiresAt });
+    document.getElementById('assignModal').classList.add('hidden');
+    toast(`Plan updated to ${planId}${expiresAt ? ' (expires ' + fmtDate(expiresAt) + ')' : ''}`);
+    await loadSubscriptions();
+  } catch (e) { errEl.textContent = e.message; }
+};
+
+document.getElementById('subRefreshBtn').onclick = () => loadSubscriptions();
 
 // ── AUTO-LOGIN on page load ───────────────────────────────────────────────────
 (async () => {

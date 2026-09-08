@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 const { verifyToken, optionalAuth } = require('../auth');
+const { getUserPlan } = require('../subscription');
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 function getReactorKey(req) {
@@ -138,6 +139,19 @@ router.get('/:id', optionalAuth, (req, res) => {
 router.post('/', verifyToken, (req, res) => {
   const { title, body, font, fontSize, fontWeight, colorIdx, musicUrl, tags } = req.body;
   if (!title && !body) return res.status(400).json({ error: 'Title or body required' });
+
+  // ── Enforce plan note limit ────────────────────────────────────────────────
+  const plan = getUserPlan(req.user.userId);
+  if (plan.notesLimit !== -1) {
+    const count = db.prepare('SELECT COUNT(*) as c FROM notes WHERE user_id = ?').get(req.user.userId).c;
+    if (count >= plan.notesLimit) {
+      return res.status(403).json({
+        error: `Free plan limit reached (${plan.notesLimit} entries). Upgrade to Pro for unlimited entries.`,
+        limitReached: true,
+        plan: plan.planId,
+      });
+    }
+  }
   const id = uuidv4();
   const tagsJson = JSON.stringify(Array.isArray(tags) ? tags : []);
   db.prepare(`

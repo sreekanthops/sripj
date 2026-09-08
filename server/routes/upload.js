@@ -5,6 +5,7 @@ const fs      = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const db      = require('../db');
 const { verifyToken } = require('../auth');
+const { getUserPlan } = require('../subscription');
 
 const UPLOAD_DIR = path.join(__dirname, '..', '..', 'public', 'uploads');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -31,6 +32,17 @@ const upload = multer({
 
 // POST /api/upload/:noteId  — upload media (note owner only)
 router.post('/:noteId', verifyToken, upload.array('files', 20), (req, res) => {
+  // ── Enforce plan upload permission ────────────────────────────────────────
+  const plan = getUserPlan(req.user.userId);
+  if (!plan.uploads) {
+    req.files?.forEach(f => fs.unlink(f.path, () => {}));
+    return res.status(403).json({
+      error: 'Media uploads require a Pro plan. Upgrade to upload photos and videos.',
+      limitReached: true,
+      plan: plan.planId,
+    });
+  }
+
   const note = db.prepare('SELECT id, user_id FROM notes WHERE id = ?').get(req.params.noteId);
   if (!note) {
     req.files?.forEach(f => fs.unlink(f.path, () => {}));
