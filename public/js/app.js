@@ -1497,13 +1497,24 @@ document.getElementById('musicVol').oninput = e => {
     resH.addEventListener('pointerup',   () => { resizing=false; el.classList.remove('active'); save(); });
     el.appendChild(resH);
 
-    // ── drag to move ──────────────────────────────────────────────────
+    // ── drag handle (visible grip bar) ───────────────────────────────
+    const dragH = document.createElement('div');
+    dragH.className = 'sticker-drag-handle';
+    dragH.title = 'Drag to move';
+    dragH.innerHTML = '<span></span><span></span><span></span>';
+    el.appendChild(dragH);
+
+    // ── drag to move — triggered by drag handle OR image body (non-text) ─
     let dragging=false, dOX=0, dOY=0;
-    el.addEventListener('pointerdown', e => {
-      if (e.target.closest('.sticker-controls,.sticker-rotate-handle,.sticker-resize-handle,.sticker-del,.sticker-text-edit')) return;
+    function startDrag(e) {
       dragging=true;
       dOX=(e.clientX+window.scrollX)-state.x; dOY=(e.clientY+window.scrollY)-state.y;
       el.setPointerCapture(e.pointerId); el.classList.add('active'); el.style.zIndex=200+_zTop;
+    }
+    dragH.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); startDrag(e); });
+    el.addEventListener('pointerdown', e => {
+      if (e.target.closest('.sticker-controls,.sticker-rotate-handle,.sticker-resize-handle,.sticker-del,.sticker-text-edit,.sticker-drag-handle')) return;
+      startDrag(e);
     });
     el.addEventListener('pointermove', e => { if(!dragging) return; state.x=(e.clientX+window.scrollX)-dOX; state.y=(e.clientY+window.scrollY)-dOY; applyTransform(); });
     el.addEventListener('pointerup',   () => { dragging=false; el.classList.remove('active'); el.style.zIndex=state.z; save(); });

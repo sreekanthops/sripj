@@ -1153,6 +1153,34 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   background: rgba(255,255,255,.08);
 }
 
+/* ── Drag handle — grip bar shown on hover below each sticker ── */
+.sticker-drag-handle {
+  position: absolute;
+  bottom: -22px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 3px; align-items: center; justify-content: center;
+  padding: 5px 10px;
+  background: rgba(44,36,22,.75);
+  backdrop-filter: blur(6px);
+  border-radius: 99px;
+  cursor: grab;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s;
+  z-index: 12;
+  touch-action: none;
+}
+.sticker-drag-handle span {
+  display: block; width: 3px; height: 10px;
+  border-radius: 2px; background: rgba(255,255,255,.7);
+}
+.sticker:hover .sticker-drag-handle,
+.sticker.active .sticker-drag-handle {
+  opacity: 1;
+  pointer-events: all;
+}
+.sticker-drag-handle:active { cursor: grabbing; }
+
 /* Colour picker inside toolbar */
 .sticker-color-pick {
   width: 22px; height: 22px;
