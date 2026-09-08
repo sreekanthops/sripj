@@ -1262,10 +1262,12 @@ function renderDetail(note) {
   }
 
   // ── events ──────────────────────────────────────────────────────────────
-  cont.querySelector('.btn-dedit')?.addEventListener('click', () => {
+  cont.querySelector('.btn-dedit')?.addEventListener('click', e => {
+    e.stopPropagation();
     closeOv('detailOverlay'); openEditForm(note);
   });
-  cont.querySelector('.btn-ddel')?.addEventListener('click', async () => {
+  cont.querySelector('.btn-ddel')?.addEventListener('click', async e => {
+    e.stopPropagation();
     if (!confirm('Delete this entry permanently?')) return;
     try {
       await api('DELETE', `/notes/${note.id}`);

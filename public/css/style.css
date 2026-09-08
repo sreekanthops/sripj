@@ -765,10 +765,14 @@ body.is-owner .slide-del { display: block; }
 .td-bar.done   { background: rgba(255,255,255,.55); }
 
 .td-tap {
-  position: absolute; top: 0; bottom: 0; z-index: 30;
-  width: 38%; display: flex; align-items: center;
+  position: absolute; top: 0; z-index: 30;
+  width: 38%;
+  /* Only cover the top half so buttons in the scrollable body stay tappable */
+  height: 50%;
+  display: flex; align-items: center;
   font-size: 22px; color: rgba(255,255,255,.5);
   cursor: pointer; user-select: none; opacity: 0; transition: opacity .15s;
+  pointer-events: auto;
 }
 .td-tap:hover, .td-tap:active { opacity: 1; }
 .td-tap-left  { left: 0;  justify-content: flex-start; padding-left: 10px; }
@@ -823,8 +827,14 @@ body.is-owner .slide-del { display: block; }
   margin-top: 16px; padding: 12px 16px;
   background: var(--glow); border: 1px solid var(--glow2);
   border-radius: 10px;
+  position: relative; z-index: 40; /* above tap zones */
 }
 .admin-bar-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); margin-right: 2px; }
+
+/* Make edit/delete buttons easier to tap on mobile */
+@media(max-width: 768px) {
+  .admin-note-bar .btn { min-height: 40px; padding: 0 16px; font-size: 14px; }
+}
 
 hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 .section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink4); margin-bottom: 12px; }
