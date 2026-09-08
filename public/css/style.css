@@ -76,7 +76,6 @@ body {
 ══════════════════════════════════════════════════════ */
 #topbar {
   position: sticky; top: 0; z-index: 200;
-  height: var(--topbar-h);
   background: rgba(232,224,208,.94);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
@@ -84,7 +83,7 @@ body {
 }
 .topbar-inner {
   max-width: 1320px; margin: 0 auto;
-  height: 100%; padding: 0 36px;
+  min-height: var(--topbar-h); padding: 0 36px;
   display: flex; align-items: center; gap: 16px;
 }
 .topbar-left { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
