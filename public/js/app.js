@@ -498,6 +498,80 @@ document.getElementById('fSave').onclick = async () => {
   }
 };
 
+// ── AI WRITE ───────────────────────────────────────────────────────────────
+let aiWordCount = 80;
+let aiMode = 'append'; // 'append' | 'replace'
+
+// Preset buttons
+document.getElementById('aiWordPresets').addEventListener('click', e => {
+  const btn = e.target.closest('.ai-preset');
+  if (!btn) return;
+  aiWordCount = parseInt(btn.dataset.w, 10);
+  document.getElementById('aiWordCount').value = aiWordCount;
+  document.querySelectorAll('.ai-preset').forEach(b => b.removeAttribute('data-active'));
+  btn.setAttribute('data-active', 'true');
+});
+
+document.getElementById('aiWordCount').addEventListener('change', e => {
+  aiWordCount = Math.min(400, Math.max(20, parseInt(e.target.value, 10) || 80));
+  e.target.value = aiWordCount;
+  document.querySelectorAll('.ai-preset').forEach(b => {
+    if (parseInt(b.dataset.w, 10) === aiWordCount) b.setAttribute('data-active', 'true');
+    else b.removeAttribute('data-active');
+  });
+});
+
+// Mode toggle
+document.getElementById('aiModeAppend').onclick = () => {
+  aiMode = 'append';
+  document.getElementById('aiModeAppend').classList.add('active');
+  document.getElementById('aiModeReplace').classList.remove('active');
+};
+document.getElementById('aiModeReplace').onclick = () => {
+  aiMode = 'replace';
+  document.getElementById('aiModeReplace').classList.add('active');
+  document.getElementById('aiModeAppend').classList.remove('active');
+};
+
+// AI Write button
+document.getElementById('aiWriteBtn').onclick = async () => {
+  const bodyEl  = document.getElementById('fBody');
+  const errEl   = document.getElementById('aiError');
+  const btn     = document.getElementById('aiWriteBtn');
+  const label   = document.getElementById('aiWriteLabel');
+  const seed    = bodyEl.value.trim();
+
+  errEl.classList.add('hidden');
+  errEl.textContent = '';
+
+  if (!seed) {
+    errEl.textContent = 'Write a few words first — the AI will expand on what you\'ve started.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  btn.disabled = true;
+  label.textContent = 'Writing…';
+  btn.classList.add('loading');
+
+  try {
+    const { result } = await api('POST', '/ai/expand', { text: seed, words: aiWordCount });
+    if (aiMode === 'replace') {
+      bodyEl.value = result;
+    } else {
+      bodyEl.value = bodyEl.value.trimEnd() + '\n\n' + result;
+    }
+    bodyEl.scrollTop = bodyEl.scrollHeight;
+  } catch (err) {
+    errEl.textContent = '✦ AI failed: ' + err.message;
+    errEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    label.textContent = 'AI Write';
+    btn.classList.remove('loading');
+  }
+};
+
 // ── REPHRASE ───────────────────────────────────────────────────────────────
 document.getElementById('rephraseBtn').onclick = async () => {
   const bodyEl  = document.getElementById('fBody');

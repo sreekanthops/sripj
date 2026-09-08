@@ -213,8 +213,28 @@
       <div class="swatches" id="swatches"></div>
     </div>
     <div class="field">
-      <label>Content</label>
-      <textarea id="fBody" class="lined" placeholder="Write your thoughts here…"></textarea>
+      <div class="content-label-row">
+        <label>Content</label>
+        <div class="ai-toolbar">
+          <div class="ai-word-presets" id="aiWordPresets">
+            <button type="button" class="ai-preset" data-w="40">~40w</button>
+            <button type="button" class="ai-preset" data-w="80" data-active="true">~80w</button>
+            <button type="button" class="ai-preset" data-w="150">~150w</button>
+            <button type="button" class="ai-preset" data-w="250">~250w</button>
+            <input type="number" id="aiWordCount" value="80" min="20" max="400" title="Target word count">
+          </div>
+          <div class="ai-mode-toggle">
+            <button type="button" class="ai-mode-btn active" id="aiModeAppend" title="Add AI text after yours">+ Append</button>
+            <button type="button" class="ai-mode-btn" id="aiModeReplace" title="Replace your text">↺ Replace</button>
+          </div>
+          <button type="button" class="btn-ai-write" id="aiWriteBtn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5Z"/><path d="M19 15l.75 2.25L22 18l-2.25.75L19 21l-.75-2.25L16 18l2.25-.75Z"/></svg>
+            <span id="aiWriteLabel">AI Write</span>
+          </button>
+        </div>
+      </div>
+      <p class="ai-error hidden" id="aiError"></p>
+      <textarea id="fBody" class="lined" placeholder="Write a few words then click ✦ AI Write to expand…"></textarea>
       <div class="rephrase-bar">
         <button type="button" class="btn btn-outline btn-xs" id="rephraseBtn">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4h10M6 1l-5 3 5 3"/><path d="M15 12H5m5 3 5-3-5-3"/></svg>
