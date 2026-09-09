@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-  <title>My Journal</title>
+  <title>Unsent Stories</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/css/style.css">
@@ -17,7 +17,7 @@
   <div class="auth-card">
     <div class="auth-logo">
       <div class="auth-logo-icon">✦</div>
-      <div class="auth-logo-name">My Journal</div>
+      <div class="auth-logo-name"><span class="brand-unsent">Unsent</span> <span class="brand-stories">Stories</span></div>
       <div class="auth-logo-sub">your private space to write, reflect &amp; remember</div>
     </div>
     <div class="auth-tabs">
@@ -71,7 +71,7 @@
           </svg>
         </button>
         <div class="brand">
-          <span class="brand-name" id="pageTitle">My Journal</span>
+          <span class="brand-name" id="pageTitle"><span class="brand-unsent">Unsent</span> <span class="brand-stories">Stories</span></span>
           <span class="brand-caption" id="pageTitleCaption">about u</span>
         </div>
       </div>
@@ -122,7 +122,7 @@
       <div class="sb-brand">
         <div class="sb-icon">✦</div>
         <div>
-          <div class="sb-name" id="sidebarTitle">My Journal</div>
+          <div class="sb-name" id="sidebarTitle">Unsent Stories</div>
           <div class="sb-sub" id="sidebarSub">@username</div>
         </div>
       </div>
@@ -173,7 +173,7 @@
       <!-- pagination (Show All mode) -->
       <div id="notesPager" class="notes-pager" style="display:none"></div>
     </section>
-    <footer>My Journal · your private space to write, reflect &amp; remember</footer>
+    <footer>Unsent Stories · your private space to write, reflect &amp; remember</footer>
   </main>
 
 </div>
@@ -381,7 +381,7 @@
 </div>
 
 <!-- ── CHATBOT ══════════════════════════════════════════════════════════════ -->
-<button id="chatbotFab" class="chatbot-fab" title="Diary Assistant">
+<button id="chatbotFab" class="chatbot-fab" title="Story Assistant">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
     <circle cx="9" cy="10" r=".8" fill="currentColor"/>
@@ -395,7 +395,7 @@
   <div class="chatbot-header">
     <div class="chatbot-header-left">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span>Diary Assistant</span>
+      <span>Story Assistant</span>
     </div>
     <div class="chatbot-header-right">
       <button class="chatbot-hdr-btn" id="chatbotFullscreenBtn" title="Full screen">
@@ -411,11 +411,11 @@
   </div>
   <div class="chatbot-messages" id="chatbotMessages">
     <div class="chatbot-msg chatbot-msg-ai">
-      <div class="chatbot-bubble">Hi! I've read your diary. Ask me anything about your entries — patterns, moods, memorable moments…</div>
+      <div class="chatbot-bubble">Hi! I've read your stories. Ask me anything about your entries — patterns, moods, memorable moments…</div>
     </div>
   </div>
   <div class="chatbot-input-row">
-    <textarea id="chatbotInput" class="chatbot-input" placeholder="Ask about your diary…" rows="1"></textarea>
+    <textarea id="chatbotInput" class="chatbot-input" placeholder="Ask about your stories…" rows="1"></textarea>
     <button class="chatbot-send" id="chatbotSendBtn" title="Send">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
     </button>

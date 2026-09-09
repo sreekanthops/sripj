@@ -1,9 +1,9 @@
 /* ══════════════════════════════════════════════════════
-   MY JOURNAL  ·  Warm Journal Aesthetic
+   UNSENT STORIES  ·  Warm Journal Aesthetic
    Beige parchment · Handwriting titles · Torn-paper cards
 ══════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Caveat:wght@500;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Caveat:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=Dancing+Script:wght@700&family=Cormorant+Garamond:wght@600;700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 15px; scroll-behavior: smooth; }
@@ -52,6 +52,8 @@ html { font-size: 15px; scroll-behavior: smooth; }
   --serif:      'Playfair Display', Georgia, serif;
   --script:     'Caveat', cursive;
   --sans:       'DM Sans', system-ui, sans-serif;
+  --brand-unsent-font: 'Dancing Script', cursive;
+  --brand-stories-font: 'Cormorant Garamond', Georgia, serif;
 }
 
 body {
@@ -115,6 +117,23 @@ body {
   font-family: var(--script);
   font-size: 13px; color: var(--ink4); font-style: italic;
   letter-spacing: .3px;
+}
+
+/* ── Brand two-tone: "Unsent" in Dancing Script + "Stories" in Cormorant Garamond ── */
+.brand-unsent {
+  font-family: 'Dancing Script', cursive;
+  font-style: normal;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: .2px;
+}
+.brand-stories {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--gold);
+  letter-spacing: .8px;
+  font-size: 1.08em;
 }
 
 .note-pill {

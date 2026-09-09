@@ -301,7 +301,7 @@ function renderHeader() {
   } else if (currentUser && viewingUser) {
     el.innerHTML = `
       <span class="owner-badge">👤 ${esc(currentUser.displayName)}</span>
-      <button class="btn btn-ghost btn-sm" data-action="go-home">My Diary</button>`;
+      <button class="btn btn-ghost btn-sm" data-action="go-home">My Stories</button>`;
     if (fab) fab.style.display = 'none';
   } else if (!currentUser && viewingUser) {
     el.innerHTML = `
@@ -365,7 +365,7 @@ async function enterOwnDiary() {
   document.body.classList.add('is-owner');
   document.getElementById('sidebarTitle').textContent = currentUser.displayName || currentUser.username;
   document.getElementById('sidebarSub').textContent   = '@' + currentUser.username;
-  document.getElementById('pageTitle').textContent     = 'My Journal';
+  document.getElementById('pageTitle').innerHTML       = '<span class="brand-unsent">Unsent</span> <span class="brand-stories">Stories</span>';
   document.getElementById('pageTitleCaption').textContent = 'write · reflect · remember';
   history.replaceState({}, '', '/u/' + currentUser.username);
   renderHeader();
@@ -388,9 +388,11 @@ async function enterPublicDiary(username) {
     notes = data.notes;
     document.getElementById('sidebarTitle').textContent = viewingUser.displayName || viewingUser.username;
     document.getElementById('sidebarSub').textContent   = '@' + viewingUser.username;
-    document.getElementById('pageTitle').textContent     = isOwner
-      ? 'My Journal'
-      : (viewingUser.displayName || viewingUser.username) + "'s Diary";
+    if (isOwner) {
+      document.getElementById('pageTitle').innerHTML = '<span class="brand-unsent">Unsent</span> <span class="brand-stories">Stories</span>';
+    } else {
+      document.getElementById('pageTitle').textContent = (viewingUser.displayName || viewingUser.username) + "'s Stories";
+    }
     document.getElementById('pageTitleCaption').textContent = isOwner ? 'write · reflect · remember' : '';
     renderHeader();
     buildSwatches(0);
@@ -400,7 +402,7 @@ async function enterPublicDiary(username) {
     window._stickerLoad?.(viewingUser.username);
     renderGrid();
   } catch {
-    if (!currentUser) { showAuth(); } else { toast('Diary not found'); await enterOwnDiary(); }
+    if (!currentUser) { showAuth(); } else { toast('Stories not found'); await enterOwnDiary(); }
   }
 }
 
@@ -1036,7 +1038,7 @@ function buildNoteCard(n, index, total) {
     </div>
     <div class="card-title">${esc(n.title)}</div>
     ${!n.media?.length && n.body
-      ? `<div class="card-excerpt">${esc(n.body)}</div>`
+      ? `<div class="card-excerpt" style="font-family:${esc(n.font||'Georgia,serif')}">${esc(n.body)}</div>`
       : ''}`;
   card.appendChild(body);
 
@@ -1677,7 +1679,7 @@ document.getElementById('musicVol').oninput = e => {
     const k = storageKey();
     if (k) localStorage.removeItem(k);
     msgsEl.innerHTML = '';
-    appendBubble('ai', 'Chat cleared. Ask me anything about your diary!');
+    appendBubble('ai', 'Chat cleared. Ask me anything about your stories!');
   }
 
   // FAB visibility is now controlled purely by CSS: body.is-owner shows it.
