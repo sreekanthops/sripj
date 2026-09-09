@@ -393,7 +393,7 @@ async function enterPublicDiary(username) {
     } else {
       document.getElementById('pageTitle').textContent = (viewingUser.displayName || viewingUser.username) + "'s Stories";
     }
-    document.getElementById('pageTitleCaption').textContent = isOwner ? 'write · reflect · remember' : '';
+    document.getElementById('pageTitleCaption').textContent = '';
     renderHeader();
     buildSwatches(0);
     setupUploadZone();

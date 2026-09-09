@@ -112,11 +112,7 @@ body {
   display: flex; flex-direction: column; align-items: flex-start;
   line-height: 1;
 }
-.brand-caption {
-  font-family: var(--script);
-  font-size: 11px; color: var(--ink4); font-style: italic;
-  letter-spacing: .3px; margin-top: 1px;
-}
+.brand-caption { display: none; }
 
 /* ── Brand two-tone: "Unsent" in Satisfy brush script + "Stories" in Playfair serif ── */
 .brand-unsent {
@@ -129,19 +125,7 @@ body {
   line-height: 1.1;
   display: block;
 }
-.brand-divider {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 10px; color: var(--ink4);
-  line-height: 1; margin: 1px 0;
-}
-.brand-divider::before,
-.brand-divider::after {
-  content: '';
-  display: inline-block;
-  width: 18px; height: 1px;
-  background: var(--ink4);
-  opacity: .5;
-}
+.brand-divider { display: none; }
 .brand-stories {
   font-family: 'Playfair Display', Georgia, serif;
   font-weight: 700;
@@ -151,6 +135,7 @@ body {
   font-size: 13px;
   text-transform: uppercase;
   display: block;
+  margin-left: 10px;
 }
 
 .note-pill {
