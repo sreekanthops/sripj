@@ -19,6 +19,7 @@ app.use('/api/ai',             require('./routes/ai'));
 app.use('/api/stickers',       require('./routes/stickers'));
 app.use('/api/subscriptions',  require('./routes/subscriptions'));
 app.use('/api/global-images',  require('./routes/global-images'));
+app.use('/api/payments',       require('./routes/payments'));
 
 // Admin portal — explicit route before SPA fallback
 app.get('/admin', (req, res) => {

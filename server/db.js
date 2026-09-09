@@ -103,6 +103,26 @@ db.exec(`
     ended_at   TEXT
   );
 
+  -- ── APP SETTINGS — key/value store for admin-configurable settings ──────────
+  CREATE TABLE IF NOT EXISTS app_settings (
+    key        TEXT PRIMARY KEY,
+    value      TEXT NOT NULL DEFAULT '',
+    updated_at TEXT NOT NULL
+  );
+
+  -- ── RAZORPAY ORDERS — track payment lifecycle ────────────────────────────────
+  CREATE TABLE IF NOT EXISTS razorpay_orders (
+    id           TEXT PRIMARY KEY,   -- Razorpay order_id
+    user_id      TEXT NOT NULL,
+    plan_id      TEXT NOT NULL,
+    amount_paise INTEGER NOT NULL,   -- amount in paise (INR smallest unit)
+    currency     TEXT NOT NULL DEFAULT 'INR',
+    status       TEXT NOT NULL DEFAULT 'created',  -- created | paid | failed
+    payment_id   TEXT,               -- Razorpay payment_id after success
+    created_at   TEXT NOT NULL,
+    paid_at      TEXT
+  );
+
   -- ── GLOBAL IMAGES — admin-curated library visible to all users ─────────────
   CREATE TABLE IF NOT EXISTS global_images (
     id         TEXT PRIMARY KEY,
@@ -162,6 +182,12 @@ if (!hasColumn('notes', 'pinned'))  db.exec(`ALTER TABLE notes ADD COLUMN pinned
 // replies.user_id
 if (!hasColumn('replies', 'user_id')) db.exec(`ALTER TABLE replies ADD COLUMN user_id TEXT`);
 
+// subscription_plans: discount columns
+if (!hasColumn('subscription_plans', 'discount_pct'))      db.exec(`ALTER TABLE subscription_plans ADD COLUMN discount_pct     REAL    NOT NULL DEFAULT 0`);
+if (!hasColumn('subscription_plans', 'discount_label'))    db.exec(`ALTER TABLE subscription_plans ADD COLUMN discount_label   TEXT    NOT NULL DEFAULT ''`);
+if (!hasColumn('subscription_plans', 'discount_ends_at'))  db.exec(`ALTER TABLE subscription_plans ADD COLUMN discount_ends_at TEXT`);
+if (!hasColumn('subscription_plans', 'price_inr'))         db.exec(`ALTER TABLE subscription_plans ADD COLUMN price_inr        REAL    NOT NULL DEFAULT 0`);
+
 // reply_reactions — drop old schema that had a `count` column
 if (hasTable('reply_reactions') && hasColumn('reply_reactions', 'count')) {
   db.exec(`DROP TABLE reply_reactions`);
@@ -189,12 +215,12 @@ db.pragma('foreign_keys = ON');
 //   Lifetime    — $99 once  · unlimited everything, forever
 //
 const seedPlan = db.prepare(`
-  INSERT OR IGNORE INTO subscription_plans (id, name, price_usd, notes_limit, uploads, canvas, description)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
+  INSERT OR IGNORE INTO subscription_plans (id, name, price_usd, price_inr, notes_limit, uploads, canvas, description)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 `);
-seedPlan.run('free',     'Free',          0,      5,  0, 0, 'Up to 5 diary entries. No media uploads. No canvas stickers.');
-seedPlan.run('monthly',  'Pro Monthly',   4.99,  -1,  1, 1, 'Unlimited entries, media uploads & canvas stickers. Billed monthly.');
-seedPlan.run('yearly',   'Pro Yearly',   39.99,  -1,  1, 1, 'Unlimited entries, media uploads & canvas stickers. Billed yearly (save 33%).');
-seedPlan.run('lifetime', 'Lifetime',     99.00,  -1,  1, 1, 'Unlimited everything. One-time payment, never expires.');
+seedPlan.run('free',     'Free',          0,      0,      5,  0, 0, 'Up to 5 diary entries. No media uploads. No canvas stickers.');
+seedPlan.run('monthly',  'Pro Monthly',   4.99,   419,   -1,  1, 1, 'Unlimited entries, media uploads & canvas stickers. Billed monthly.');
+seedPlan.run('yearly',   'Pro Yearly',   39.99,  3329,   -1,  1, 1, 'Unlimited entries, media uploads & canvas stickers. Billed yearly (save 33%).');
+seedPlan.run('lifetime', 'Lifetime',     99.00,  8249,   -1,  1, 1, 'Unlimited everything. One-time payment, never expires.');
 
 module.exports = db;

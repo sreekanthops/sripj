@@ -340,6 +340,7 @@ select.field-select:focus{border-color:var(--accent)}
     <button class="nav-tab" data-page="subscriptions">Subscriptions</button>
     <button class="nav-tab" data-page="grant">Grant Free Access</button>
     <button class="nav-tab" data-page="global-images">Global Images</button>
+    <button class="nav-tab" data-page="payments">Payments</button>
     <button class="nav-tab" data-page="settings">Settings</button>
   </nav>
 
@@ -580,6 +581,64 @@ select.field-select:focus{border-color:var(--accent)}
         <div style="padding:30px;text-align:center;color:var(--ink4);font-size:12px">Loading…</div>
       </div>
     </div>
+  </div>
+
+  <!-- PAYMENTS -->
+  <div class="page" id="page-payments">
+
+    <!-- Razorpay Credentials -->
+    <div class="section">
+      <div class="section-title">Razorpay Credentials</div>
+      <div class="settings-card" style="max-width:560px">
+        <p style="font-size:12px;color:var(--ink3);line-height:1.6;margin-bottom:16px">
+          Enter your Razorpay <b>Key ID</b> and <b>Key Secret</b> from the Razorpay Dashboard → Settings → API Keys.
+          These are stored securely in the database and never hard-coded.
+        </p>
+        <div class="field">
+          <label>Key ID <span style="color:var(--ink4);font-weight:400">(starts with rzp_)</span></label>
+          <input type="text" id="rzpKeyId" placeholder="rzp_live_xxxxxxxxxxxx">
+        </div>
+        <div class="field">
+          <label>Key Secret <span style="color:var(--ink4);font-weight:400">(will be masked after save)</span></label>
+          <input type="password" id="rzpKeySecret" placeholder="Enter new secret to update">
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:4px">
+          <button class="btn btn-primary" id="rzpSaveBtn">Save Credentials</button>
+          <span id="rzpSaveStatus" style="font-size:12px;color:var(--green);font-weight:600"></span>
+        </div>
+        <p style="font-size:11px;color:var(--ink4);margin-top:12px;line-height:1.6">
+          Current Key ID: <b id="rzpCurrentKeyId" style="color:var(--ink2)">—</b><br>
+          Secret: <b id="rzpCurrentSecret" style="color:var(--ink2)">—</b>
+        </p>
+      </div>
+    </div>
+
+    <!-- Plan Pricing & Discounts -->
+    <div class="section">
+      <div class="section-title">Plan Pricing &amp; Discounts
+        <button class="btn btn-ghost" id="plansRefreshBtn" style="margin-left:auto;padding:5px 14px;font-size:12px">Refresh</button>
+      </div>
+      <div id="planEditorGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px"></div>
+    </div>
+
+    <!-- Payment Orders -->
+    <div class="section">
+      <div class="section-title">Payment Orders
+        <button class="btn btn-ghost" id="ordersRefreshBtn" style="margin-left:auto;padding:5px 14px;font-size:12px">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>User</th><th>Plan</th><th>Amount (₹)</th>
+              <th>Status</th><th>Payment ID</th><th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTable"></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 
   <!-- SETTINGS -->
@@ -1457,6 +1516,157 @@ document.getElementById('navTabs').addEventListener('click', e => {
   if (tab && tab.dataset.page === 'global-images' && !giTabLoaded) {
     giTabLoaded = true;
     loadGlobalImages();
+  }
+});
+
+// ── PAYMENTS TAB ─────────────────────────────────────────────────────────────
+const PAY_API = '/api/payments';
+
+async function payApi(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json', ...(adminToken ? { Authorization: 'Bearer ' + adminToken } : {}) } };
+  if (body) opts.body = JSON.stringify(body);
+  const res  = await fetch(PAY_API + path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Error');
+  return data;
+}
+
+// ── Load current Razorpay settings ────────────────────────────────────────────
+async function loadPaymentSettings() {
+  try {
+    const { settings } = await payApi('GET', '/admin/settings');
+    document.getElementById('rzpCurrentKeyId').textContent    = settings.razorpay_key_id || '(not set)';
+    document.getElementById('rzpCurrentSecret').textContent   = settings.razorpay_key_secret_masked || '(not set)';
+    if (settings.razorpay_key_id) document.getElementById('rzpKeyId').value = settings.razorpay_key_id;
+  } catch(e) { toast('Could not load payment settings: ' + e.message); }
+}
+
+document.getElementById('rzpSaveBtn').onclick = async () => {
+  const keyId     = document.getElementById('rzpKeyId').value.trim();
+  const keySecret = document.getElementById('rzpKeySecret').value.trim();
+  const status    = document.getElementById('rzpSaveStatus');
+  if (!keyId) { toast('Key ID is required'); return; }
+  try {
+    const body = { razorpay_key_id: keyId };
+    if (keySecret) body.razorpay_key_secret = keySecret;
+    await payApi('POST', '/admin/settings', body);
+    status.textContent = '\u2705 Saved!';
+    setTimeout(() => { status.textContent = ''; }, 3000);
+    document.getElementById('rzpKeySecret').value = '';
+    await loadPaymentSettings();
+    toast('Razorpay credentials saved');
+  } catch(e) { toast('Error: ' + e.message); }
+};
+
+// ── Plan editor ───────────────────────────────────────────────────────────────
+async function loadPlanEditor() {
+  const grid = document.getElementById('planEditorGrid');
+  grid.innerHTML = '<div style="color:var(--ink4);font-size:12px;padding:10px">Loading…</div>';
+  try {
+    const { plans } = await payApi('GET', '/plans');
+    grid.innerHTML = '';
+    plans.filter(p => p.id !== 'free').forEach(p => {
+      const discountEndsVal = p.discount_ends_at ? p.discount_ends_at.slice(0,10) : '';
+      const card = document.createElement('div');
+      card.className = 'settings-card';
+      card.style.cssText = 'max-width:100%;position:relative';
+      card.innerHTML = `
+        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:16px;display:flex;align-items:center;gap:8px">
+          ${p.name}
+          ${p.discountActive ? '<span class="badge badge-green">Discount active</span>' : ''}
+        </div>
+        <div class="field" style="margin-bottom:12px">
+          <label>Price (₹ INR)</label>
+          <input type="number" class="pe-inr" value="${p.price_inr}" min="0" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r2);padding:8px 12px;font-size:14px;color:var(--ink);outline:none">
+        </div>
+        <div class="field" style="margin-bottom:12px">
+          <label>Price ($ USD)</label>
+          <input type="number" class="pe-usd" value="${p.price_usd}" min="0" step="0.01" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r2);padding:8px 12px;font-size:14px;color:var(--ink);outline:none">
+        </div>
+        <div style="background:var(--accent-bg);border:1px solid rgba(79,110,247,.15);border-radius:var(--r2);padding:14px;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px;letter-spacing:.4px;text-transform:uppercase">Discount</div>
+          <div class="field" style="margin-bottom:8px">
+            <label>Discount % <span style="color:var(--ink4);font-weight:400">(0 = off)</span></label>
+            <input type="number" class="pe-dpct" value="${p.discount_pct}" min="0" max="99" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r2);padding:8px 12px;font-size:14px;color:var(--ink);outline:none">
+          </div>
+          <div class="field" style="margin-bottom:8px">
+            <label>Discount Label <span style="color:var(--ink4);font-weight:400">(e.g. "Launch offer")</span></label>
+            <input type="text" class="pe-dlabel" value="${p.discount_label}" placeholder="e.g. Launch offer 🎉" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r2);padding:8px 12px;font-size:14px;color:var(--ink);outline:none">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Discount Ends <span style="color:var(--ink4);font-weight:400">(leave blank = no expiry)</span></label>
+            <input type="date" class="pe-dends" value="${discountEndsVal}" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r2);padding:8px 12px;font-size:14px;color:var(--ink);outline:none;cursor:pointer">
+          </div>
+        </div>
+        <button class="btn btn-primary pe-save" data-id="${p.id}" style="width:100%;justify-content:center">Save Plan</button>
+        <p class="pe-status" style="font-size:12px;color:var(--green);margin-top:8px;min-height:16px;font-weight:600"></p>
+      `;
+      card.querySelector('.pe-save').onclick = async () => {
+        const btn    = card.querySelector('.pe-save');
+        const status = card.querySelector('.pe-status');
+        btn.disabled = true;
+        try {
+          await payApi('PUT', '/admin/plans/' + p.id, {
+            price_inr:        Number(card.querySelector('.pe-inr').value),
+            price_usd:        Number(card.querySelector('.pe-usd').value),
+            discount_pct:     Number(card.querySelector('.pe-dpct').value),
+            discount_label:   card.querySelector('.pe-dlabel').value,
+            discount_ends_at: card.querySelector('.pe-dends').value || null,
+          });
+          status.textContent = '\u2705 Saved!';
+          setTimeout(() => { status.textContent = ''; }, 3000);
+          toast(p.name + ' updated');
+          await loadPlanEditor(); // refresh to show updated discount badge
+        } catch(e) { status.textContent = e.message; toast('Error: ' + e.message); }
+        finally { btn.disabled = false; }
+      };
+      grid.appendChild(card);
+    });
+  } catch(e) { grid.innerHTML = '<div style="color:var(--red);font-size:12px;padding:10px">Failed: ' + e.message + '</div>'; }
+}
+
+document.getElementById('plansRefreshBtn').onclick = loadPlanEditor;
+
+// ── Payment orders table ──────────────────────────────────────────────────────
+async function loadOrders() {
+  const tbody = document.getElementById('ordersTable');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--ink4)">Loading…</td></tr>';
+  try {
+    const { orders } = await payApi('GET', '/admin/orders');
+    if (!orders.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--ink4)">No payment orders yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = orders.map((o, i) => {
+      const badge = o.status === 'paid'
+        ? '<span class="badge badge-green">paid</span>'
+        : o.status === 'failed'
+        ? '<span class="badge" style="background:var(--red-bg);color:var(--red)">failed</span>'
+        : '<span class="badge badge-free">pending</span>';
+      return `<tr>
+        <td style="color:var(--ink4)">${i+1}</td>
+        <td><span class="badge badge-gold">@${o.username}</span></td>
+        <td>${o.plan_id}</td>
+        <td style="font-weight:600">&#8377;${(o.amount_paise/100).toLocaleString('en-IN')}</td>
+        <td>${badge}</td>
+        <td style="font-size:11px;color:var(--ink3)">${o.payment_id || '—'}</td>
+        <td style="font-size:11px;color:var(--ink3)">${fmtDate(o.created_at)}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { tbody.innerHTML = '<tr><td colspan="7" style="color:var(--red);padding:20px">' + e.message + '</td></tr>'; }
+}
+
+document.getElementById('ordersRefreshBtn').onclick = loadOrders;
+
+// Lazy-load payments tab on first open
+let payTabLoaded = false;
+document.getElementById('navTabs').addEventListener('click', e => {
+  const tab = e.target.closest('.nav-tab');
+  if (tab && tab.dataset.page === 'payments' && !payTabLoaded) {
+    payTabLoaded = true;
+    loadPaymentSettings();
+    loadPlanEditor();
+    loadOrders();
   }
 });
 </script>

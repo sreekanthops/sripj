@@ -176,6 +176,31 @@ document.getElementById('profileClose').onclick  = () => closeOv('profileOverlay
 document.getElementById('upgradeClose').onclick  = () => closeOv('upgradeOverlay');
 document.getElementById('libraryClose').onclick  = () => closeOv('libraryOverlay');
 
+// Refresh upgrade overlay prices from live API when it opens
+;(function() {
+  const orig = openOv;
+  window._upgradeOverlayPricesLoaded = false;
+  // Patch openOv to refresh prices on first open of upgradeOverlay
+  window._refreshUpgradePrices = async function() {
+    if (window._upgradeOverlayPricesLoaded) return;
+    try {
+      const data = await fetch('/api/payments/plans').then(r => r.json());
+      (data.plans || []).forEach(p => {
+        const el = document.getElementById('upg-price-' + p.id);
+        if (!el) return;
+        const price = p.discountActive ? p.effectivePriceInr : p.price_inr;
+        if (!price) return;
+        const periodSuffix = { monthly:'/mo', yearly:'/yr', lifetime:' once' };
+        el.innerHTML = '\u20b9' + price.toLocaleString('en-IN') + '<span>' + (periodSuffix[p.id]||'') + '</span>';
+        if (p.discountActive && p.discount_label) {
+          el.title = p.discount_label + ' \u2014 ' + p.discount_pct + '% off';
+        }
+      });
+      window._upgradeOverlayPricesLoaded = true;
+    } catch {}
+  };
+})();
+
 // ── IMAGE LIBRARY PICKER ───────────────────────────────────────────────────
 // Opens from the Canvas panel; places chosen images directly as canvas stickers.
 // _libraryOnConfirm is set by whoever opens the picker (currently initStickers).
@@ -568,6 +593,7 @@ document.getElementById('fSave').onclick = async () => {
     if (err.limitReached) {
       closeOv('formOverlay');
       openOv('upgradeOverlay');
+      window._refreshUpgradePrices?.();
     } else {
       toast('Error: ' + err.message);
     }
