@@ -389,7 +389,7 @@ async function enterPublicDiary(username) {
     document.getElementById('sidebarTitle').textContent = viewingUser.displayName || viewingUser.username;
     document.getElementById('sidebarSub').textContent   = '@' + viewingUser.username;
     if (isOwner) {
-      document.getElementById('pageTitle').innerHTML = '<span class="brand-unsent">Unsent</span> <span class="brand-stories">Stories</span>';
+      document.getElementById('pageTitle').innerHTML = '<span class="brand-unsent">Unsent</span><span class="brand-divider">♡</span><span class="brand-stories">Stories</span>';
     } else {
       document.getElementById('pageTitle').textContent = (viewingUser.displayName || viewingUser.username) + "'s Stories";
     }

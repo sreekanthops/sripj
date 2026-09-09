@@ -3,7 +3,7 @@
    Beige parchment · Handwriting titles · Torn-paper cards
 ══════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Caveat:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=Dancing+Script:wght@700&family=Cormorant+Garamond:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Caveat:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=Satisfy&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 15px; scroll-behavior: smooth; }
@@ -52,8 +52,8 @@ html { font-size: 15px; scroll-behavior: smooth; }
   --serif:      'Playfair Display', Georgia, serif;
   --script:     'Caveat', cursive;
   --sans:       'DM Sans', system-ui, sans-serif;
-  --brand-unsent-font: 'Dancing Script', cursive;
-  --brand-stories-font: 'Cormorant Garamond', Georgia, serif;
+  --brand-unsent-font: 'Satisfy', cursive;
+  --brand-stories-font: 'Playfair Display', Georgia, serif;
 }
 
 body {
@@ -107,33 +107,50 @@ body {
 .nav-icon-btn svg { width: 16px; height: 16px; }
 .nav-icon-btn:hover { background: var(--bg3); border-color: var(--border3); color: var(--ink); }
 
-.brand { display: flex; align-items: baseline; gap: 8px; }
+.brand { display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
 .brand-name {
-  font-family: var(--serif);
-  font-size: 22px; font-weight: 700;
-  color: var(--ink); letter-spacing: -.3px; line-height: 1;
+  display: flex; flex-direction: column; align-items: flex-start;
+  line-height: 1;
 }
 .brand-caption {
   font-family: var(--script);
-  font-size: 13px; color: var(--ink4); font-style: italic;
-  letter-spacing: .3px;
+  font-size: 11px; color: var(--ink4); font-style: italic;
+  letter-spacing: .3px; margin-top: 1px;
 }
 
-/* ── Brand two-tone: "Unsent" in Dancing Script + "Stories" in Cormorant Garamond ── */
+/* ── Brand two-tone: "Unsent" in Satisfy brush script + "Stories" in Playfair serif ── */
 .brand-unsent {
-  font-family: 'Dancing Script', cursive;
+  font-family: 'Satisfy', cursive;
   font-style: normal;
-  font-weight: 700;
+  font-weight: 400;
   color: var(--ink);
-  letter-spacing: .2px;
+  letter-spacing: .3px;
+  font-size: 22px;
+  line-height: 1.1;
+  display: block;
+}
+.brand-divider {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; color: var(--ink4);
+  line-height: 1; margin: 1px 0;
+}
+.brand-divider::before,
+.brand-divider::after {
+  content: '';
+  display: inline-block;
+  width: 18px; height: 1px;
+  background: var(--ink4);
+  opacity: .5;
 }
 .brand-stories {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-weight: 700;
-  font-style: italic;
-  color: var(--gold);
-  letter-spacing: .8px;
-  font-size: 1.08em;
+  font-style: normal;
+  color: var(--ink2);
+  letter-spacing: 2px;
+  font-size: 13px;
+  text-transform: uppercase;
+  display: block;
 }
 
 .note-pill {
@@ -1272,14 +1289,19 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 
 .auth-logo { text-align: center; margin-bottom: 32px; }
 .auth-logo-icon {
-  font-size: 32px; color: var(--accent);
-  margin-bottom: 8px; display: block;
+  font-size: 28px; color: var(--accent);
+  margin-bottom: 10px; display: block;
 }
 .auth-logo-name {
-  font-family: var(--serif); font-size: 28px; font-weight: 700;
-  color: var(--ink); letter-spacing: -.4px; line-height: 1;
-  margin-bottom: 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  margin-bottom: 8px; line-height: 1;
 }
+/* auth screen reuses .brand-unsent / .brand-divider / .brand-stories but bigger */
+.auth-logo-name .brand-unsent  { font-size: 52px; color: var(--ink); }
+.auth-logo-name .brand-divider { font-size: 13px; color: var(--ink4); }
+.auth-logo-name .brand-divider::before,
+.auth-logo-name .brand-divider::after { width: 32px; }
+.auth-logo-name .brand-stories { font-size: 22px; letter-spacing: 4px; color: var(--ink2); }
 .auth-logo-sub {
   font-family: var(--script); font-size: 15px;
   color: var(--ink3); font-style: italic; letter-spacing: .2px;
