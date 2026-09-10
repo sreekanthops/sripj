@@ -410,20 +410,19 @@ footer {
 .note-card {
   /* Parchment paper texture — torn edges + daisy decoration */
   background-image: url('/img/paper-card.svg');
-  background-size: cover;
-  background-position: center top;
+  background-size: 100% 100%;
+  background-position: center;
   background-repeat: no-repeat;
-  /* Fallback while loading */
-  background-color: #f0ebe0;
+  background-color: transparent;
   border: none;
-  border-radius: 2px;
-  box-shadow: 0 4px 18px rgba(0,0,0,.14), 0 1px 4px rgba(0,0,0,.08),
-              2px 2px 0 rgba(0,0,0,.04);
+  box-shadow: none;
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,.12));
   cursor: pointer;
-  overflow: hidden;
+  overflow: visible;
   display: flex; flex-direction: column;
-  transition: transform .28s var(--ease), box-shadow .28s var(--ease);
+  transition: transform .28s var(--ease), filter .28s var(--ease);
   position: relative;
+  padding: 10px 14px 14px;
   /* slight default tilt — overridden per card via JS */
   transform: rotate(-0.5deg);
   transform-origin: center bottom;
@@ -439,33 +438,29 @@ footer {
 
 .note-card:hover {
   transform: rotate(0deg) translateY(-6px) scale(1.015) !important;
-  box-shadow: 0 20px 50px rgba(0,0,0,.18), 0 4px 12px rgba(0,0,0,.08);
+  filter: drop-shadow(0 14px 24px rgba(0,0,0,.18));
   z-index: 10;
 }
 
-/* Subtle inner shadow to make paper look real */
 .note-card::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: linear-gradient(135deg,
-    rgba(255,255,255,.18) 0%,
-    transparent 40%,
-    rgba(0,0,0,.04) 100%);
-  pointer-events: none; z-index: 1;
-  border-radius: inherit;
+  display: none;
 }
 
 /* Daisy decoration — bottom right, from the paper image itself */
 
-/* has-media cards: stack image on top of paper */
-.note-card.has-media { overflow: hidden; }
-.note-card.has-media .card-media { border-radius: 0; }
+/* has-media cards: stack image nicely inside paper */
+.note-card.has-media .card-media {
+  border-radius: var(--r2);
+  margin: 12px 14px 0;
+  width: calc(100% - 28px);
+}
 
 /* ── Media inside card ── */
 .card-media {
   width: 100%; aspect-ratio: 4/3; max-height: 200px;
   overflow: hidden; position: relative;
   background: #2c241a;
+  border-radius: var(--r2);
 }
 .card-media img, .card-media video {
   width: 100%; height: 100%; object-fit: cover; display: block;

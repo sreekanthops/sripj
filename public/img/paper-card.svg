@@ -21,8 +21,7 @@
     </filter>
   </defs>
 
-  <!-- page bg -->
-  <rect width="800" height="680" fill="#d8cfbe"/>
+  <!-- transparent page bg -->
 
   <!-- torn paper body -->
   <path filter="url(#shadow)" fill="url(#bg)"
