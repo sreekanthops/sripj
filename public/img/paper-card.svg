@@ -63,8 +63,7 @@
        C-70,140 -60,130 -68,120 C-76,110 -66,100 -74,90 C-82,80 -72,70 -66,58
        Z"/>
 
-  <!-- paper grain overlay -->
-  <rect x="44" y="24" width="724" height="644" fill="#f2ebe0" opacity="0.45" filter="url(#paper)"/>
+  <!-- paper grain overlay (no rectangular rect) -->
 
   <!-- daisy stem group -->
   <g opacity="0.92">
