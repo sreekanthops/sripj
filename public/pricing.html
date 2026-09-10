@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pricing — My Journal</title>
+<title>Pricing — Unsent Stories</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
 <style>
@@ -25,8 +25,9 @@ html{font-size:15px;scroll-behavior:smooth}
 body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
 
 .header{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:56px}
-.header-logo{font-size:16px;font-weight:700;letter-spacing:-.3px;color:var(--ink);text-decoration:none}
-.header-logo span{color:var(--accent)}
+.header-logo{font-size:16px;font-weight:700;letter-spacing:-.3px;color:var(--ink);text-decoration:none;display:inline-flex;align-items:baseline;gap:5px}
+.header-logo em{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-weight:700;color:#1f2328}
+.header-logo span{font-family:'Caveat',cursive;font-weight:700;color:#d97706;font-size:1.2em;letter-spacing:.4px}
 .header-nav{display:flex;align-items:center;gap:14px}
 .nav-link{font-size:13px;color:var(--ink3);text-decoration:none;font-weight:500;transition:color .15s}
 .nav-link:hover{color:var(--ink)}
@@ -90,7 +91,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:10
 <body>
 
 <header class="header">
-  <a href="/" class="header-logo">My <span>Journal</span></a>
+  <a href="/" class="header-logo"><em>Unsent</em> <span>Stories</span></a>
   <nav class="header-nav">
     <a href="/" class="nav-link">Home</a>
     <a href="/" class="btn btn-primary">Get started free</a>
@@ -265,7 +266,7 @@ function launchRazorpay(order, plan, token, btn, statusEl) {
     key:         order.keyId,
     amount:      order.amount,
     currency:    order.currency,
-    name:        'My Journal',
+    name:        'Unsent Stories',
     description: plan.name + ' Subscription',
     order_id:    order.orderId,
     handler: async function(response) {

@@ -1252,6 +1252,96 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 .upgrade-plan-desc { font-size: 11px; color: var(--ink3); line-height: 1.4; }
 
 /* ══════════════════════════════════════════════════════
+   SHARE MODAL & OPTIONS
+══════════════════════════════════════════════════════ */
+.share-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+@media (max-width: 480px) {
+  .share-options-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.share-option-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  padding: 14px 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--border2);
+  border-radius: var(--r2);
+  cursor: pointer;
+  transition: all .18s var(--ease);
+}
+.share-option-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.share-option-card:hover {
+  background: var(--surface3);
+  border-color: var(--border3);
+}
+.share-option-card.active {
+  border-color: var(--accent);
+  background: var(--surface3);
+  box-shadow: 0 0 0 2px var(--accent-ring);
+}
+.share-opt-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.share-opt-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.share-opt-icon {
+  font-size: 16px;
+}
+.share-opt-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.share-opt-desc {
+  font-size: 11px;
+  color: var(--ink4);
+  line-height: 1.35;
+}
+.share-pass-wrap {
+  margin-bottom: 16px;
+  background: var(--surface);
+  padding: 12px 14px;
+  border-radius: var(--r2);
+  border: 1px dashed var(--border2);
+}
+.share-link-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 14px;
+}
+.share-link-box input {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--r3);
+  padding: 9px 12px;
+  font-size: 12px;
+  color: var(--ink3);
+  font-family: var(--sans);
+  outline: none;
+}
+.share-link-box input:focus {
+  border-color: var(--accent);
+}
+
+/* ══════════════════════════════════════════════════════
    AUTH SCREEN
 ══════════════════════════════════════════════════════ */
 #authScreen.auth-screen {

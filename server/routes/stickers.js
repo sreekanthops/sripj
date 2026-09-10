@@ -4,7 +4,7 @@ const path    = require('path');
 const fs      = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { verifyToken, optionalAuth } = require('../auth');
+const { verifyToken, optionalAuth, checkPassword } = require('../auth');
 
 // Reuse the same uploads directory as note media
 const UPLOAD_DIR = path.join(__dirname, '..', '..', 'public', 'uploads');
@@ -34,10 +34,23 @@ router.post('/upload', verifyToken, upload.single('file'), (req, res) => {
 });
 
 // GET /api/stickers/:username  — load stickers for a user's page (public)
-router.get('/:username', optionalAuth, (req, res) => {
-  const user = db.prepare('SELECT id FROM users WHERE username = ?')
+router.get('/:username', optionalAuth, async (req, res) => {
+  const user = db.prepare('SELECT id, share_protected, share_password_hash FROM users WHERE username = ?')
                  .get(req.params.username.toLowerCase());
   if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const isOwner = req.user && req.user.userId === user.id;
+  if (user.share_protected && !isOwner) {
+    const providedPass = req.headers['x-share-password'] || req.query.pass || '';
+    let passMatch = false;
+    if (providedPass && user.share_password_hash) {
+      passMatch = await checkPassword(providedPass, user.share_password_hash);
+    }
+    if (!passMatch) {
+      return res.status(403).json({ error: 'Password required' });
+    }
+  }
+
   const row = db.prepare('SELECT data FROM page_stickers WHERE user_id = ?').get(user.id);
   let stickers = [];
   try { stickers = JSON.parse(row?.data || '[]'); } catch {}

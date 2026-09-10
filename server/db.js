@@ -170,9 +170,11 @@ function hasTable(name) {
 }
 
 // users columns (older DBs may be missing these)
-if (!hasColumn('users', 'display_name'))  db.exec(`ALTER TABLE users ADD COLUMN display_name  TEXT NOT NULL DEFAULT ''`);
-if (!hasColumn('users', 'bio'))           db.exec(`ALTER TABLE users ADD COLUMN bio           TEXT NOT NULL DEFAULT ''`);
-if (!hasColumn('users', 'password_hash')) db.exec(`ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''`);
+if (!hasColumn('users', 'display_name'))        db.exec(`ALTER TABLE users ADD COLUMN display_name        TEXT NOT NULL DEFAULT ''`);
+if (!hasColumn('users', 'bio'))                 db.exec(`ALTER TABLE users ADD COLUMN bio                 TEXT NOT NULL DEFAULT ''`);
+if (!hasColumn('users', 'password_hash'))       db.exec(`ALTER TABLE users ADD COLUMN password_hash       TEXT NOT NULL DEFAULT ''`);
+if (!hasColumn('users', 'share_protected'))     db.exec(`ALTER TABLE users ADD COLUMN share_protected     INTEGER NOT NULL DEFAULT 0`);
+if (!hasColumn('users', 'share_password_hash')) db.exec(`ALTER TABLE users ADD COLUMN share_password_hash TEXT NOT NULL DEFAULT ''`);
 
 // notes.user_id / tags / pinned
 if (!hasColumn('notes', 'user_id')) db.exec(`ALTER TABLE notes ADD COLUMN user_id TEXT NOT NULL DEFAULT ''`);

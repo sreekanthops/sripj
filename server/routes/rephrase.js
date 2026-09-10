@@ -17,7 +17,7 @@ async function callOpenRouter(model, text) {
       'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
       'Content-Type':  'application/json',
       'HTTP-Referer':  'https://my-journal-app',
-      'X-Title':       'My Journal',
+      'X-Title':       'Unsent Stories',
     },
     body: JSON.stringify({
       model,

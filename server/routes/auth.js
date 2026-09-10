@@ -35,9 +35,15 @@ router.post('/login', async (req, res) => {
 
 // GET /api/auth/verify  — validate token
 router.get('/verify', verifyToken, (req, res) => {
-  const user = db.prepare('SELECT id, username, display_name, bio FROM users WHERE id = ?').get(req.user.userId);
+  const user = db.prepare('SELECT id, username, display_name, bio, share_protected FROM users WHERE id = ?').get(req.user.userId);
   if (!user) return res.status(401).json({ error: 'User not found' });
-  res.json({ userId: user.id, username: user.username, displayName: user.display_name, bio: user.bio });
+  res.json({
+    userId: user.id,
+    username: user.username,
+    displayName: user.display_name,
+    bio: user.bio,
+    shareProtected: !!user.share_protected,
+  });
 });
 
 // PUT /api/auth/profile  — update display name / bio
@@ -46,6 +52,43 @@ router.put('/profile', verifyToken, (req, res) => {
   db.prepare('UPDATE users SET display_name=?, bio=? WHERE id=?')
     .run(displayName?.trim() || '', bio?.trim() || '', req.user.userId);
   res.json({ ok: true });
+});
+
+// GET /api/auth/share-settings — get current user's share settings
+router.get('/share-settings', verifyToken, (req, res) => {
+  const user = db.prepare('SELECT share_protected, (share_password_hash != "") as has_password FROM users WHERE id = ?').get(req.user.userId);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  res.json({
+    shareProtected: !!user.share_protected,
+    hasPassword: !!user.has_password,
+  });
+});
+
+// PUT /api/auth/share-settings — configure share protection & password
+router.put('/share-settings', verifyToken, async (req, res) => {
+  const { isProtected, password } = req.body;
+  const user = db.prepare('SELECT id, share_password_hash FROM users WHERE id = ?').get(req.user.userId);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  if (isProtected) {
+    let hash = user.share_password_hash;
+    if (password) {
+      if (password.length < 3) {
+        return res.status(400).json({ error: 'Share password must be at least 3 characters' });
+      }
+      hash = await hashPassword(password);
+    } else if (!hash) {
+      return res.status(400).json({ error: 'Please provide a password for protected sharing' });
+    }
+    db.prepare('UPDATE users SET share_protected = 1, share_password_hash = ? WHERE id = ?')
+      .run(hash, req.user.userId);
+    return res.json({ ok: true, shareProtected: true });
+  } else {
+    // Disable password protection
+    db.prepare('UPDATE users SET share_protected = 0 WHERE id = ?')
+      .run(req.user.userId);
+    return res.json({ ok: true, shareProtected: false });
+  }
 });
 
 module.exports = router;

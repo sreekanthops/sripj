@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { verifyToken, optionalAuth } = require('../auth');
+const { verifyToken, optionalAuth, checkPassword } = require('../auth');
 const { getUserPlan } = require('../subscription');
 
 // ── helpers ────────────────────────────────────────────────────────────────────
@@ -99,9 +99,28 @@ function buildNote(row, req) {
 }
 
 // GET /api/notes/user/:username  — public diary page for a user
-router.get('/user/:username', optionalAuth, (req, res) => {
-  const user = db.prepare('SELECT id, username, display_name, bio FROM users WHERE username = ?').get(req.params.username.toLowerCase());
+router.get('/user/:username', optionalAuth, async (req, res) => {
+  const user = db.prepare('SELECT id, username, display_name, bio, share_protected, share_password_hash FROM users WHERE username = ?').get(req.params.username.toLowerCase());
   if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const isOwner = req.user && req.user.userId === user.id;
+
+  // Check password protection if enabled and visitor is not the owner
+  if (user.share_protected && !isOwner) {
+    const providedPass = req.headers['x-share-password'] || req.query.pass || '';
+    let passMatch = false;
+    if (providedPass && user.share_password_hash) {
+      passMatch = await checkPassword(providedPass, user.share_password_hash);
+    }
+    if (!passMatch) {
+      return res.status(403).json({
+        isProtected: true,
+        error: 'Password required to access this diary',
+        user: { id: user.id, username: user.username, displayName: user.display_name, bio: user.bio }
+      });
+    }
+  }
+
   const { from, to } = req.query;
   let sql = 'SELECT * FROM notes WHERE user_id = ?';
   const params = [user.id];
@@ -109,7 +128,10 @@ router.get('/user/:username', optionalAuth, (req, res) => {
   if (to)   { sql += ' AND DATE(created_at) <= ?'; params.push(to); }
   sql += ' ORDER BY created_at DESC';
   const rows = db.prepare(sql).all(...params);
-  res.json({ user: { id: user.id, username: user.username, displayName: user.display_name, bio: user.bio }, notes: rows.map(r => buildNote(r, req)) });
+  res.json({
+    user: { id: user.id, username: user.username, displayName: user.display_name, bio: user.bio, isProtected: !!user.share_protected },
+    notes: rows.map(r => buildNote(r, req))
+  });
 });
 
 // GET /api/notes  — get current user's notes (must be logged in)

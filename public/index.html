@@ -307,6 +307,77 @@
   </div>
 </div>
 
+<!-- ══ SHARE MODAL ════════════════════════════════════════════ -->
+<div class="overlay center" id="shareOverlay">
+  <div class="sheet" id="shareModal" style="max-width:460px">
+    <button class="sheet-close" id="shareClose">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+    </button>
+    <div class="sheet-title">🔗 Share Your Stories</div>
+    <p style="font-size:13px;color:var(--ink4);margin:0 0 16px;font-family:var(--sans)">
+      Choose how others can view your diary page.
+    </p>
+
+    <!-- Share mode options -->
+    <div class="share-options-grid">
+      <label class="share-option-card active" id="optNoPassCard">
+        <input type="radio" name="shareOpt" id="optNoPass" value="public" checked>
+        <div class="share-opt-content">
+          <div class="share-opt-header">
+            <span class="share-opt-icon">🌐</span>
+            <div class="share-opt-title">No Password</div>
+          </div>
+          <div class="share-opt-desc">Anyone with the link can view your entries</div>
+        </div>
+      </label>
+
+      <label class="share-option-card" id="optPassCard">
+        <input type="radio" name="shareOpt" id="optPass" value="protected">
+        <div class="share-opt-content">
+          <div class="share-opt-header">
+            <span class="share-opt-icon">🔒</span>
+            <div class="share-opt-title">Password Protected</div>
+          </div>
+          <div class="share-opt-desc">Visitors must enter password to read entries</div>
+        </div>
+      </label>
+    </div>
+
+    <!-- Password input container (shown when protected selected) -->
+    <div id="sharePassWrap" class="share-pass-wrap hidden">
+      <div class="field" style="margin-top:12px;margin-bottom:0">
+        <label>Set Sharing Password</label>
+        <input type="password" id="sharePassInput" placeholder="Enter share password…" autocomplete="new-password">
+        <span class="auth-hint" id="sharePassHint">Visitors will be asked for this password</span>
+      </div>
+    </div>
+
+    <!-- URL preview & copy row -->
+    <div class="share-link-box">
+      <input type="text" id="shareUrlInput" readonly>
+      <button class="btn btn-primary btn-sm" id="btnCopyShareLink">Copy Link</button>
+    </div>
+
+    <button class="btn btn-gold" id="btnSaveShareSettings" style="width:100%;justify-content:center;margin-top:12px">Save &amp; Copy Link 📋</button>
+  </div>
+</div>
+
+<!-- ══ PASSWORD UNLOCK PROMPT (for visitors) ═══════════════════ -->
+<div class="overlay center" id="passOverlay">
+  <div class="sheet" id="passModal" style="max-width:380px;text-align:center">
+    <div style="font-size:36px;margin-bottom:8px">🔒</div>
+    <div class="sheet-title" id="passModalTitle">Password Protected</div>
+    <p style="font-size:13px;color:var(--ink4);margin:0 0 16px;font-family:var(--sans)" id="passModalSub">
+      This diary is protected. Enter the password to unlock and read entries.
+    </p>
+    <div class="field" style="text-align:left">
+      <input type="password" id="diaryUnlockPass" placeholder="Enter password…" autocomplete="current-password">
+    </div>
+    <p id="passErr" class="auth-err" style="margin-bottom:12px"></p>
+    <button class="btn btn-primary" id="btnUnlockDiary" style="width:100%;justify-content:center">Unlock Diary ✨</button>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <!-- ══ UPGRADE PROMPT ══════════════════════════════════════════════════════ -->

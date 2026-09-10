@@ -80,8 +80,8 @@ function toast(msg, dur = 2600) {
 }
 
 // ── API ────────────────────────────────────────────────────────────────────
-async function api(method, path, body) {
-  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+async function api(method, path, body, customHeaders = {}) {
+  const opts = { method, headers: { 'Content-Type': 'application/json', ...customHeaders } };
   if (token) opts.headers['Authorization'] = `Bearer ${token}`;
   if (body)  opts.body = JSON.stringify(body);
   const res  = await fetch(API + path, opts);
@@ -89,6 +89,9 @@ async function api(method, path, body) {
   if (!res.ok) {
     const err = new Error(data.error || `HTTP ${res.status}`);
     err.limitReached = !!data.limitReached;
+    err.isProtected = !!data.isProtected;
+    err.status = res.status;
+    err.user = data.user;
     throw err;
   }
   return data;
@@ -165,16 +168,17 @@ document.getElementById('signupPwd').onkeydown = e => {
 function openOv(id)  { document.getElementById(id).classList.add('open'); }
 function closeOv(id) { document.getElementById(id).classList.remove('open'); }
 
-['detailOverlay','formOverlay','profileOverlay','upgradeOverlay','libraryOverlay'].forEach(id => {
-  document.getElementById(id).addEventListener('click', e => {
+['detailOverlay','formOverlay','profileOverlay','upgradeOverlay','libraryOverlay','shareOverlay'].forEach(id => {
+  document.getElementById(id)?.addEventListener('click', e => {
     if (e.target === document.getElementById(id)) closeOv(id);
   });
 });
-document.getElementById('detailClose').onclick   = () => closeOv('detailOverlay');
-document.getElementById('formClose').onclick     = () => closeOv('formOverlay');
-document.getElementById('profileClose').onclick  = () => closeOv('profileOverlay');
-document.getElementById('upgradeClose').onclick  = () => closeOv('upgradeOverlay');
-document.getElementById('libraryClose').onclick  = () => closeOv('libraryOverlay');
+document.getElementById('detailClose')?.addEventListener('click', () => closeOv('detailOverlay'));
+document.getElementById('formClose')?.addEventListener('click', () => closeOv('formOverlay'));
+document.getElementById('profileClose')?.addEventListener('click', () => closeOv('profileOverlay'));
+document.getElementById('upgradeClose')?.addEventListener('click', () => closeOv('upgradeOverlay'));
+document.getElementById('libraryClose')?.addEventListener('click', () => closeOv('libraryOverlay'));
+document.getElementById('shareClose')?.addEventListener('click', () => closeOv('shareOverlay'));
 
 // Refresh upgrade overlay prices from live API when it opens
 ;(function() {
@@ -319,8 +323,7 @@ document.getElementById('headerActions').addEventListener('click', e => {
   closeSidebar();
   const action = btn.dataset.action;
   if (action === 'share') {
-    const url = `${location.origin}/u/${currentUser.username}`;
-    navigator.clipboard?.writeText(url).then(() => toast('Link copied! 🔗')).catch(() => toast(url));
+    openShareModal();
   } else if (action === 'profile') {
     document.getElementById('profName').value = currentUser.displayName || '';
     document.getElementById('profBio').value  = currentUser.bio || '';
@@ -358,6 +361,90 @@ document.getElementById('profSave').onclick = async () => {
   } catch (e) { toast('Error: ' + e.message); }
 };
 
+// ── SHARE MODAL LOGIC ──────────────────────────────────────────────────────
+async function openShareModal() {
+  if (!currentUser) return;
+  const url = `${location.origin}/u/${currentUser.username}`;
+  const urlInput = document.getElementById('shareUrlInput');
+  if (urlInput) urlInput.value = url;
+
+  // Fetch current share protection status
+  try {
+    const data = await api('GET', '/auth/share-settings');
+    const isProt = !!data.shareProtected;
+    setShareOptionUI(isProt);
+  } catch {
+    setShareOptionUI(false);
+  }
+
+  const passInput = document.getElementById('sharePassInput');
+  if (passInput) passInput.value = '';
+  openOv('shareOverlay');
+}
+
+function setShareOptionUI(isProtected) {
+  const noPassCard = document.getElementById('optNoPassCard');
+  const passCard   = document.getElementById('optPassCard');
+  const noPassRadio= document.getElementById('optNoPass');
+  const passRadio  = document.getElementById('optPass');
+  const passWrap   = document.getElementById('sharePassWrap');
+
+  if (isProtected) {
+    if (passRadio) passRadio.checked = true;
+    passCard?.classList.add('active');
+    noPassCard?.classList.remove('active');
+    passWrap?.classList.remove('hidden');
+  } else {
+    if (noPassRadio) noPassRadio.checked = true;
+    noPassCard?.classList.add('active');
+    passCard?.classList.remove('active');
+    passWrap?.classList.add('hidden');
+  }
+}
+
+// Share modal radio toggles
+document.getElementById('optNoPassCard')?.addEventListener('click', () => setShareOptionUI(false));
+document.getElementById('optPassCard')?.addEventListener('click', () => setShareOptionUI(true));
+
+// Copy link button inside share modal
+document.getElementById('btnCopyShareLink')?.addEventListener('click', () => {
+  const url = document.getElementById('shareUrlInput').value;
+  navigator.clipboard?.writeText(url)
+    .then(() => toast('Link copied! 🔗'))
+    .catch(() => toast(url));
+});
+
+// Save & Copy Link button
+document.getElementById('btnSaveShareSettings')?.addEventListener('click', async () => {
+  const isProtected = document.getElementById('optPass')?.checked;
+  const password = document.getElementById('sharePassInput')?.value || '';
+
+  if (isProtected && !password) {
+    // If setting protected for the first time, check if password entered
+    try {
+      const curr = await api('GET', '/auth/share-settings');
+      if (!curr.hasPassword && !password) {
+        toast('Please enter a password for protection 🔒');
+        document.getElementById('sharePassInput')?.focus();
+        return;
+      }
+    } catch {
+      toast('Please enter a password');
+      return;
+    }
+  }
+
+  try {
+    await api('PUT', '/auth/share-settings', { isProtected, password });
+    const url = `${location.origin}/u/${currentUser.username}`;
+    await navigator.clipboard?.writeText(url).catch(() => {});
+    closeOv('shareOverlay');
+    toast(isProtected ? 'Password set & link copied! 🔒🔗' : 'Public link copied! 🌐🔗');
+  } catch (e) {
+    toast('Error: ' + e.message);
+  }
+});
+
 // ── ENTERING DIARIES ────────────────────────────────────────────────────────
 async function enterOwnDiary() {
   isOwner = true;
@@ -378,9 +465,18 @@ async function enterOwnDiary() {
   await loadAndRender();
 }
 
-async function enterPublicDiary(username) {
+let currentEnteredPassword = '';
+
+async function enterPublicDiary(username, password = '') {
   try {
-    const data = await api('GET', `/notes/user/${username}`);
+    const headers = {};
+    const passToUse = password || currentEnteredPassword;
+    if (passToUse) {
+      headers['x-share-password'] = passToUse;
+    }
+    const data = await api('GET', `/notes/user/${username}`, null, headers);
+    if (passToUse) currentEnteredPassword = passToUse;
+    closeOv('passOverlay');
     viewingUser = data.user;
     isOwner = currentUser?.userId === viewingUser.id;
     if (isOwner) document.body.classList.add('is-owner');
@@ -399,11 +495,55 @@ async function enterPublicDiary(username) {
     setupUploadZone();
     showApp();
     window._stickerSetOwner?.(isOwner);
-    window._stickerLoad?.(viewingUser.username);
+    window._stickerLoad?.(viewingUser.username, currentEnteredPassword);
     renderGrid();
-  } catch {
+  } catch (err) {
+    if (err.isProtected) {
+      showApp(); // Show container
+      promptDiaryPassword(username, err.user);
+      return;
+    }
     if (!currentUser) { showAuth(); } else { toast('Stories not found'); await enterOwnDiary(); }
   }
+}
+
+function promptDiaryPassword(username, userObj) {
+  const modalTitle = document.getElementById('passModalTitle');
+  const modalSub   = document.getElementById('passModalSub');
+  const passInput  = document.getElementById('diaryUnlockPass');
+  const errEl      = document.getElementById('passErr');
+
+  if (modalTitle) {
+    const name = userObj?.displayName || username;
+    modalTitle.textContent = `${name}'s Diary is Locked`;
+  }
+  if (errEl) errEl.textContent = '';
+  if (passInput) passInput.value = '';
+
+  const unlockBtn = document.getElementById('btnUnlockDiary');
+  if (unlockBtn) {
+    unlockBtn.onclick = async () => {
+      const pwd = passInput.value.trim();
+      if (!pwd) {
+        if (errEl) errEl.textContent = 'Please enter password';
+        return;
+      }
+      try {
+        await enterPublicDiary(username, pwd);
+      } catch {
+        if (errEl) errEl.textContent = 'Incorrect password, please try again';
+      }
+    };
+  }
+
+  if (passInput) {
+    passInput.onkeydown = e => {
+      if (e.key === 'Enter') unlockBtn.click();
+    };
+  }
+
+  openOv('passOverlay');
+  setTimeout(() => passInput?.focus(), 150);
 }
 
 // ── SWATCHES ───────────────────────────────────────────────────────────────
@@ -1773,9 +1913,11 @@ document.getElementById('musicVol').oninput = e => {
     }, 800);
   }
 
-  async function loadForUser(username) {
+  async function loadForUser(username, password = '') {
     try {
-      const res  = await fetch(`/api/stickers/${encodeURIComponent(username)}`);
+      const headers = {};
+      if (password) headers['x-share-password'] = password;
+      const res  = await fetch(`/api/stickers/${encodeURIComponent(username)}`, { headers });
       const data = await res.json().catch(() => ({}));
       (data.stickers || []).forEach(d => {
         if (d.type === 'text') createTextItem(d.text, d.x, d.y, d.w, d.rot, d.id, d.fontSize, d.bold, d.color, d.z);
@@ -2133,8 +2275,8 @@ document.getElementById('musicVol').oninput = e => {
     });
   };
 
-  window._stickerLoad = function(username) {
+  window._stickerLoad = function(username, password = '') {
     layer.innerHTML = ''; items = [];
-    if (username) loadForUser(username);
+    if (username) loadForUser(username, password);
   };
 })();
