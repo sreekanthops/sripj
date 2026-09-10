@@ -79,6 +79,45 @@ function toast(msg, dur = 2600) {
   el._t = setTimeout(() => el.classList.remove('show'), dur);
 }
 
+async function copyToClipboard(text) {
+  if (!text) return false;
+  // 1. Try modern navigator.clipboard
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (_) {}
+  }
+  // 2. Fallback: input selection & execCommand
+  try {
+    const input = document.getElementById('shareUrlInput');
+    if (input && input.value === text) {
+      input.focus();
+      input.select();
+      input.setSelectionRange(0, 99999);
+      if (document.execCommand('copy')) return true;
+    }
+  } catch (_) {}
+  // 3. Fallback: temporary textarea
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.top = '0';
+    ta.style.left = '0';
+    ta.style.opacity = '0';
+    ta.style.pointerEvents = 'none';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, 99999);
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (ok) return true;
+  } catch (_) {}
+  return false;
+}
+
 // ── API ────────────────────────────────────────────────────────────────────
 async function api(method, path, body, customHeaders = {}) {
   const opts = { method, headers: { 'Content-Type': 'application/json', ...customHeaders } };
@@ -407,11 +446,14 @@ document.getElementById('optNoPassCard')?.addEventListener('click', () => setSha
 document.getElementById('optPassCard')?.addEventListener('click', () => setShareOptionUI(true));
 
 // Copy link button inside share modal
-document.getElementById('btnCopyShareLink')?.addEventListener('click', () => {
+document.getElementById('btnCopyShareLink')?.addEventListener('click', async () => {
   const url = document.getElementById('shareUrlInput').value;
-  navigator.clipboard?.writeText(url)
-    .then(() => toast('Link copied! 🔗'))
-    .catch(() => toast(url));
+  const ok = await copyToClipboard(url);
+  if (ok) {
+    toast('Link copied! 🔗');
+  } else {
+    toast(url);
+  }
 });
 
 // Save & Copy Link button
@@ -437,7 +479,7 @@ document.getElementById('btnSaveShareSettings')?.addEventListener('click', async
   try {
     await api('PUT', '/auth/share-settings', { isProtected, password });
     const url = `${location.origin}/u/${currentUser.username}`;
-    await navigator.clipboard?.writeText(url).catch(() => {});
+    await copyToClipboard(url);
     closeOv('shareOverlay');
     toast(isProtected ? 'Password set & link copied! 🔒🔗' : 'Public link copied! 🌐🔗');
   } catch (e) {
