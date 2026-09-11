@@ -411,10 +411,10 @@ document.getElementById('hamburgerBtn').onclick    = openSidebar;
 document.getElementById('sidebarCloseBtn').onclick = closeSidebar;
 document.getElementById('sidebarBackdrop').onclick = closeSidebar;
 
-// Brand title click — go to own diary if logged in, else home
-document.getElementById('brandHomeBtn')?.addEventListener('click', () => {
-  if (currentUser) enterOwnDiary();
-  else { history.replaceState({}, '', '/'); showAuth(); }
+// Brand title link — intercept to do SPA navigation when logged in
+document.getElementById('brandHomeBtn')?.addEventListener('click', e => {
+  if (currentUser) { e.preventDefault(); enterOwnDiary(); }
+  // else follow the href="/" naturally (full reload to auth screen)
 });
 
 // ── HEADER ─────────────────────────────────────────────────────────────────
