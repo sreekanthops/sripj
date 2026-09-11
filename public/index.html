@@ -59,25 +59,12 @@
     </div>
 
     <!-- Google Sign In Divider & Container -->
-    <div id="googleAuthSection" class="google-auth-section">
+    <div id="googleAuthSection" class="google-auth-section" style="display:none">
       <div class="auth-or-divider">
         <span>or</span>
       </div>
       <div id="googleBtnWrapper" class="google-btn-wrapper">
-        <div id="g_id_onload"
-             data-auto_prompt="false"
-             data-callback="handleGoogleCredentialResponse">
-        </div>
-        <div class="g_id_signin"
-             id="g_id_signin"
-             data-type="standard"
-             data-size="large"
-             data-theme="outline"
-             data-text="continue_with"
-             data-shape="pill"
-             data-logo_alignment="left"
-             data-width="320">
-        </div>
+        <div id="g_id_signin"></div>
       </div>
       <p id="googleAuthErr" class="auth-err" style="text-align:center;margin-top:6px"></p>
     </div>
