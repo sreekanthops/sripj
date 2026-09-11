@@ -44,19 +44,43 @@ router.get('/config', (req, res) => {
   res.json({ googleClientId: (googleClientId || '').trim() });
 });
 
-// POST /api/auth/google — sign in / sign up with Google ID Token credential
+// POST /api/auth/google — sign in / sign up with Google access_token or ID Token credential
 router.post('/google', async (req, res) => {
-  const { credential } = req.body;
-  if (!credential) return res.status(400).json({ error: 'Google credential required' });
+  const { credential, accessToken } = req.body;
+  if (!credential && !accessToken) return res.status(400).json({ error: 'Google credential or access token required' });
 
   try {
-    // Verify token using Google tokeninfo API endpoint
-    const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
-    if (!response.ok) {
-      return res.status(401).json({ error: 'Invalid Google token' });
+    let googleId = null;
+    let email = null;
+    let name = null;
+    let picture = null;
+
+    if (accessToken) {
+      // Fetch user profile from Google UserInfo endpoint with access_token
+      const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!response.ok) {
+        return res.status(401).json({ error: 'Failed to fetch Google profile with access token' });
+      }
+      const payload = await response.json();
+      googleId = payload.sub;
+      email = payload.email;
+      name = payload.name;
+      picture = payload.picture;
+    } else if (credential) {
+      // Verify token using Google tokeninfo API endpoint
+      const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
+      if (!response.ok) {
+        return res.status(401).json({ error: 'Invalid Google token' });
+      }
+      const payload = await response.json();
+      googleId = payload.sub;
+      email = payload.email;
+      name = payload.name;
+      picture = payload.picture;
     }
-    const payload = await response.json();
-    const { sub: googleId, email, name, picture } = payload;
+
     if (!googleId || !email) {
       return res.status(400).json({ error: 'Invalid Google profile payload' });
     }

@@ -221,20 +221,28 @@ async function initGoogleOAuth() {
         return;
       }
 
-      if (!window.google?.accounts?.oauth2 && !window.google?.accounts?.id) {
-        toast('Loading Google Sign-In…');
+      if (!window.google?.accounts?.oauth2) {
+        toast('Loading Google Sign-In, please try again in a moment…');
         return;
       }
 
-      // 1. Prefer One-Tap / ID Token flow via google.accounts.id
-      if (window.google?.accounts?.id) {
-        window.google.accounts.id.initialize({
+      // Use standard Google OAuth 2.0 Popup Token Client (reliable on all browsers / Chrome FedCM)
+      if (!googleTokenClient || googleTokenClient._clientId !== cleanId) {
+        googleTokenClient = window.google.accounts.oauth2.initTokenClient({
           client_id: cleanId,
-          callback: async (response) => {
+          scope: 'email profile openid',
+          callback: async (tokenResponse) => {
+            if (tokenResponse.error) {
+              if (tokenResponse.error !== 'popup_closed_by_user') {
+                if (errEl) errEl.textContent = 'Google sign-in error: ' + tokenResponse.error;
+                toast('Error: ' + tokenResponse.error);
+              }
+              return;
+            }
             if (errEl) errEl.textContent = '';
             try {
               toast('Signing in with Google…');
-              const data = await api('POST', '/auth/google', { credential: response.credential });
+              const data = await api('POST', '/auth/google', { accessToken: tokenResponse.access_token });
               token = data.token;
               currentUser = { userId: data.userId, username: data.username, displayName: data.displayName };
               localStorage.setItem('diary_token', token);
@@ -245,17 +253,12 @@ async function initGoogleOAuth() {
               toast('Error: ' + err.message);
             }
           },
-          auto_select: false,
-          cancel_on_tap_outside: true,
         });
-
-        // Prompt Google Account picker
-        window.google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            console.warn('[GSI prompt]', notification.getNotDisplayedReason?.(), notification.getSkippedReason?.());
-          }
-        });
+        googleTokenClient._clientId = cleanId;
       }
+
+      // Request Google account selection popup
+      googleTokenClient.requestAccessToken({ prompt: 'select_account' });
     } catch (e) {
       if (errEl) errEl.textContent = e.message;
       toast('Error: ' + e.message);
