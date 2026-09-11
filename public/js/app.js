@@ -2270,6 +2270,7 @@ document.getElementById('musicVol').oninput = e => {
   function undo() {
     if (!undoStack.length) return;
     ctx.putImageData(undoStack.pop(), 0, 0);
+    if (typeof window._canvasSave === 'function') window._canvasSave();
   }
 
   // ── Drawing logic ────────────────────────────────────────────────────────
@@ -2357,6 +2358,8 @@ document.getElementById('musicVol').oninput = e => {
     ctx.globalAlpha  = 1;
     ctx.shadowBlur   = 0;
     ctx.globalCompositeOperation = 'source-over';
+    // Persist drawing to server after every stroke
+    if (typeof window._canvasSave === 'function') window._canvasSave();
   }
 
   canvas.addEventListener('pointerdown', beginStroke);
@@ -2436,12 +2439,34 @@ document.getElementById('musicVol').oninput = e => {
   const undoBtn = document.getElementById('canvasUndoBtn');
   if (undoBtn) undoBtn.addEventListener('click', undo);
 
-  // ── Clear canvas drawings (not stickers) ────────────────────────────────
-  // The stickerClearAll btn clears both drawings + stickers;
-  // tap into its click via a hook at the top of the canvas section
+  // ── Clear canvas drawings ────────────────────────────────────────────────
   window._clearDrawingCanvas = function() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     undoStack.length = 0;
+    if (typeof window._canvasSave === 'function') window._canvasSave();
+  };
+
+  // ── Public API used by sticker save/load ─────────────────────────────────
+  // Returns a compact PNG data URL if there is anything drawn, else null
+  window._drawingGetDataURL = function() {
+    // Check if canvas is blank by sampling a pixel — if all alpha=0, skip saving
+    const d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    let hasContent = false;
+    for (let i = 3; i < d.length; i += 4) { if (d[i] > 0) { hasContent = true; break; } }
+    return hasContent ? canvas.toDataURL('image/png') : null;
+  };
+
+  // Restores a previously saved data URL onto the canvas
+  window._drawingRestore = function(dataURL) {
+    if (!dataURL) return;
+    resizeCanvas();
+    const img = new Image();
+    img.onload = () => {
+      const W = canvas.width  / _dpr;
+      const H = canvas.height / _dpr;
+      ctx.drawImage(img, 0, 0, W, H);
+    };
+    img.src = dataURL;
   };
 })();
 
@@ -2472,7 +2497,7 @@ document.getElementById('musicVol').oninput = e => {
     clearTimeout(_saveTimer);
     _saveTimer = setTimeout(async () => {
       try {
-        const data = items.map(s => {
+        const stickerData = items.map(s => {
           const d = { id: s.id, type: s.type,
             x: Math.round(s.x), y: Math.round(s.y),
             w: Math.round(s.w), rot: Math.round(s.rot * 100) / 100,
@@ -2481,10 +2506,13 @@ document.getElementById('musicVol').oninput = e => {
           if (s.type === 'text') { d.text = s.text; d.fontSize = s.fontSize; d.bold = s.bold; d.color = s.color; }
           return d;
         });
+        // Include drawing canvas snapshot (null if blank — server keeps previous)
+        const drawingDataURL = typeof window._drawingGetDataURL === 'function'
+          ? window._drawingGetDataURL() : null;
         await fetch('/api/stickers', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ stickers: data }),
+          body: JSON.stringify({ stickers: stickerData, drawings: drawingDataURL ? [drawingDataURL] : [] }),
         });
       } catch(e) {}
     }, 800);
@@ -2499,8 +2527,12 @@ document.getElementById('musicVol').oninput = e => {
       (data.stickers || []).forEach(d => {
         if (d.type === 'text') createTextItem(d.text, d.x, d.y, d.w, d.rot, d.id, d.fontSize, d.bold, d.color, d.z);
         else if (d.type === 'img' && d.src) createImgItem(d.src, d.x, d.y, d.w, d.rot, d.id, d.z);
-        // skip any record missing type or src to avoid broken-image stickers
       });
+      // Restore drawing canvas snapshot
+      const drawingURL = Array.isArray(data.drawings) && data.drawings[0];
+      if (drawingURL && typeof window._drawingRestore === 'function') {
+        window._drawingRestore(drawingURL);
+      }
       // After load, apply visitor restrictions if not owner
       if (!isOwner) {
         layer.querySelectorAll('.sticker-text-edit').forEach(e => { e.contentEditable = 'false'; e.style.cursor = 'default'; });
@@ -2860,4 +2892,7 @@ document.getElementById('musicVol').oninput = e => {
     layer.innerHTML = ''; items = [];
     if (username) loadForUser(username, password);
   };
+
+  // Expose save so the drawing canvas can trigger a server-save after each stroke
+  window._canvasSave = save;
 })();
