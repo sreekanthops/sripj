@@ -54,7 +54,7 @@ function getReplyReactions(replyId, currentReactorKey) {
   };
 }
 
-function buildNote(row, req) {
+function buildNote(row, req, authorUser) {
   const reactorKey = req ? getReactorKey(req) : null;
   const { reactions, userReactions } = getNoteReactions(row.id, reactorKey);
   const replies = db.prepare('SELECT * FROM replies WHERE note_id = ? ORDER BY created_at ASC').all(row.id);
@@ -76,7 +76,7 @@ function buildNote(row, req) {
   let tags = [];
   try { tags = JSON.parse(row.tags || '[]'); } catch { tags = []; }
 
-  return {
+  const noteObj = {
     id:            row.id,
     userId:        row.user_id,
     title:         row.title,
@@ -96,6 +96,19 @@ function buildNote(row, req) {
     replies:       repliesWithReactions,
     media:         media.map(m => ({ id: m.id, url: '/uploads/' + m.filename, mimetype: m.mimetype })),
   };
+
+  if (authorUser) {
+    noteObj.user = {
+      id: authorUser.id,
+      username: authorUser.username,
+      displayName: authorUser.display_name,
+      bio: authorUser.bio,
+      avatarUrl: authorUser.avatar_url || '',
+      isProtected: !!authorUser.share_protected,
+    };
+  }
+
+  return noteObj;
 }
 
 // GET /api/notes/user/:username  — public diary page for a user
@@ -154,15 +167,35 @@ router.get('/', verifyToken, (req, res) => {
 });
 
 // GET /api/notes/:id
-router.get('/:id', optionalAuth, (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
   const row = db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Not found' });
+
+  const author = db.prepare('SELECT id, username, display_name, bio, avatar_url, share_protected, share_password_hash FROM users WHERE id = ?').get(row.user_id);
+  const isOwner = req.user && req.user.userId === row.user_id;
+
+  // Check password protection if enabled and visitor is not the owner
+  if (author && author.share_protected && !isOwner) {
+    const providedPass = req.headers['x-share-password'] || req.query.pass || '';
+    let passMatch = false;
+    if (providedPass && author.share_password_hash) {
+      passMatch = await checkPassword(providedPass, author.share_password_hash);
+    }
+    if (!passMatch) {
+      return res.status(403).json({
+        isProtected: true,
+        error: 'Password required to view this entry',
+        user: { id: author.id, username: author.username, displayName: author.display_name, bio: author.bio, avatarUrl: author.avatar_url || '' }
+      });
+    }
+  }
+
   // increment views only for non-owners
-  if (!req.user || req.user.userId !== row.user_id) {
+  if (!isOwner) {
     db.prepare('UPDATE notes SET views = views + 1 WHERE id = ?').run(req.params.id);
     row.views += 1;
   }
-  res.json(buildNote(row, req));
+  res.json(buildNote(row, req, author));
 });
 
 // POST /api/notes  (owner only)

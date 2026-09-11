@@ -270,17 +270,37 @@ async function initGoogleOAuth() {
 function openOv(id)  { document.getElementById(id).classList.add('open'); }
 function closeOv(id) { document.getElementById(id).classList.remove('open'); }
 
-['detailOverlay','formOverlay','profileOverlay','upgradeOverlay','libraryOverlay','shareOverlay'].forEach(id => {
+['detailOverlay','formOverlay','profileOverlay','upgradeOverlay','libraryOverlay','shareOverlay','passOverlay'].forEach(id => {
   document.getElementById(id)?.addEventListener('click', e => {
     if (e.target === document.getElementById(id)) closeOv(id);
   });
 });
-document.getElementById('detailClose')?.addEventListener('click', () => closeOv('detailOverlay'));
+document.getElementById('detailClose')?.addEventListener('click', () => {
+  closeOv('detailOverlay');
+  if (audio) { audio.pause(); audio.currentTime = 0; }
+  const match = location.pathname.match(/^\/entry\/([^/]+)/);
+  if (match) {
+    if (currentUser?.username) {
+      history.pushState({}, '', '/u/' + currentUser.username);
+    } else if (viewingUser?.username) {
+      history.pushState({}, '', '/u/' + viewingUser.username);
+    } else {
+      history.pushState({}, '', '/');
+    }
+  }
+});
 document.getElementById('formClose')?.addEventListener('click', () => closeOv('formOverlay'));
 document.getElementById('profileClose')?.addEventListener('click', () => closeOv('profileOverlay'));
 document.getElementById('upgradeClose')?.addEventListener('click', () => closeOv('upgradeOverlay'));
 document.getElementById('libraryClose')?.addEventListener('click', () => closeOv('libraryOverlay'));
 document.getElementById('shareClose')?.addEventListener('click', () => closeOv('shareOverlay'));
+document.getElementById('detailShareBtn')?.addEventListener('click', e => {
+  e.stopPropagation();
+  const curNote = notes[detailIdx];
+  if (curNote) {
+    shareSingleNote(curNote.id);
+  }
+});
 
 // Refresh upgrade overlay prices from live API when it opens
 ;(function() {
@@ -577,24 +597,59 @@ document.getElementById('profPwdBtn')?.addEventListener('click', async () => {
 });
 
 // ── SHARE MODAL LOGIC ──────────────────────────────────────────────────────
-async function openShareModal() {
-  if (!currentUser) return;
-  const url = `${location.origin}/u/${currentUser.username}`;
-  const urlInput = document.getElementById('shareUrlInput');
-  if (urlInput) urlInput.value = url;
+let currentShareType = 'diary'; // 'diary' | 'note'
+let currentShareNoteId = null;
 
-  // Fetch current share protection status
-  try {
-    const data = await api('GET', '/auth/share-settings');
-    const isProt = !!data.shareProtected;
-    setShareOptionUI(isProt);
-  } catch {
+async function openShareModal(targetNoteId = null) {
+  if (targetNoteId) {
+    currentShareType = 'note';
+    currentShareNoteId = targetNoteId;
+    const titleEl = document.getElementById('shareModalTitle');
+    const descEl  = document.getElementById('shareModalDesc');
+    if (titleEl) titleEl.textContent = '🔗 Share Entry';
+    if (descEl)  descEl.textContent = 'Anyone with the link can view this specific entry.';
+    const url = `${location.origin}/entry/${targetNoteId}`;
+    const urlInput = document.getElementById('shareUrlInput');
+    if (urlInput) urlInput.value = url;
+  } else {
+    currentShareType = 'diary';
+    currentShareNoteId = null;
+    const targetUser = viewingUser || currentUser;
+    const titleEl = document.getElementById('shareModalTitle');
+    const descEl  = document.getElementById('shareModalDesc');
+    if (titleEl) titleEl.textContent = '🔗 Share Your Stories';
+    if (descEl)  descEl.textContent = 'Choose how others can view your diary page.';
+    const url = `${location.origin}/u/${targetUser?.username || ''}`;
+    const urlInput = document.getElementById('shareUrlInput');
+    if (urlInput) urlInput.value = url;
+  }
+
+  // Fetch current share protection status if user is owner/logged in
+  if (currentUser) {
+    try {
+      const data = await api('GET', '/auth/share-settings');
+      const isProt = !!data.shareProtected;
+      setShareOptionUI(isProt);
+    } catch {
+      setShareOptionUI(false);
+    }
+  } else {
     setShareOptionUI(false);
   }
 
   const passInput = document.getElementById('sharePassInput');
   if (passInput) passInput.value = '';
   openOv('shareOverlay');
+}
+
+async function shareSingleNote(noteId) {
+  const url = `${location.origin}/entry/${noteId}`;
+  const ok = await copyToClipboard(url);
+  if (ok) {
+    toast('Entry link copied! 🔗📋');
+  } else {
+    openShareModal(noteId);
+  }
 }
 
 function setShareOptionUI(isProtected) {
@@ -654,7 +709,9 @@ document.getElementById('btnSaveShareSettings')?.addEventListener('click', async
 
   try {
     await api('PUT', '/auth/share-settings', { isProtected, password });
-    const url = `${location.origin}/u/${currentUser.username}`;
+    const url = currentShareType === 'note' && currentShareNoteId
+      ? `${location.origin}/entry/${currentShareNoteId}`
+      : `${location.origin}/u/${currentUser.username}`;
     await copyToClipboard(url);
     closeOv('shareOverlay');
     toast(isProtected ? 'Password set & link copied! 🔒🔗' : 'Public link copied! 🌐🔗');
@@ -725,7 +782,7 @@ async function enterPublicDiary(username, password = '') {
   }
 }
 
-function promptDiaryPassword(username, userObj) {
+function promptDiaryPassword(username, userObj, noteIdToOpen = null) {
   const modalTitle = document.getElementById('passModalTitle');
   const modalSub   = document.getElementById('passModalSub');
   const passInput  = document.getElementById('diaryUnlockPass');
@@ -748,6 +805,9 @@ function promptDiaryPassword(username, userObj) {
       }
       try {
         await enterPublicDiary(username, pwd);
+        if (noteIdToOpen) {
+          openDetail(noteIdToOpen);
+        }
       } catch {
         if (errEl) errEl.textContent = 'Incorrect password, please try again';
       }
@@ -762,6 +822,31 @@ function promptDiaryPassword(username, userObj) {
 
   openOv('passOverlay');
   setTimeout(() => passInput?.focus(), 150);
+}
+
+async function enterSingleNote(noteId) {
+  try {
+    const headers = {};
+    if (currentEnteredPassword) {
+      headers['x-share-password'] = currentEnteredPassword;
+    }
+    const note = await api('GET', `/notes/${noteId}`, null, headers);
+    if (note.user) {
+      await enterPublicDiary(note.user.username, currentEnteredPassword);
+    } else if (currentUser) {
+      await enterOwnDiary();
+    }
+    openDetail(noteId);
+  } catch (err) {
+    if (err.isProtected && err.user) {
+      showApp();
+      promptDiaryPassword(err.user.username, err.user, noteId);
+      return;
+    }
+    toast('Entry not found');
+    if (currentUser) enterOwnDiary();
+    else showAuth();
+  }
 }
 
 // ── SWATCHES ───────────────────────────────────────────────────────────────
@@ -1336,9 +1421,16 @@ function renderGrid() {
 
     grid.querySelectorAll('.note-card').forEach(card => {
       card.onclick = e => {
-        if (e.target.closest('.slider-root') || e.target.closest('.card-react-btn') || e.target.closest('.tag-chip')) return;
+        if (e.target.closest('.slider-root') || e.target.closest('.card-react-btn') || e.target.closest('.tag-chip') || e.target.closest('.card-share-btn')) return;
         detailIdx = notes.findIndex(n => n.id === card.dataset.id);
         openDetail(card.dataset.id);
+      };
+    });
+
+    grid.querySelectorAll('.card-share-btn').forEach(btn => {
+      btn.onclick = e => {
+        e.stopPropagation();
+        shareSingleNote(btn.dataset.nid);
       };
     });
 
@@ -1420,6 +1512,7 @@ function buildNoteCard(n, index, total) {
     n.musicUrl      ? `<span class="chip">♫</span>` : '',
     n.media?.length ? `<span class="chip">🎬 ${n.media.length}</span>` : '',
     (n.replies||[]).length ? `<span class="chip">💬 ${n.replies.length}</span>` : '',
+    `<button class="card-share-btn" data-nid="${n.id}" title="Share entry">🔗</button>`,
   ].filter(Boolean).join('');
 
   const foot = document.createElement('div');
@@ -1706,13 +1799,14 @@ function renderDetail(note) {
         <textarea id="rText" placeholder="Share your thoughts or feelings…"></textarea>
         <button class="btn btn-gold btn-sm btn-rpost" data-id="${note.id}" style="align-self:flex-end">Post Reply</button>
       </div>
-      ${isOwner ? `
-      <div class="admin-note-bar">
-        <span class="admin-bar-label">Owner</span>
+      <div class="admin-note-bar" style="${isOwner ? '' : 'background:transparent;border:none;padding:8px 0'}">
+        ${isOwner ? '<span class="admin-bar-label">Owner</span>' : ''}
+        <button class="btn btn-ghost btn-sm btn-dshare" data-id="${note.id}">🔗 Share Entry</button>
+        ${isOwner ? `
         <button class="btn btn-ghost btn-sm btn-dedit" data-id="${note.id}">✏️ Edit</button>
         <button class="btn btn-pin   btn-sm btn-dpin"  data-id="${note.id}" data-pinned="${note.pinned?'1':'0'}">${note.pinned ? '📌 Unpin' : '📌 Pin'}</button>
-        <button class="btn btn-red   btn-sm btn-ddel"  data-id="${note.id}">🗑 Delete</button>
-      </div>` : ''}
+        <button class="btn btn-red   btn-sm btn-ddel"  data-id="${note.id}">🗑 Delete</button>` : ''}
+      </div>
     </div>`;
 
   // mount media slider into cover area
@@ -1723,6 +1817,10 @@ function renderDetail(note) {
   }
 
   // ── events ──────────────────────────────────────────────────────────────
+  cont.querySelector('.btn-dshare')?.addEventListener('click', e => {
+    e.stopPropagation();
+    shareSingleNote(note.id);
+  });
   cont.querySelector('.btn-dedit')?.addEventListener('click', e => {
     e.stopPropagation();
     closeOv('detailOverlay'); openEditForm(note);
@@ -2078,8 +2176,12 @@ document.getElementById('musicVol').oninput = e => {
 
 // ── INIT ───────────────────────────────────────────────────────────────────
 (async () => {
-  const match = location.pathname.match(/^\/u\/([^/]+)/);
-  const urlUsername = match ? match[1].toLowerCase() : null;
+  const userMatch = location.pathname.match(/^\/u\/([^/]+)/);
+  const urlUsername = userMatch ? userMatch[1].toLowerCase() : null;
+
+  const entryMatch = location.pathname.match(/^\/entry\/([^/]+)/);
+  const urlParams = new URLSearchParams(location.search);
+  const entryId = entryMatch ? entryMatch[1] : urlParams.get('entry');
 
   if (token) {
     try {
@@ -2091,7 +2193,9 @@ document.getElementById('musicVol').oninput = e => {
     }
   }
 
-  if (urlUsername) {
+  if (entryId) {
+    await enterSingleNote(entryId);
+  } else if (urlUsername) {
     await enterPublicDiary(urlUsername);
   } else if (currentUser) {
     await enterOwnDiary();
