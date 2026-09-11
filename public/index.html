@@ -497,33 +497,104 @@
 
 <audio id="bgAudio" loop></audio>
 
-<!-- ══ STICKER LAYER ═══════════════════════════════════════════════════════ -->
+<!-- ══ CANVAS DRAWING & STICKER LAYERS ═════════════════════════════════════ -->
+<canvas id="drawingCanvas"></canvas>
 <div id="stickerLayer"></div>
 
 <div id="stickerPanel" class="sticker-panel hidden">
-  <div class="sticker-panel-title">✦ Canvas</div>
-  <label class="sticker-upload-btn" title="Upload PNG / image">
-    <input type="file" id="stickerFileInput" accept="image/*" multiple style="display:none">
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-      <line x1="6.5" y1="1" x2="6.5" y2="12"/><line x1="1" y1="6.5" x2="12" y2="6.5"/>
-    </svg>
-    Upload Image
-  </label>
-  <button class="sticker-upload-btn" id="stickerFromLibrary" title="Choose from predefined image library">
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-      <rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/>
-      <rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/>
-    </svg>
-    Library
-  </button>
-  <button class="sticker-upload-btn" id="stickerAddText" title="Add a draggable text box">
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-      <line x1="2" y1="3" x2="11" y2="3"/><line x1="6.5" y1="3" x2="6.5" y2="11"/>
-    </svg>
-    Add Text
-  </button>
-  <p class="sticker-panel-hint">Drag · ⟳ rotate · corner resize<br>↑↓ layer order · ✕ remove</p>
-  <button class="sticker-clear-btn" id="stickerClearAll">🗑 Clear all</button>
+  <div class="sticker-panel-header">
+    <div class="sticker-panel-title">✦ Canvas Studio</div>
+    <button id="stickerPanelClose" class="canvas-hdr-close" title="Close Toolbar">✕</button>
+  </div>
+
+  <!-- Tools Selection: Select/Drag, Pencil, Brush, Eraser -->
+  <div class="canvas-tool-group">
+    <button class="canvas-tool-btn active" id="toolSelect" title="Select / Move Elements">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7 18 3-7 7-3L3 3z"/></svg>
+      <span>Select</span>
+    </button>
+    <button class="canvas-tool-btn" id="toolPencil" title="Pencil (Fine Drawing)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+      <span>Pencil</span>
+    </button>
+    <button class="canvas-tool-btn" id="toolBrush" title="Brush (Smooth Ink)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.06 11.9l8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"/><path d="M7.07 14.94l-3.53 3.54a2 2 0 0 0 0 2.83l.7.7a2 2 0 0 0 2.83 0l3.54-3.53"/></svg>
+      <span>Brush</span>
+    </button>
+    <button class="canvas-tool-btn" id="toolEraser" title="Eraser">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
+      <span>Eraser</span>
+    </button>
+  </div>
+
+  <!-- Stroke Widths / Presets: Light, Medium, Thick -->
+  <div class="canvas-stroke-section" id="canvasStrokeSection">
+    <span class="canvas-section-label">Stroke Size</span>
+    <div class="canvas-size-pills">
+      <button class="canvas-size-pill" data-size="light" title="Light / Fine (2px)">
+        <span class="size-dot dot-light"></span> Light
+      </button>
+      <button class="canvas-size-pill active" data-size="medium" title="Medium (5px)">
+        <span class="size-dot dot-medium"></span> Med
+      </button>
+      <button class="canvas-size-pill" data-size="thick" title="Thick (12px)">
+        <span class="size-dot dot-thick"></span> Thick
+      </button>
+    </div>
+  </div>
+
+  <!-- Color Palette -->
+  <div class="canvas-color-section" id="canvasColorSection">
+    <div class="canvas-color-header">
+      <span class="canvas-section-label">Ink Colour</span>
+      <label class="canvas-custom-color-lbl" title="Custom color picker">
+        <input type="color" id="canvasCustomColor" value="#d4a96a">
+        <span class="custom-color-preview" id="customColorPreview" style="background:#d4a96a"></span>
+      </label>
+    </div>
+    <div class="canvas-palette-grid" id="canvasPaletteGrid">
+      <button class="color-swatch-btn" data-color="#2c2416" style="background:#2c2416" title="Dark Ink"></button>
+      <button class="color-swatch-btn active" data-color="#d4a96a" style="background:#d4a96a" title="Warm Gold"></button>
+      <button class="color-swatch-btn" data-color="#b83232" style="background:#b83232" title="Crimson"></button>
+      <button class="color-swatch-btn" data-color="#2f5a6e" style="background:#2f5a6e" title="Ocean Blue"></button>
+      <button class="color-swatch-btn" data-color="#3b7a57" style="background:#3b7a57" title="Forest Green"></button>
+      <button class="color-swatch-btn" data-color="#8b5bd5" style="background:#8b5bd5" title="Lavender"></button>
+      <button class="color-swatch-btn" data-color="#e67e22" style="background:#e67e22" title="Sunset Orange"></button>
+      <button class="color-swatch-btn" data-color="#ffffff" style="background:#ffffff; border-color:#bbb" title="Chalk White"></button>
+    </div>
+  </div>
+
+  <!-- Add Elements: Upload Image, Library, Add Text -->
+  <div class="canvas-add-section">
+    <span class="canvas-section-label">Add Objects</span>
+    <div class="canvas-add-row">
+      <label class="sticker-upload-btn" title="Upload PNG / JPG from computer">
+        <input type="file" id="stickerFileInput" accept="image/*" multiple style="display:none">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span>Upload</span>
+      </label>
+      <button class="sticker-upload-btn" id="stickerFromLibrary" title="Choose from library">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>Library</span>
+      </button>
+      <button class="sticker-upload-btn" id="stickerAddText" title="Add draggable text box">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+        <span>Text</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Actions: Undo Draw, Clear All -->
+  <div class="canvas-bottom-actions">
+    <button class="canvas-action-btn" id="canvasUndoBtn" title="Undo last brush/pencil stroke">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+      <span>Undo Stroke</span>
+    </button>
+    <button class="sticker-clear-btn" id="stickerClearAll" title="Clear canvas drawings &amp; stickers">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      <span>Clear Canvas</span>
+    </button>
+  </div>
 </div>
 
 <!-- ── CHATBOT ══════════════════════════════════════════════════════════════ -->

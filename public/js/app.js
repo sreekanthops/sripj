@@ -2204,6 +2204,249 @@ document.getElementById('musicVol').oninput = e => {
 })();
 
 // ══════════════════════════════════════════════════════════════════════════
+//  DRAWING CANVAS  — pencil / brush / eraser with colour + stroke size
+// ══════════════════════════════════════════════════════════════════════════
+;(function initDrawingCanvas() {
+  const canvas = document.getElementById('drawingCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  // ── Resize canvas to match page size ────────────────────────────────────
+  let _dpr = window.devicePixelRatio || 1;
+  function resizeCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    const W   = Math.max(document.body.scrollWidth,  document.documentElement.scrollWidth,  window.innerWidth);
+    const H   = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, window.innerHeight);
+    const newW = Math.round(W * dpr);
+    const newH = Math.round(H * dpr);
+    if (canvas.width === newW && canvas.height === newH) return;
+    // Snapshot existing drawing at CSS pixel dimensions
+    const prevW = canvas.width / _dpr;
+    const prevH = canvas.height / _dpr;
+    const prevImg = (canvas.width > 0 && canvas.height > 0) ? canvas.toDataURL() : null;
+    _dpr = dpr;
+    canvas.width  = newW;
+    canvas.height = newH;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.scale(dpr, dpr);
+    if (prevImg) {
+      const image = new Image();
+      image.onload = () => ctx.drawImage(image, 0, 0, prevW, prevH);
+      image.src = prevImg;
+    }
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  // ── Tool state ───────────────────────────────────────────────────────────
+  let currentTool  = 'select';   // 'select' | 'pencil' | 'brush' | 'eraser'
+  let strokeSize   = 'medium';   // 'light' | 'medium' | 'thick'
+  let inkColor     = '#d4a96a';
+
+  // Size map per tool
+  const SIZES = {
+    pencil: { light: 1.5, medium: 3,  thick: 7  },
+    brush:  { light: 4,   medium: 9,  thick: 20 },
+    eraser: { light: 10,  medium: 22, thick: 44 },
+  };
+
+  function getLineWidth() {
+    const tool = (currentTool === 'eraser') ? 'eraser'
+               : (currentTool === 'brush')  ? 'brush'
+               : 'pencil';
+    return SIZES[tool][strokeSize] || 3;
+  }
+
+  // ── Undo history ─────────────────────────────────────────────────────────
+  // We snapshot the full canvas image data after every stroke
+  const MAX_UNDO = 30;
+  const undoStack = [];
+  function pushUndo() {
+    const snap = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    undoStack.push(snap);
+    if (undoStack.length > MAX_UNDO) undoStack.shift();
+  }
+  function undo() {
+    if (!undoStack.length) return;
+    ctx.putImageData(undoStack.pop(), 0, 0);
+  }
+
+  // ── Drawing logic ────────────────────────────────────────────────────────
+  let drawing = false;
+  let lastX = 0, lastY = 0;
+  // For smooth brush: collect points and draw bezier curves
+  let brushPoints = [];
+
+  function getPos(e) {
+    const r   = canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: src.clientX - r.left, y: src.clientY - r.top };
+  }
+
+  function beginStroke(e) {
+    if (currentTool === 'select') return;
+    e.preventDefault();
+    pushUndo();  // snapshot before drawing
+    resizeCanvas();  // ensure canvas covers full page
+    drawing = true;
+    const p = getPos(e);
+    lastX = p.x; lastY = p.y;
+    brushPoints = [p];
+
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+
+    // Set compositing for eraser
+    ctx.globalCompositeOperation = (currentTool === 'eraser') ? 'destination-out' : 'source-over';
+    ctx.strokeStyle = inkColor;
+    ctx.lineWidth   = getLineWidth();
+    ctx.lineCap     = 'round';
+    ctx.lineJoin    = 'round';
+
+    // Pencil: slight roughness via globalAlpha
+    if (currentTool === 'pencil') {
+      ctx.globalAlpha = 0.88;
+    } else if (currentTool === 'brush') {
+      ctx.globalAlpha = 0.72;
+      ctx.shadowBlur  = 2;
+      ctx.shadowColor = inkColor;
+    } else {
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur  = 0;
+    }
+
+    // Dot on press (for single tap)
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, getLineWidth() / 2, 0, Math.PI * 2);
+    ctx.fillStyle = (currentTool === 'eraser') ? 'rgba(0,0,0,1)' : inkColor;
+    ctx.fill();
+  }
+
+  function continueStroke(e) {
+    if (!drawing || currentTool === 'select') return;
+    e.preventDefault();
+    const p = getPos(e);
+
+    if (currentTool === 'brush') {
+      // Smooth brush: quadratic bezier through midpoints
+      brushPoints.push(p);
+      if (brushPoints.length >= 3) {
+        const pts = brushPoints;
+        const i   = pts.length - 1;
+        const mid = { x: (pts[i-1].x + pts[i].x) / 2, y: (pts[i-1].y + pts[i].y) / 2 };
+        ctx.beginPath();
+        ctx.moveTo((pts[i-2].x + pts[i-1].x) / 2, (pts[i-2].y + pts[i-1].y) / 2);
+        ctx.quadraticCurveTo(pts[i-1].x, pts[i-1].y, mid.x, mid.y);
+        ctx.stroke();
+      }
+    } else {
+      // Pencil / eraser: line segments
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    }
+    lastX = p.x; lastY = p.y;
+  }
+
+  function endStroke(e) {
+    if (!drawing) return;
+    drawing = false;
+    brushPoints = [];
+    ctx.globalAlpha  = 1;
+    ctx.shadowBlur   = 0;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  canvas.addEventListener('pointerdown', beginStroke);
+  canvas.addEventListener('pointermove', continueStroke);
+  canvas.addEventListener('pointerup',   endStroke);
+  canvas.addEventListener('pointerleave', endStroke);
+
+  // ── Wire tool buttons ────────────────────────────────────────────────────
+  const toolBtns = {
+    select: document.getElementById('toolSelect'),
+    pencil: document.getElementById('toolPencil'),
+    brush:  document.getElementById('toolBrush'),
+    eraser: document.getElementById('toolEraser'),
+  };
+
+  function setTool(name) {
+    currentTool = name;
+    // Update button UI
+    Object.entries(toolBtns).forEach(([k, btn]) => btn && btn.classList.toggle('active', k === name));
+    // Update body class for canvas cursor/pointer-events
+    document.body.classList.toggle('draw-mode', name !== 'select');
+    document.body.classList.toggle('tool-eraser', name === 'eraser');
+    document.body.classList.toggle('tool-select', name === 'select');
+    // Show/hide stroke+colour sections only for drawing tools
+    const strokeSec = document.getElementById('canvasStrokeSection');
+    const colorSec  = document.getElementById('canvasColorSection');
+    const isDrawing = (name !== 'select');
+    if (strokeSec) strokeSec.style.display = isDrawing ? '' : 'none';
+    if (colorSec)  colorSec.style.display  = (isDrawing && name !== 'eraser') ? '' : 'none';
+  }
+
+  Object.entries(toolBtns).forEach(([name, btn]) => {
+    if (btn) btn.addEventListener('click', () => setTool(name));
+  });
+
+  // Initialise to select mode (don't start in drawing mode)
+  setTool('select');
+
+  // ── Wire stroke size pills ───────────────────────────────────────────────
+  document.querySelectorAll('.canvas-size-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.canvas-size-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      strokeSize = pill.dataset.size;
+    });
+  });
+
+  // ── Wire colour palette ──────────────────────────────────────────────────
+  document.querySelectorAll('.color-swatch-btn').forEach(swatch => {
+    swatch.addEventListener('click', () => {
+      document.querySelectorAll('.color-swatch-btn').forEach(s => s.classList.remove('active'));
+      swatch.classList.add('active');
+      inkColor = swatch.dataset.color;
+      // Sync custom colour preview
+      const preview = document.getElementById('customColorPreview');
+      if (preview) preview.style.background = inkColor;
+      const customInput = document.getElementById('canvasCustomColor');
+      if (customInput) customInput.value = inkColor;
+    });
+  });
+
+  // Custom colour picker
+  const customColorInput   = document.getElementById('canvasCustomColor');
+  const customColorPreview = document.getElementById('customColorPreview');
+  if (customColorInput && customColorPreview) {
+    // Make clicking the preview circle open the native colour picker
+    customColorPreview.addEventListener('click', () => customColorInput.click());
+    customColorInput.addEventListener('input', e => {
+      inkColor = e.target.value;
+      customColorPreview.style.background = inkColor;
+      // Deactivate palette swatches
+      document.querySelectorAll('.color-swatch-btn').forEach(s => s.classList.remove('active'));
+    });
+  }
+
+  // ── Undo button ──────────────────────────────────────────────────────────
+  const undoBtn = document.getElementById('canvasUndoBtn');
+  if (undoBtn) undoBtn.addEventListener('click', undo);
+
+  // ── Clear canvas drawings (not stickers) ────────────────────────────────
+  // The stickerClearAll btn clears both drawings + stickers;
+  // tap into its click via a hook at the top of the canvas section
+  window._clearDrawingCanvas = function() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    undoStack.length = 0;
+  };
+})();
+
+
+// ══════════════════════════════════════════════════════════════════════════
 //  CANVAS LAYER  — draggable images + text boxes, rotate, resize, z-order
 // ══════════════════════════════════════════════════════════════════════════
 ;(function initStickers() {
@@ -2572,9 +2815,17 @@ document.getElementById('musicVol').oninput = e => {
     panel.classList.add('hidden'); toggleBtn.classList.remove('active');
   });
 
-  // ── Clear all ──────────────────────────────────────────────────────────
+  // ── Clear all (stickers + drawings) ──────────────────────────────────────
   clearAllBtn.addEventListener('click', () => {
-    layer.innerHTML = ''; items = []; save(); toast('Canvas cleared');
+    layer.innerHTML = ''; items = []; save();
+    if (typeof window._clearDrawingCanvas === 'function') window._clearDrawingCanvas();
+    toast('Canvas cleared');
+  });
+
+  // ── Panel close button (✕ inside header) ──────────────────────────────
+  const panelCloseBtn = document.getElementById('stickerPanelClose');
+  if (panelCloseBtn) panelCloseBtn.addEventListener('click', () => {
+    panel.classList.add('hidden'); toggleBtn.classList.remove('active');
   });
 
   // ── Toggle panel ──────────────────────────────────────────────────────
@@ -2583,11 +2834,7 @@ document.getElementById('musicVol').oninput = e => {
     panel.classList.toggle('hidden', open);
     toggleBtn.classList.toggle('active', !open);
   });
-  document.addEventListener('pointerdown', e => {
-    if (!panel.classList.contains('hidden') && !panel.contains(e.target) && e.target !== toggleBtn) {
-      panel.classList.add('hidden'); toggleBtn.classList.remove('active');
-    }
-  }, true);
+  // Don't close the panel on outside click — keep it open until user explicitly closes
 
   // ── Owner visibility ──────────────────────────────────────────────────
   window._stickerSetOwner = function(owner) {

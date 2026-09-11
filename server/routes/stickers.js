@@ -52,22 +52,34 @@ router.get('/:username', optionalAuth, async (req, res) => {
   }
 
   const row = db.prepare('SELECT data FROM page_stickers WHERE user_id = ?').get(user.id);
-  let stickers = [];
-  try { stickers = JSON.parse(row?.data || '[]'); } catch {}
-  res.json({ stickers });
+  let parsed = null;
+  try { parsed = JSON.parse(row?.data || '[]'); } catch {}
+  
+  if (Array.isArray(parsed)) {
+    res.json({ stickers: parsed, drawings: [] });
+  } else if (parsed && typeof parsed === 'object') {
+    res.json({ stickers: parsed.stickers || [], drawings: parsed.drawings || [] });
+  } else {
+    res.json({ stickers: [], drawings: [] });
+  }
 });
 
-// PUT /api/stickers  — save current user's sticker layout
+// PUT /api/stickers  — save current user's sticker & drawings canvas layout
 router.put('/', verifyToken, (req, res) => {
-  const { stickers } = req.body;
-  if (!Array.isArray(stickers)) return res.status(400).json({ error: 'stickers array required' });
-  const safe = stickers.map(s => {
+  const { stickers, drawings } = req.body;
+  const safeStickers = Array.isArray(stickers) ? stickers.map(s => {
     const d = { id: s.id, type: s.type, x: s.x, y: s.y, w: s.w, rot: s.rot, z: s.z };
     if (s.type === 'img')  d.src = s.src;
     if (s.type === 'text') { d.text = s.text; d.fontSize = s.fontSize; d.bold = s.bold; d.color = s.color; }
     return d;
-  });
-  const data = JSON.stringify(safe);
+  }) : [];
+  
+  const payload = {
+    stickers: safeStickers,
+    drawings: Array.isArray(drawings) ? drawings : []
+  };
+
+  const data = JSON.stringify(payload);
   db.prepare(`
     INSERT INTO page_stickers (user_id, data, updated_at) VALUES (?, ?, ?)
     ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at

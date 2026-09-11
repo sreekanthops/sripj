@@ -1706,14 +1706,14 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 /* Controls bar — hidden until hover/active */
 .sticker-controls {
   position: absolute;
-  bottom: calc(100% + 2px);
+  bottom: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 4px;
-  background: rgba(44,36,22,.88);
-  backdrop-filter: blur(8px);
+  background: rgba(44,36,22,.92);
+  backdrop-filter: blur(10px);
   border-radius: 20px;
   padding: 5px 10px;
   opacity: 0;
@@ -1722,29 +1722,14 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   white-space: nowrap;
   z-index: 10;
 }
-/* Wide transparent bridge — covers gap + extra so cursor can travel to toolbar */
-.sticker-controls::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: -20px; right: -20px; /* wider than the bar so edges are forgiving */
-  height: 32px;
-  background: transparent;
-}
 /* Flip toolbar BELOW the sticker when it's near the top of the viewport */
 .sticker-controls.below {
   bottom: auto;
-  top: calc(100% + 2px);
+  top: calc(100% + 6px);
 }
-.sticker-controls.below::after {
-  top: auto;
-  bottom: 100%;
-}
-/* Toolbar + delete only shown for owner */
-body.is-owner .sticker:hover .sticker-controls,
+/* Toolbar shown ONLY when sticker is .active (click-to-show, persistent) — owner only */
 body.is-owner .sticker.active .sticker-controls,
-body.is-owner .sticker.editing .sticker-controls,
-body.is-owner .sticker-controls:hover {
+body.is-owner .sticker.editing .sticker-controls {
   opacity: 1;
   pointer-events: all;
 }
@@ -1813,12 +1798,10 @@ body.is-owner .sticker-controls:hover {
   touch-action: none;
 }
 
-/* Handles only shown/interactive for the owner */
-body.is-owner .sticker:hover .sticker-rotate-handle,
+/* Handles only shown/interactive for the owner, on active (click-selected) */
 body.is-owner .sticker.active .sticker-rotate-handle {
   opacity: 1; pointer-events: all; transform: scale(1.1);
 }
-body.is-owner .sticker:hover .sticker-resize-handle,
 body.is-owner .sticker.active .sticker-resize-handle {
   opacity: 1; pointer-events: all; transform: scale(1.15);
 }
@@ -2125,4 +2108,217 @@ body.is-owner .sticker.active .sticker-resize-handle {
   color: var(--ink4);
   font-family: var(--sans);
   font-size: 13px;
+}
+
+/* ══════════════════════════════════════════════════════
+   DRAWING CANVAS
+══════════════════════════════════════════════════════ */
+#drawingCanvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;   /* off by default — enabled when drawing tool active */
+  z-index: 140;           /* below sticker layer (150) */
+  touch-action: none;
+}
+body.draw-mode #drawingCanvas {
+  pointer-events: all;
+  cursor: crosshair;
+}
+body.draw-mode.tool-eraser #drawingCanvas {
+  cursor: cell;
+}
+body.draw-mode.tool-select #drawingCanvas {
+  pointer-events: none;   /* select mode: pass events through to stickers */
+  cursor: default;
+}
+
+/* ══════════════════════════════════════════════════════
+   CANVAS PANEL — tool buttons, stroke sizes, palette
+══════════════════════════════════════════════════════ */
+
+/* Panel header close button */
+.canvas-hdr-close {
+  width: 26px; height: 26px;
+  border-radius: 50%; border: none;
+  background: rgba(120,100,70,.15);
+  color: var(--ink3);
+  font-size: 13px; font-weight: 700; line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .12s, color .12s;
+  flex-shrink: 0;
+}
+.canvas-hdr-close:hover { background: var(--red); color: #fff; }
+
+/* Section label */
+.canvas-section-label {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: var(--ink4);
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* Tool group — Select / Pencil / Brush / Eraser */
+.canvas-tool-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.canvas-tool-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px;
+  padding: 8px 4px 6px;
+  border: 1.5px solid var(--border2);
+  border-radius: 10px;
+  background: var(--surface2);
+  color: var(--ink3);
+  font-family: var(--sans);
+  font-size: 10px; font-weight: 500;
+  cursor: pointer;
+  transition: background .13s, border-color .13s, color .13s;
+}
+.canvas-tool-btn:hover {
+  background: var(--bg3);
+  border-color: var(--border3);
+  color: var(--ink);
+}
+.canvas-tool-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.canvas-tool-btn svg { transition: none; }
+
+/* Stroke size section */
+.canvas-stroke-section { display: flex; flex-direction: column; }
+.canvas-size-pills {
+  display: flex; gap: 5px;
+}
+.canvas-size-pill {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  gap: 5px;
+  padding: 6px 4px;
+  border: 1.5px solid var(--border2);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--ink3);
+  font-family: var(--sans);
+  font-size: 10px; font-weight: 500;
+  cursor: pointer;
+  transition: background .13s, border-color .13s, color .13s;
+  white-space: nowrap;
+}
+.canvas-size-pill:hover { background: var(--bg3); border-color: var(--border3); color: var(--ink); }
+.canvas-size-pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Dots inside size pills */
+.size-dot {
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  background: currentColor;
+}
+.dot-light  { width: 3px;  height: 3px;  }
+.dot-medium { width: 6px;  height: 6px;  }
+.dot-thick  { width: 11px; height: 11px; }
+
+/* Color section */
+.canvas-color-section { display: flex; flex-direction: column; }
+.canvas-color-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.canvas-color-header .canvas-section-label { margin-bottom: 0; }
+
+/* Custom colour picker label */
+.canvas-custom-color-lbl {
+  display: flex; align-items: center; gap: 5px;
+  cursor: pointer;
+}
+.canvas-custom-color-lbl input[type="color"] {
+  width: 0; height: 0; opacity: 0; position: absolute; pointer-events: none;
+}
+.custom-color-preview {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border3);
+  display: block;
+  cursor: pointer;
+  transition: transform .12s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
+}
+.custom-color-preview:hover { transform: scale(1.15); }
+
+/* Colour palette grid */
+.canvas-palette-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 5px;
+}
+.color-swatch-btn {
+  width: 100%; aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  cursor: pointer;
+  transition: transform .12s, border-color .12s;
+  outline: none;
+}
+.color-swatch-btn:hover { transform: scale(1.18); }
+.color-swatch-btn.active {
+  border-color: var(--ink);
+  transform: scale(1.22);
+  box-shadow: 0 0 0 2px var(--surface2);
+}
+
+/* Add objects row */
+.canvas-add-section { display: flex; flex-direction: column; }
+.canvas-add-row {
+  display: flex; gap: 5px;
+}
+.canvas-add-row .sticker-upload-btn {
+  flex: 1;
+  justify-content: center;
+  padding: 7px 6px;
+  font-size: 11px;
+}
+
+/* Bottom action row — Undo, Clear */
+.canvas-bottom-actions {
+  display: flex; gap: 6px;
+  padding-top: 2px;
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
+}
+.canvas-action-btn {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  gap: 5px;
+  padding: 6px 8px;
+  border: 1.5px solid var(--border2);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--ink3);
+  font-family: var(--sans);
+  font-size: 11px; font-weight: 500;
+  cursor: pointer;
+  transition: background .13s, border-color .13s, color .13s;
+}
+.canvas-action-btn:hover { background: var(--bg3); border-color: var(--border3); color: var(--ink); }
+.canvas-action-btn:active { transform: scale(.95); }
+
+/* Sticker panel header row */
+.sticker-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.sticker-panel-header .sticker-panel-title {
+  border-bottom: none;
+  padding-bottom: 0;
 }
