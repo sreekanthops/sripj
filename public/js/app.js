@@ -615,12 +615,20 @@ async function openShareModal(targetNoteId = null) {
     const descEl  = document.getElementById('shareModalDesc');
     if (titleEl) titleEl.textContent = '🔗 Share Your Stories';
     if (descEl)  descEl.textContent = 'Share this link — it works even if you change your username.';
-    // Use opaque /s/:token URL; fall back to /u/:username if no token yet
-    const sToken = currentUser?.shareToken || '';
+    const urlInput = document.getElementById('shareUrlInput');
+
+    // Fetch fresh share token from server (handles first-time + stale cache)
+    let sToken = currentUser?.shareToken || '';
+    if (!sToken && currentUser) {
+      try {
+        const fresh = await api('GET', '/auth/verify');
+        sToken = fresh.shareToken || '';
+        if (sToken) currentUser.shareToken = sToken;
+      } catch {}
+    }
     const url = sToken
       ? `${location.origin}/s/${sToken}`
       : `${location.origin}/u/${targetUser?.username || ''}`;
-    const urlInput = document.getElementById('shareUrlInput');
     if (urlInput) urlInput.value = url;
   }
 
@@ -2760,6 +2768,8 @@ document.getElementById('musicVol').oninput = e => {
       el.classList.add('active');
       requestAnimationFrame(positionToolbar);
     });
+    // Stop click from falling through the sticker layer to note cards below
+    el.addEventListener('click', e => { e.stopPropagation(); });
 
     document.addEventListener('pointerdown', e => {
       if (!e._stickerHandled) el.classList.remove('active');
@@ -2772,7 +2782,8 @@ document.getElementById('musicVol').oninput = e => {
     function addBtn(text, title, onClick, extraClass) {
       const b = document.createElement('button');
       b.className = (extraClass || 'sticker-btn'); b.title = title; b.textContent = text;
-      b.addEventListener('pointerdown', e => { e.stopPropagation(); onClick(); });
+      b.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); });
+      b.addEventListener('click',       e => { e.stopPropagation(); onClick(); });
       bar.appendChild(b); return b;
     }
 

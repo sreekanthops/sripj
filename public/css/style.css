@@ -1876,11 +1876,11 @@ body.is-owner .sticker.editing .sticker-controls {
 .sticker-btn:hover { background: rgba(255,255,255,.28); transform: scale(1.12); }
 .sticker-btn:active { transform: scale(.88); }
 
-/* Rotate handle */
+/* Rotate handle — top-left so it doesn't overlap the centred toolbar above */
 .sticker-rotate-handle {
   position: absolute;
-  top: -20px; right: -20px;
-  width: 32px; height: 32px;
+  top: -18px; left: -18px;
+  width: 30px; height: 30px;
   border-radius: 50%;
   background: rgba(47,90,110,.9);
   border: 2px solid rgba(255,255,255,.85);
