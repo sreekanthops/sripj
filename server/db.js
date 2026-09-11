@@ -182,12 +182,16 @@ if (!hasColumn('users', 'avatar_url'))          db.exec(`ALTER TABLE users ADD C
 // users: share_token (opaque slug for diary share URL)
 if (!hasColumn('users', 'share_token')) {
   db.exec(`ALTER TABLE users ADD COLUMN share_token TEXT NOT NULL DEFAULT ''`);
-  // back-fill existing users with a unique token
-  const { v4: uuidv4 } = require('uuid');
-  const existing = db.prepare('SELECT id FROM users WHERE share_token = ""').all();
-  const upd = db.prepare('UPDATE users SET share_token = ? WHERE id = ?');
-  existing.forEach(u => upd.run(uuidv4().replace(/-/g,'').slice(0,14), u.id));
 }
+// Always back-fill any users that still have an empty share_token
+;(function backFillShareTokens() {
+  const { v4: uuidv4 } = require('uuid');
+  const empty = db.prepare("SELECT id FROM users WHERE share_token = ''").all();
+  if (!empty.length) return;
+  const upd = db.prepare('UPDATE users SET share_token = ? WHERE id = ?');
+  empty.forEach(u => upd.run(uuidv4().replace(/-/g, '').slice(0, 14), u.id));
+  console.log(`[db] back-filled share_token for ${empty.length} user(s)`);
+})();
 
 // notes.user_id / tags / pinned / bg_url / note_music_id
 if (!hasColumn('notes', 'user_id'))       db.exec(`ALTER TABLE notes ADD COLUMN user_id       TEXT NOT NULL DEFAULT ''`);
