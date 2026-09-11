@@ -272,7 +272,11 @@ async function initGoogleOAuth() {
 
 // ── OVERLAYS ───────────────────────────────────────────────────────────────
 function openOv(id)  { document.getElementById(id).classList.add('open'); }
-function closeOv(id) { document.getElementById(id).classList.remove('open'); }
+function closeOv(id) {
+  document.getElementById(id).classList.remove('open');
+  // Always stop any TTS speech when any overlay is dismissed
+  if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel();
+}
 
 ['detailOverlay','formOverlay','profileOverlay','upgradeOverlay','libraryOverlay','shareOverlay','passOverlay'].forEach(id => {
   document.getElementById(id)?.addEventListener('click', e => {
@@ -281,7 +285,6 @@ function closeOv(id) { document.getElementById(id).classList.remove('open'); }
 });
 document.getElementById('detailClose')?.addEventListener('click', () => {
   closeOv('detailOverlay');
-  if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel();
   if (audio) { audio.pause(); audio.currentTime = 0; }
   const match = location.pathname.match(/^\/entry\/([^/]+)/);
   if (match) {
