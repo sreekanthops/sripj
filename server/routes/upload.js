@@ -30,46 +30,67 @@ const upload = multer({
   },
 });
 
+// Separate multer instance for avatars — accepts any image/* MIME
+const avatarUpload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Image files only'));
+  },
+});
+
 // POST /api/upload/avatar  — upload user profile picture (DP)
-router.post('/avatar', verifyToken, upload.single('avatar'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No avatar image uploaded' });
-  const avatarUrl = '/uploads/' + req.file.filename;
-  db.prepare('UPDATE users SET avatar_url = ? WHERE id = ?').run(avatarUrl, req.user.userId);
-  res.json({ avatarUrl });
+router.post('/avatar', verifyToken, (req, res, next) => {
+  avatarUpload.single('avatar')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message || 'Avatar upload failed' });
+    }
+    if (!req.file) return res.status(400).json({ error: 'No avatar image uploaded' });
+    const avatarUrl = '/uploads/' + req.file.filename;
+    db.prepare('UPDATE users SET avatar_url = ? WHERE id = ?').run(avatarUrl, req.user.userId);
+    res.json({ avatarUrl });
+  });
 });
 
 // POST /api/upload/:noteId  — upload media (note owner only)
-router.post('/:noteId', verifyToken, upload.array('files', 20), (req, res) => {
-  // ── Enforce plan upload permission ────────────────────────────────────────
-  const plan = getUserPlan(req.user.userId);
-  if (!plan.uploads) {
-    req.files?.forEach(f => fs.unlink(f.path, () => {}));
-    return res.status(403).json({
-      error: 'Media uploads require a Pro plan. Upgrade to upload photos and videos.',
-      limitReached: true,
-      plan: plan.planId,
-    });
-  }
+router.post('/:noteId', verifyToken, (req, res, next) => {
+  upload.array('files', 20)(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message || 'Upload failed' });
+    }
 
-  const note = db.prepare('SELECT id, user_id FROM notes WHERE id = ?').get(req.params.noteId);
-  if (!note) {
-    req.files?.forEach(f => fs.unlink(f.path, () => {}));
-    return res.status(404).json({ error: 'Note not found' });
-  }
-  if (note.user_id !== req.user.userId) {
-    req.files?.forEach(f => fs.unlink(f.path, () => {}));
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-  const maxOrder = db.prepare('SELECT COALESCE(MAX(sort_order),0) as m FROM media WHERE note_id=?')
-                     .get(req.params.noteId).m;
-  const inserted = [];
-  const stmt = db.prepare('INSERT INTO media (id,note_id,filename,mimetype,sort_order,created_at) VALUES (?,?,?,?,?,?)');
-  (req.files || []).forEach((f, i) => {
-    const id = uuidv4();
-    stmt.run(id, req.params.noteId, f.filename, f.mimetype, maxOrder + i + 1, new Date().toISOString());
-    inserted.push({ id, filename: f.filename, mimetype: f.mimetype, url: '/uploads/' + f.filename });
+    // ── Enforce plan upload permission ──────────────────────────────────────
+    const plan = getUserPlan(req.user.userId);
+    if (!plan.uploads) {
+      req.files?.forEach(f => fs.unlink(f.path, () => {}));
+      return res.status(403).json({
+        error: 'Media uploads require a Pro plan. Upgrade to upload photos and videos.',
+        limitReached: true,
+        plan: plan.planId,
+      });
+    }
+
+    const note = db.prepare('SELECT id, user_id FROM notes WHERE id = ?').get(req.params.noteId);
+    if (!note) {
+      req.files?.forEach(f => fs.unlink(f.path, () => {}));
+      return res.status(404).json({ error: 'Note not found' });
+    }
+    if (note.user_id !== req.user.userId) {
+      req.files?.forEach(f => fs.unlink(f.path, () => {}));
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const maxOrder = db.prepare('SELECT COALESCE(MAX(sort_order),0) as m FROM media WHERE note_id=?')
+                       .get(req.params.noteId).m;
+    const inserted = [];
+    const stmt = db.prepare('INSERT INTO media (id,note_id,filename,mimetype,sort_order,created_at) VALUES (?,?,?,?,?,?)');
+    (req.files || []).forEach((f, i) => {
+      const id = uuidv4();
+      stmt.run(id, req.params.noteId, f.filename, f.mimetype, maxOrder + i + 1, new Date().toISOString());
+      inserted.push({ id, filename: f.filename, mimetype: f.mimetype, url: '/uploads/' + f.filename });
+    });
+    res.status(201).json(inserted);
   });
-  res.status(201).json(inserted);
 });
 
 // DELETE /api/upload/:noteId/:mediaId  — remove media (note owner only)

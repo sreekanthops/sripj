@@ -176,8 +176,10 @@ document.getElementById('loginBtn').onclick = async () => {
   try {
     const data = await api('POST', '/auth/login', { username, password });
     token = data.token;
-    currentUser = { userId: data.userId, username: data.username, displayName: data.displayName, shareToken: data.shareToken || '' };
     localStorage.setItem('diary_token', token);
+    // Fetch full profile so email/bio/avatarUrl are available from the start
+    const profile = await api('GET', '/auth/verify').catch(() => data);
+    currentUser = { userId: data.userId, username: data.username, displayName: profile.displayName || data.displayName, email: profile.email || '', bio: profile.bio || '', avatarUrl: profile.avatarUrl || '', shareToken: profile.shareToken || '' };
     await enterOwnDiary();
   } catch (e) { errEl.textContent = e.message; }
 };
@@ -194,8 +196,8 @@ document.getElementById('signupBtn').onclick = async () => {
   try {
     const data = await api('POST', '/auth/signup', { username, password, displayName });
     token = data.token;
-    currentUser = { userId: data.userId, username: data.username, displayName: data.displayName, shareToken: data.shareToken || '' };
     localStorage.setItem('diary_token', token);
+    currentUser = { userId: data.userId, username: data.username, displayName: data.displayName || username, email: '', bio: '', avatarUrl: '', shareToken: data.shareToken || '' };
     await enterOwnDiary();
   } catch (e) { errEl.textContent = e.message; }
 };
@@ -244,8 +246,9 @@ async function initGoogleOAuth() {
               toast('Signing in with Google…');
               const data = await api('POST', '/auth/google', { accessToken: tokenResponse.access_token });
               token = data.token;
-              currentUser = { userId: data.userId, username: data.username, displayName: data.displayName, shareToken: data.shareToken || '' };
               localStorage.setItem('diary_token', token);
+              const gprofile = await api('GET', '/auth/verify').catch(() => data);
+              currentUser = { userId: data.userId, username: data.username, displayName: gprofile.displayName || data.displayName, email: gprofile.email || data.email || '', bio: gprofile.bio || '', avatarUrl: gprofile.avatarUrl || '', shareToken: gprofile.shareToken || '' };
               await enterOwnDiary();
               toast(`Welcome, ${currentUser.displayName}! 🌸`);
             } catch (err) {
@@ -280,7 +283,9 @@ document.getElementById('detailClose')?.addEventListener('click', () => {
   if (audio) { audio.pause(); audio.currentTime = 0; }
   const match = location.pathname.match(/^\/entry\/([^/]+)/);
   if (match) {
-    if (currentUser?.username) {
+    if (isOwner && currentUser?.shareToken) {
+      history.pushState({}, '', '/s/' + currentUser.shareToken);
+    } else if (isOwner && currentUser?.username) {
       history.pushState({}, '', '/u/' + currentUser.username);
     } else if (viewingUser?.username) {
       history.pushState({}, '', '/u/' + viewingUser.username);
@@ -559,6 +564,7 @@ document.getElementById('profSave').onclick = async () => {
     currentUser.email = email;
     currentUser.bio = bio;
     document.getElementById('sidebarTitle').textContent = displayName || currentUser.username;
+    renderHeader();
     closeOv('profileOverlay');
     toast('Profile details updated ✅');
   } catch (e) { toast('Error: ' + e.message); }
@@ -717,9 +723,13 @@ document.getElementById('btnSaveShareSettings')?.addEventListener('click', async
 
   try {
     await api('PUT', '/auth/share-settings', { isProtected, password });
-    const url = currentShareType === 'note' && currentShareNoteId
-      ? `${location.origin}/entry/${currentShareNoteId}`
-      : `${location.origin}/u/${currentUser.username}`;
+    // Use the token-based URL shown in the input (already set by openShareModal)
+    const urlInput = document.getElementById('shareUrlInput');
+    const url = urlInput?.value || (
+      currentShareType === 'note' && currentShareNoteId
+        ? `${location.origin}/entry/${currentShareNoteId}`
+        : `${location.origin}/s/${currentUser.shareToken || currentUser.username}`
+    );
     await copyToClipboard(url);
     closeOv('shareOverlay');
     toast(isProtected ? 'Password set & link copied! 🔒🔗' : 'Public link copied! 🌐🔗');
@@ -737,7 +747,8 @@ async function enterOwnDiary() {
   document.getElementById('sidebarSub').textContent   = '@' + currentUser.username;
   document.getElementById('pageTitle').innerHTML       = '<span class="brand-unsent">Unsent</span> <span class="brand-stories">Stories</span>';
   document.getElementById('pageTitleCaption').textContent = 'write · reflect · remember';
-  history.replaceState({}, '', '/u/' + currentUser.username);
+  const sToken = currentUser.shareToken;
+  history.replaceState({}, '', sToken ? '/s/' + sToken : '/u/' + currentUser.username);
   renderHeader();
   buildSwatches(0);
   setupUploadZone();
@@ -2360,7 +2371,7 @@ document.getElementById('musicVol').oninput = e => {
   if (token) {
     try {
       const data = await api('GET', '/auth/verify');
-      currentUser = { userId: data.userId, username: data.username, displayName: data.displayName, bio: data.bio, shareToken: data.shareToken || '' };
+      currentUser = { userId: data.userId, username: data.username, displayName: data.displayName, email: data.email || '', bio: data.bio || '', avatarUrl: data.avatarUrl || '', shareToken: data.shareToken || '' };
     } catch {
       token = null;
       localStorage.removeItem('diary_token');
