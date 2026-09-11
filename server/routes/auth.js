@@ -33,6 +33,78 @@ router.post('/login', async (req, res) => {
   res.json({ token, userId: user.id, username: user.username, displayName: user.display_name });
 });
 
+// GET /api/auth/config — public auth config (Google Client ID)
+router.get('/config', (req, res) => {
+  const googleClientId = db.prepare("SELECT value FROM app_settings WHERE key = 'google_client_id'").get()?.value
+    || process.env.GOOGLE_CLIENT_ID
+    || '';
+  res.json({ googleClientId });
+});
+
+// POST /api/auth/google — sign in / sign up with Google ID Token credential
+router.post('/google', async (req, res) => {
+  const { credential } = req.body;
+  if (!credential) return res.status(400).json({ error: 'Google credential required' });
+
+  try {
+    // Verify token using Google tokeninfo API endpoint
+    const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
+    if (!response.ok) {
+      return res.status(401).json({ error: 'Invalid Google token' });
+    }
+    const payload = await response.json();
+    const { sub: googleId, email, name, picture } = payload;
+    if (!googleId || !email) {
+      return res.status(400).json({ error: 'Invalid Google profile payload' });
+    }
+
+    // Check if user exists by google_id or by email
+    let user = db.prepare('SELECT * FROM users WHERE google_id = ? OR email = ?').get(googleId, email.toLowerCase());
+
+    if (!user) {
+      // Auto-generate a unique clean username from email or name
+      let baseUname = (email.split('@')[0] || name || 'user')
+        .toLowerCase()
+        .replace(/[^a-z0-9_]/g, '')
+        .slice(0, 18);
+      if (baseUname.length < 3) baseUname = 'user_' + baseUname;
+
+      let uname = baseUname;
+      let counter = 1;
+      while (db.prepare('SELECT id FROM users WHERE username = ?').get(uname)) {
+        uname = `${baseUname.slice(0, 14)}_${counter++}`;
+      }
+
+      const id = uuidv4();
+      const fakePassHash = await hashPassword(uuidv4()); // Secure random placeholder password
+      const displayName = name?.trim() || uname;
+
+      db.prepare(`
+        INSERT INTO users (id, username, display_name, bio, password_hash, google_id, email, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(id, uname, displayName, '', fakePassHash, googleId, email.toLowerCase(), new Date().toISOString());
+
+      user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+    } else if (!user.google_id) {
+      // Link Google account to existing user account with matching email
+      db.prepare('UPDATE users SET google_id = ? WHERE id = ?').run(googleId, user.id);
+      user.google_id = googleId;
+    }
+
+    const token = signToken(user.id, user.username);
+    res.json({
+      token,
+      userId: user.id,
+      username: user.username,
+      displayName: user.display_name,
+      email: user.email,
+    });
+  } catch (err) {
+    console.error('[auth/google] error:', err);
+    res.status(500).json({ error: 'Google authentication failed: ' + err.message });
+  }
+});
+
 // GET /api/auth/verify  — validate token
 router.get('/verify', verifyToken, (req, res) => {
   const user = db.prepare('SELECT id, username, display_name, bio, share_protected FROM users WHERE id = ?').get(req.user.userId);

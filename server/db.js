@@ -175,6 +175,8 @@ if (!hasColumn('users', 'bio'))                 db.exec(`ALTER TABLE users ADD C
 if (!hasColumn('users', 'password_hash'))       db.exec(`ALTER TABLE users ADD COLUMN password_hash       TEXT NOT NULL DEFAULT ''`);
 if (!hasColumn('users', 'share_protected'))     db.exec(`ALTER TABLE users ADD COLUMN share_protected     INTEGER NOT NULL DEFAULT 0`);
 if (!hasColumn('users', 'share_password_hash')) db.exec(`ALTER TABLE users ADD COLUMN share_password_hash TEXT NOT NULL DEFAULT ''`);
+if (!hasColumn('users', 'google_id'))           db.exec(`ALTER TABLE users ADD COLUMN google_id           TEXT`);
+if (!hasColumn('users', 'email'))               db.exec(`ALTER TABLE users ADD COLUMN email               TEXT NOT NULL DEFAULT ''`);
 
 // notes.user_id / tags / pinned
 if (!hasColumn('notes', 'user_id')) db.exec(`ALTER TABLE notes ADD COLUMN user_id TEXT NOT NULL DEFAULT ''`);
