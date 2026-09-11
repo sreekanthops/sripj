@@ -1048,8 +1048,46 @@ document.getElementById('fTags').addEventListener('blur', e => {
 let _selectedBgUrl     = '';   // final URL to save (library or uploaded)
 let _selectedMusicId   = '';   // music_library id, or '' for none
 let _pendingBgFile     = null; // File object if user uploaded custom bg
+let _pendingAudioFile  = null; // File object if user uploaded audio for this note
+let _uploadedAudioUrl  = '';   // set after successful audio upload
 let _noteBgLibrary     = null; // cached [{id,url,label}]
 let _musicLibrary      = null; // cached [{id,url,title,artist}]
+
+// ── Audio upload helpers ───────────────────────────────────────────────────
+function updateAudioLabel() {
+  const lbl     = document.getElementById('fAudioFileLabel');
+  const clearBtn = document.getElementById('fAudioClearBtn');
+  if (!lbl) return;
+  if (_pendingAudioFile) {
+    lbl.textContent = '🎵 ' + _pendingAudioFile.name;
+    if (clearBtn) clearBtn.style.display = '';
+  } else if (_uploadedAudioUrl) {
+    const name = _uploadedAudioUrl.split('/').pop();
+    lbl.textContent = '🎵 ' + decodeURIComponent(name);
+    if (clearBtn) clearBtn.style.display = '';
+  } else {
+    lbl.textContent = '';
+    if (clearBtn) clearBtn.style.display = 'none';
+  }
+}
+
+document.getElementById('fAudioFile')?.addEventListener('change', e => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  _pendingAudioFile = file;
+  _uploadedAudioUrl = '';
+  // Clear library/URL music selection — audio file takes precedence
+  document.getElementById('fMusic').value = '';
+  updateAudioLabel();
+});
+
+document.getElementById('fAudioClearBtn')?.addEventListener('click', () => {
+  _pendingAudioFile = null;
+  _uploadedAudioUrl = '';
+  const inp = document.getElementById('fAudioFile');
+  if (inp) inp.value = '';
+  updateAudioLabel();
+});
 
 async function loadNoteBgLibrary() {
   if (_noteBgLibrary) return _noteBgLibrary;
@@ -1162,9 +1200,18 @@ document.getElementById('noteBgClearBtn')?.addEventListener('click', () => {
   updateBgSelectedLabel();
 });
 
+function resetAudioState() {
+  _pendingAudioFile = null;
+  _uploadedAudioUrl = '';
+  const inp = document.getElementById('fAudioFile');
+  if (inp) inp.value = '';
+  updateAudioLabel();
+}
+
 function openNewForm() {
   editId = null; pendingTags = [];
   _selectedBgUrl = ''; _selectedMusicId = ''; _pendingBgFile = null;
+  resetAudioState();
   document.getElementById('formTitle').textContent = '✒ New Entry';
   document.getElementById('fTitle').value  = '';
   document.getElementById('fBody').value   = '';
@@ -1185,14 +1232,18 @@ function openNewForm() {
 function openEditForm(note) {
   editId = note.id; pendingTags = Array.isArray(note.tags) ? [...note.tags] : [];
   _selectedBgUrl = note.bgUrl || ''; _selectedMusicId = note.noteMusicId || ''; _pendingBgFile = null;
+  // Restore any previously uploaded audio (shows filename in label)
+  _pendingAudioFile = null;
+  _uploadedAudioUrl = (note.musicUrl && !note.noteMusicId && note.musicUrl.startsWith('/uploads/')) ? note.musicUrl : '';
+  updateAudioLabel();
   document.getElementById('formTitle').textContent = '✒ Edit Entry';
   document.getElementById('fTitle').value  = note.title;
   document.getElementById('fBody').value   = note.body;
   document.getElementById('fFont').value   = note.font || 'Georgia,serif';
   document.getElementById('fSize').value   = note.fontSize || 14;
   document.getElementById('fWeight').value = note.fontWeight || 'normal';
-  // show custom URL if set; library music handled separately
-  document.getElementById('fMusic').value  = (note.musicUrl && !note.noteMusicId) ? note.musicUrl : '';
+  // show custom URL only if it's not an uploaded file (uploaded shown in audio label)
+  document.getElementById('fMusic').value  = (note.musicUrl && !note.noteMusicId && !note.musicUrl.startsWith('/uploads/')) ? note.musicUrl : '';
   document.getElementById('fTags').value   = '';
   renderTagsChips();
   buildSwatches(note.colorIdx || 0);
@@ -1236,8 +1287,11 @@ document.getElementById('fSave').onclick = async () => {
     } catch { bgUrl = ''; }
   }
 
+  // Determine final musicUrl — priority: uploaded file > URL text > library (handled via noteMusicId)
+  let finalMusicUrl = _selectedMusicId ? '' : (musicUrl || _uploadedAudioUrl);
+
   const payload = { title: title||'Untitled', body, font, fontSize, fontWeight, colorIdx,
-                    musicUrl: _selectedMusicId ? '' : musicUrl,
+                    musicUrl: finalMusicUrl,
                     noteMusicId: _selectedMusicId,
                     bgUrl, tags };
   try {
@@ -1247,8 +1301,28 @@ document.getElementById('fSave').onclick = async () => {
     } else {
       saved = await api('POST', '/notes', payload); toast('Entry saved 💾');
     }
+    // Upload audio file if one was selected (replaces the placeholder musicUrl)
+    if (_pendingAudioFile) {
+      try {
+        toast('Uploading audio…', 6000);
+        const fd = new FormData();
+        fd.append('audio', _pendingAudioFile);
+        const res = await fetch(`/api/upload/audio/${saved.id}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(d.error || 'Audio upload failed');
+        _uploadedAudioUrl = d.audioUrl;
+        _pendingAudioFile = null;
+        toast('Audio uploaded 🎵✅');
+      } catch (err) {
+        toast('Audio upload failed: ' + err.message);
+      }
+    }
     if (pendingFiles.length) {
-      toast('Uploading…', 8000);
+      toast('Uploading media…', 8000);
       await apiUpload(saved.id, pendingFiles);
       toast('Uploaded ✅');
     }

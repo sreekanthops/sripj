@@ -21,12 +21,28 @@ const storage = multer.diskStorage({
 const ALLOWED = ['video/mp4','video/webm','video/ogg','video/quicktime',
                  'image/jpeg','image/png','image/gif','image/webp'];
 
+const AUDIO_ALLOWED = [
+  'audio/mpeg','audio/mp3','audio/mp4','audio/ogg','audio/wav',
+  'audio/webm','audio/aac','audio/flac','audio/x-m4a',
+];
+
 const upload = multer({
   storage,
   limits: { fileSize: 200 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (ALLOWED.includes(file.mimetype)) cb(null, true);
     else cb(new Error('File type not allowed.'));
+  },
+});
+
+// Multer instance for audio files — up to 50 MB
+const audioUpload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (AUDIO_ALLOWED.includes(file.mimetype) || file.mimetype.startsWith('audio/'))
+      cb(null, true);
+    else cb(new Error('Audio files only (mp3, ogg, wav, aac, flac)'));
   },
 });
 
@@ -50,6 +66,23 @@ router.post('/avatar', verifyToken, (req, res, next) => {
     const avatarUrl = '/uploads/' + req.file.filename;
     db.prepare('UPDATE users SET avatar_url = ? WHERE id = ?').run(avatarUrl, req.user.userId);
     res.json({ avatarUrl });
+  });
+});
+
+// POST /api/upload/audio/:noteId  — upload a note's background audio
+router.post('/audio/:noteId', verifyToken, (req, res) => {
+  audioUpload.single('audio')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message || 'Audio upload failed' });
+    if (!req.file) return res.status(400).json({ error: 'No audio file received' });
+
+    const note = db.prepare('SELECT id, user_id FROM notes WHERE id = ?').get(req.params.noteId);
+    if (!note) { fs.unlink(req.file.path, () => {}); return res.status(404).json({ error: 'Note not found' }); }
+    if (note.user_id !== req.user.userId) { fs.unlink(req.file.path, () => {}); return res.status(403).json({ error: 'Forbidden' }); }
+
+    const audioUrl = '/uploads/' + req.file.filename;
+    // Save the URL directly onto the note's music_url column
+    db.prepare('UPDATE notes SET music_url = ? WHERE id = ?').run(audioUrl, note.id);
+    res.json({ audioUrl });
   });
 });
 
