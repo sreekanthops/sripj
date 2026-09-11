@@ -340,6 +340,8 @@ select.field-select:focus{border-color:var(--accent)}
     <button class="nav-tab" data-page="subscriptions">Subscriptions</button>
     <button class="nav-tab" data-page="grant">Grant Free Access</button>
     <button class="nav-tab" data-page="global-images">Global Images</button>
+    <button class="nav-tab" data-page="note-backgrounds">Note Backgrounds</button>
+    <button class="nav-tab" data-page="music-library">Music Library</button>
     <button class="nav-tab" data-page="payments">Payments</button>
     <button class="nav-tab" data-page="settings">Settings</button>
   </nav>
@@ -578,6 +580,80 @@ select.field-select:focus{border-color:var(--accent)}
         <button class="btn btn-ghost" id="giRefreshBtn" style="margin-left:auto;padding:5px 14px;font-size:12px">Refresh</button>
       </div>
       <div id="giGrid" class="gi-grid">
+        <div style="padding:30px;text-align:center;color:var(--ink4);font-size:12px">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTE BACKGROUNDS -->
+  <div class="page" id="page-note-backgrounds">
+    <div class="section">
+      <div class="section-title">Upload Note Background Images</div>
+      <div class="settings-card" style="max-width:600px">
+        <p style="font-size:12px;color:var(--ink3);line-height:1.6;margin-bottom:16px">
+          These images appear in the <b>Note Background</b> picker when users create or edit an entry.
+          Use paper textures, subtle patterns, or mood photography. JPG/PNG/WebP, max 20 MB each.
+        </p>
+        <div class="gi-upload-zone" id="nbUploadZone">
+          <input type="file" id="nbFileInput" accept="image/jpeg,image/png,image/gif,image/webp" multiple style="display:none">
+          <div style="font-size:22px;margin-bottom:8px;color:var(--accent)">↑</div>
+          <div style="font-size:13px;color:var(--ink2)">Drop images here or <b>click to choose</b></div>
+          <small style="color:var(--ink4)">JPG · PNG · WebP · up to 20 MB each</small>
+        </div>
+        <div id="nbPreviewsWrap" style="display:none;margin-top:14px">
+          <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:8px">Selected files:</div>
+          <div id="nbPreviews" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+          <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+            <button class="btn btn-primary" id="nbUploadBtn">Upload to Library</button>
+            <button class="btn btn-ghost" id="nbCancelBtn">Clear</button>
+            <span id="nbUploadStatus" style="font-size:12px;color:var(--ink3)"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Current Backgrounds
+        <span id="nbCount" style="font-size:11px;color:var(--ink4);font-weight:400;margin-left:4px"></span>
+        <button class="btn btn-ghost" id="nbRefreshBtn" style="margin-left:auto;padding:5px 14px;font-size:12px">Refresh</button>
+      </div>
+      <div id="nbGrid" class="gi-grid">
+        <div style="padding:30px;text-align:center;color:var(--ink4);font-size:12px">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MUSIC LIBRARY -->
+  <div class="page" id="page-music-library">
+    <div class="section">
+      <div class="section-title">Upload Music Tracks</div>
+      <div class="settings-card" style="max-width:600px">
+        <p style="font-size:12px;color:var(--ink3);line-height:1.6;margin-bottom:16px">
+          Tracks uploaded here are available to all users as default background music for their notes.
+          MP3, OGG, WAV, AAC — max 30 MB each.
+        </p>
+        <div class="gi-upload-zone" id="mlUploadZone">
+          <input type="file" id="mlFileInput" accept="audio/*" multiple style="display:none">
+          <div style="font-size:22px;margin-bottom:8px;color:var(--accent)">♪</div>
+          <div style="font-size:13px;color:var(--ink2)">Drop audio files here or <b>click to choose</b></div>
+          <small style="color:var(--ink4)">MP3 · OGG · WAV · AAC · up to 30 MB each</small>
+        </div>
+        <div id="mlPreviewsWrap" style="display:none;margin-top:14px">
+          <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:8px">Selected files:</div>
+          <div id="mlPreviews" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+          <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+            <button class="btn btn-primary" id="mlUploadBtn">Upload to Library</button>
+            <button class="btn btn-ghost" id="mlCancelBtn">Clear</button>
+            <span id="mlUploadStatus" style="font-size:12px;color:var(--ink3)"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Current Tracks
+        <span id="mlCount" style="font-size:11px;color:var(--ink4);font-weight:400;margin-left:4px"></span>
+        <button class="btn btn-ghost" id="mlRefreshBtn" style="margin-left:auto;padding:5px 14px;font-size:12px">Refresh</button>
+      </div>
+      <div id="mlGrid" class="gi-grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">
         <div style="padding:30px;text-align:center;color:var(--ink4);font-size:12px">Loading…</div>
       </div>
     </div>
@@ -1714,7 +1790,141 @@ document.getElementById('navTabs').addEventListener('click', e => {
     settingsTabLoaded = true;
     loadGoogleSettings();
   }
+  if (tab.dataset.page === 'note-backgrounds') loadNoteBackgrounds();
+  if (tab.dataset.page === 'music-library')    loadMusicLibraryAdmin();
 });
+
+// ── NOTE BACKGROUNDS admin ────────────────────────────────────────────────────
+function setupUploadSection({ zoneId, inputId, previewsWrapId, previewsId, uploadBtnId, cancelBtnId, statusId, apiPath, gridLoader }) {
+  const zone        = document.getElementById(zoneId);
+  const input       = document.getElementById(inputId);
+  const wrap        = document.getElementById(previewsWrapId);
+  const previews    = document.getElementById(previewsId);
+  const uploadBtn   = document.getElementById(uploadBtnId);
+  const cancelBtn   = document.getElementById(cancelBtnId);
+  const statusEl    = document.getElementById(statusId);
+  let pending = [];
+
+  zone.addEventListener('click', () => input.click());
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag');
+    pending = [...e.dataTransfer.files];
+    showPreviews();
+  });
+  input.addEventListener('change', () => { pending = [...input.files]; showPreviews(); });
+
+  function showPreviews() {
+    if (!pending.length) { wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    previews.innerHTML = pending.map(f => `<div style="font-size:11px;padding:4px 8px;background:var(--surface3);border-radius:4px;color:var(--ink2)">${f.name}</div>`).join('');
+  }
+
+  cancelBtn.addEventListener('click', () => { pending = []; input.value = ''; wrap.style.display = 'none'; });
+  uploadBtn.addEventListener('click', async () => {
+    if (!pending.length) return;
+    uploadBtn.disabled = true;
+    statusEl.textContent = 'Uploading…';
+    try {
+      const fd = new FormData();
+      pending.forEach(f => fd.append('files', f));
+      const res = await fetch(apiPath, { method: 'POST', headers: { Authorization: 'Bearer ' + adminToken }, body: fd });
+      if (!res.ok) throw new Error(await res.text());
+      statusEl.textContent = '✅ Uploaded!';
+      pending = []; input.value = ''; wrap.style.display = 'none';
+      gridLoader();
+      setTimeout(() => { statusEl.textContent = ''; }, 3000);
+    } catch(e) { statusEl.textContent = '❌ ' + e.message; }
+    finally { uploadBtn.disabled = false; }
+  });
+}
+
+async function loadNoteBackgrounds() {
+  const grid = document.getElementById('nbGrid');
+  const count = document.getElementById('nbCount');
+  grid.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ink4);font-size:12px">Loading…</div>';
+  try {
+    const res = await fetch('/api/note-backgrounds');
+    const { backgrounds } = await res.json();
+    count.textContent = `(${backgrounds.length})`;
+    if (!backgrounds.length) { grid.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ink4);font-size:12px">No backgrounds yet.</div>'; return; }
+    grid.innerHTML = '';
+    backgrounds.forEach(bg => {
+      const card = document.createElement('div');
+      card.className = 'gi-card';
+      card.innerHTML = `
+        <img src="${bg.url}" alt="${bg.label}" loading="lazy">
+        <div class="gi-card-body">
+          <input class="gi-label-input" value="${bg.label}" placeholder="Label…">
+          <div class="gi-card-foot">
+            <button class="gi-save-btn">Save</button>
+            <button class="gi-del-btn">Delete</button>
+          </div>
+        </div>`;
+      card.querySelector('.gi-save-btn').onclick = async () => {
+        const label = card.querySelector('.gi-label-input').value.trim();
+        await fetch('/api/note-backgrounds/' + bg.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminToken }, body: JSON.stringify({ label }) });
+        toast('Saved');
+      };
+      card.querySelector('.gi-del-btn').onclick = async () => {
+        if (!confirm('Delete this background?')) return;
+        await fetch('/api/note-backgrounds/' + bg.id, { method: 'DELETE', headers: { Authorization: 'Bearer ' + adminToken } });
+        toast('Deleted'); loadNoteBackgrounds();
+      };
+      grid.appendChild(card);
+    });
+  } catch(e) { grid.innerHTML = '<div style="color:var(--red);font-size:12px;padding:10px">' + e.message + '</div>'; }
+}
+
+setupUploadSection({ zoneId:'nbUploadZone', inputId:'nbFileInput', previewsWrapId:'nbPreviewsWrap', previewsId:'nbPreviews', uploadBtnId:'nbUploadBtn', cancelBtnId:'nbCancelBtn', statusId:'nbUploadStatus', apiPath:'/api/note-backgrounds', gridLoader: loadNoteBackgrounds });
+document.getElementById('nbRefreshBtn').onclick = loadNoteBackgrounds;
+
+// ── MUSIC LIBRARY admin ───────────────────────────────────────────────────────
+async function loadMusicLibraryAdmin() {
+  const grid  = document.getElementById('mlGrid');
+  const count = document.getElementById('mlCount');
+  grid.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ink4);font-size:12px">Loading…</div>';
+  try {
+    const res = await fetch('/api/music-library');
+    const { tracks } = await res.json();
+    count.textContent = `(${tracks.length})`;
+    if (!tracks.length) { grid.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ink4);font-size:12px">No tracks yet.</div>'; return; }
+    grid.innerHTML = '';
+    tracks.forEach(t => {
+      const card = document.createElement('div');
+      card.className = 'gi-card';
+      card.style.cssText = 'padding:14px 16px';
+      card.innerHTML = `
+        <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px">♪ ${t.title}</div>
+        <div style="font-size:11px;color:var(--ink4);margin-bottom:10px">${t.artist || 'Unknown artist'}</div>
+        <audio controls style="width:100%;height:32px;outline:none;margin-bottom:10px" src="${t.url}"></audio>
+        <div class="gi-card-body" style="padding:0">
+          <input class="gi-label-input" value="${t.title}" placeholder="Track title…" style="margin-bottom:5px">
+          <input class="gi-label-input ml-artist" value="${t.artist}" placeholder="Artist name (optional)…">
+          <div class="gi-card-foot">
+            <button class="gi-save-btn">Save</button>
+            <button class="gi-del-btn">Delete</button>
+          </div>
+        </div>`;
+      card.querySelector('.gi-save-btn').onclick = async () => {
+        const title  = card.querySelectorAll('.gi-label-input')[0].value.trim();
+        const artist = card.querySelector('.ml-artist').value.trim();
+        await fetch('/api/music-library/' + t.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminToken }, body: JSON.stringify({ title, artist }) });
+        toast('Saved');
+      };
+      card.querySelector('.gi-del-btn').onclick = async () => {
+        if (!confirm('Delete this track?')) return;
+        await fetch('/api/music-library/' + t.id, { method: 'DELETE', headers: { Authorization: 'Bearer ' + adminToken } });
+        toast('Deleted'); loadMusicLibraryAdmin();
+      };
+      grid.appendChild(card);
+    });
+  } catch(e) { grid.innerHTML = '<div style="color:var(--red);font-size:12px;padding:10px">' + e.message + '</div>'; }
+}
+
+setupUploadSection({ zoneId:'mlUploadZone', inputId:'mlFileInput', previewsWrapId:'mlPreviewsWrap', previewsId:'mlPreviews', uploadBtnId:'mlUploadBtn', cancelBtnId:'mlCancelBtn', statusId:'mlUploadStatus', apiPath:'/api/music-library', gridLoader: loadMusicLibraryAdmin });
+document.getElementById('mlRefreshBtn').onclick = loadMusicLibraryAdmin;
 </script>
 </body>
 </html>

@@ -1582,6 +1582,119 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   .td-body { padding: 16px 16px 28px; }
 }
 
+
+/* ══════════════════════════════════════════════════════
+   NOTE BACKGROUND PICKER (in form)
+══════════════════════════════════════════════════════ */
+.note-bg-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.note-bg-opt {
+  width: 52px; height: 52px;
+  border-radius: 8px;
+  border: 2.5px solid transparent;
+  cursor: pointer;
+  overflow: hidden;
+  flex-shrink: 0;
+  padding: 0;
+  transition: border-color .13s, transform .12s;
+  background: var(--bg2);
+}
+.note-bg-opt img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+.note-bg-opt:hover { transform: scale(1.06); border-color: var(--border3); }
+.note-bg-opt.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-ring); }
+.note-bg-none {
+  display: flex; align-items: center; justify-content: center;
+  background: repeating-linear-gradient(
+    45deg, var(--bg2) 0, var(--bg2) 4px, var(--bg3) 4px, var(--bg3) 8px
+  );
+}
+.note-bg-none-label {
+  font-size: 9px; font-family: var(--sans); font-weight: 600;
+  color: var(--ink4); text-transform: uppercase; letter-spacing: .4px;
+}
+
+/* ══════════════════════════════════════════════════════
+   MUSIC LIBRARY PICKER (in form)
+══════════════════════════════════════════════════════ */
+.music-picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+.music-pick-btn,
+.music-pick-none {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 10px;
+  border: 1.5px solid var(--border2);
+  border-radius: 20px;
+  background: var(--surface2);
+  color: var(--ink3);
+  font-family: var(--sans);
+  font-size: 11px; font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.music-pick-btn:hover, .music-pick-none:hover {
+  background: var(--bg3); border-color: var(--border3); color: var(--ink);
+}
+.music-pick-btn.active, .music-pick-none.active {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.music-pick-btn .mp-artist {
+  opacity: .7; font-size: 10px;
+}
+
+/* ══════════════════════════════════════════════════════
+   NOTE CARD — background image support
+══════════════════════════════════════════════════════ */
+.note-card.has-bg {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.note-card.has-bg::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(250,246,240,.82);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+}
+.note-card.has-bg > * { position: relative; z-index: 1; }
+
+/* ── Detail view bg ── */
+.td-body.has-bg {
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+.td-body.has-bg::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(250,246,240,.88);
+  pointer-events: none;
+  z-index: 0;
+}
+.td-body.has-bg > * { position: relative; z-index: 1; }
+.td-cover-bg-img {
+  width: 100%; height: 180px;
+  object-fit: cover;
+  display: block;
+  border-radius: 12px 12px 0 0;
+}
+
+
 /* ══════════════════════════════════════════════════════
    STICKER SYSTEM — draggable / rotatable image decorations
 ══════════════════════════════════════════════════════ */

@@ -971,8 +971,127 @@ document.getElementById('fTags').addEventListener('blur', e => {
 });
 
 // ── FORMS ──────────────────────────────────────────────────────────────────
+// ── Note background + music picker state ──────────────────────────────────
+let _selectedBgUrl     = '';   // final URL to save (library or uploaded)
+let _selectedMusicId   = '';   // music_library id, or '' for none
+let _pendingBgFile     = null; // File object if user uploaded custom bg
+let _noteBgLibrary     = null; // cached [{id,url,label}]
+let _musicLibrary      = null; // cached [{id,url,title,artist}]
+
+async function loadNoteBgLibrary() {
+  if (_noteBgLibrary) return _noteBgLibrary;
+  try {
+    const d = await fetch('/api/note-backgrounds').then(r => r.json());
+    _noteBgLibrary = d.backgrounds || [];
+  } catch { _noteBgLibrary = []; }
+  return _noteBgLibrary;
+}
+async function loadMusicLibrary() {
+  if (_musicLibrary) return _musicLibrary;
+  try {
+    const d = await fetch('/api/music-library').then(r => r.json());
+    _musicLibrary = d.tracks || [];
+  } catch { _musicLibrary = []; }
+  return _musicLibrary;
+}
+
+async function renderNoteBgPicker(activeBgUrl) {
+  const picker = document.getElementById('noteBgPicker');
+  if (!picker) return;
+  const lib = await loadNoteBgLibrary();
+  // Keep the Default button, rebuild thumbnails
+  picker.innerHTML = `
+    <button type="button" class="note-bg-opt note-bg-none${!activeBgUrl ? ' active' : ''}" id="noteBgNoneBtn" title="No background">
+      <span class="note-bg-none-label">Default</span>
+    </button>
+    ${lib.map(bg => `
+      <button type="button" class="note-bg-opt${activeBgUrl === bg.url ? ' active' : ''}"
+        data-bg-url="${bg.url}" data-bg-id="${bg.id}" title="${esc(bg.label)}">
+        <img src="${bg.url}" alt="${esc(bg.label)}" loading="lazy">
+      </button>`).join('')}
+  `;
+  _selectedBgUrl = activeBgUrl || '';
+  updateBgSelectedLabel();
+
+  picker.querySelectorAll('.note-bg-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      picker.querySelectorAll('.note-bg-opt').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _selectedBgUrl = btn.dataset.bgUrl || '';
+      _pendingBgFile = null;
+      updateBgSelectedLabel();
+    });
+  });
+}
+
+function updateBgSelectedLabel() {
+  const lbl = document.getElementById('noteBgSelectedLabel');
+  const clr = document.getElementById('noteBgClearBtn');
+  if (!lbl || !clr) return;
+  if (_pendingBgFile) {
+    lbl.textContent = _pendingBgFile.name;
+    clr.style.display = '';
+  } else if (_selectedBgUrl) {
+    lbl.textContent = 'Library image selected';
+    clr.style.display = '';
+  } else {
+    lbl.textContent = '';
+    clr.style.display = 'none';
+  }
+}
+
+async function renderMusicPicker(activeMusicId, activeCustomUrl) {
+  const row = document.getElementById('musicPickerRow');
+  if (!row) return;
+  const lib = await loadMusicLibrary();
+  const noneActive = !activeMusicId && !activeCustomUrl;
+  row.innerHTML = `
+    <button type="button" class="music-pick-none${noneActive ? ' active' : ''}" id="musicNoneBtn">🔇 None</button>
+    ${lib.map(t => `
+      <button type="button" class="music-pick-btn${activeMusicId === t.id ? ' active' : ''}"
+        data-music-id="${t.id}" data-music-url="${t.url}" title="${esc(t.title)}${t.artist ? ' — ' + esc(t.artist) : ''}">
+        ♪ ${esc(t.title)}${t.artist ? `<span class="mp-artist"> · ${esc(t.artist)}</span>` : ''}
+      </button>`).join('')}
+  `;
+  _selectedMusicId = activeMusicId || '';
+
+  document.getElementById('musicNoneBtn').addEventListener('click', () => {
+    row.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    document.getElementById('musicNoneBtn').classList.add('active');
+    _selectedMusicId = '';
+    document.getElementById('fMusic').value = '';
+  });
+  row.querySelectorAll('.music-pick-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      row.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _selectedMusicId = btn.dataset.musicId;
+      document.getElementById('fMusic').value = ''; // clear custom URL when library track chosen
+    });
+  });
+}
+
+// Wire the "Upload custom bg" file input
+document.getElementById('fBgFile')?.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  _pendingBgFile = file;
+  _selectedBgUrl = ''; // will be uploaded on save
+  // deselect library thumbs
+  document.querySelectorAll('#noteBgPicker .note-bg-opt').forEach(b => b.classList.remove('active'));
+  updateBgSelectedLabel();
+});
+// Wire the "Clear" button
+document.getElementById('noteBgClearBtn')?.addEventListener('click', () => {
+  _pendingBgFile = null; _selectedBgUrl = '';
+  document.querySelectorAll('#noteBgPicker .note-bg-opt').forEach(b => b.classList.remove('active'));
+  document.getElementById('noteBgNoneBtn')?.classList.add('active');
+  updateBgSelectedLabel();
+});
+
 function openNewForm() {
   editId = null; pendingTags = [];
+  _selectedBgUrl = ''; _selectedMusicId = ''; _pendingBgFile = null;
   document.getElementById('formTitle').textContent = '✒ New Entry';
   document.getElementById('fTitle').value  = '';
   document.getElementById('fBody').value   = '';
@@ -985,23 +1104,29 @@ function openNewForm() {
   renderTagsChips();
   buildSwatches(0); setupUploadZone();
   applyBodyPreview();
+  renderNoteBgPicker('');
+  renderMusicPicker('', '');
   openOv('formOverlay');
   setTimeout(() => document.getElementById('fTitle').focus(), 120);
 }
 function openEditForm(note) {
   editId = note.id; pendingTags = Array.isArray(note.tags) ? [...note.tags] : [];
+  _selectedBgUrl = note.bgUrl || ''; _selectedMusicId = note.noteMusicId || ''; _pendingBgFile = null;
   document.getElementById('formTitle').textContent = '✒ Edit Entry';
   document.getElementById('fTitle').value  = note.title;
   document.getElementById('fBody').value   = note.body;
   document.getElementById('fFont').value   = note.font || 'Georgia,serif';
   document.getElementById('fSize').value   = note.fontSize || 14;
   document.getElementById('fWeight').value = note.fontWeight || 'normal';
-  document.getElementById('fMusic').value  = note.musicUrl || '';
+  // show custom URL if set; library music handled separately
+  document.getElementById('fMusic').value  = (note.musicUrl && !note.noteMusicId) ? note.musicUrl : '';
   document.getElementById('fTags').value   = '';
   renderTagsChips();
   buildSwatches(note.colorIdx || 0);
   renderExistMedia(note); setupUploadZone();
   applyBodyPreview();
+  renderNoteBgPicker(note.bgUrl || '');
+  renderMusicPicker(note.noteMusicId || '', note.musicUrl || '');
   openOv('formOverlay');
 }
 
@@ -1016,7 +1141,24 @@ document.getElementById('fSave').onclick = async () => {
   const musicUrl   = document.getElementById('fMusic').value.trim();
   const tags       = [...pendingTags];
   if (!title && !body) { toast('Write something first ✍'); return; }
-  const payload = { title: title||'Untitled', body, font, fontSize, fontWeight, colorIdx, musicUrl, tags };
+
+  // Upload custom background if pending
+  let bgUrl = _selectedBgUrl;
+  if (_pendingBgFile) {
+    try {
+      toast('Uploading background…', 4000);
+      const fd = new FormData(); fd.append('files', _pendingBgFile);
+      const res = await fetch('/api/note-backgrounds-user', { method: 'POST', body: fd });
+      // For now fall back to inline data URL (no user-upload endpoint needed — use sticker upload)
+      const reader = new FileReader();
+      bgUrl = await new Promise(resolve => { reader.onload = e => resolve(e.target.result); reader.readAsDataURL(_pendingBgFile); });
+    } catch { bgUrl = ''; }
+  }
+
+  const payload = { title: title||'Untitled', body, font, fontSize, fontWeight, colorIdx,
+                    musicUrl: _selectedMusicId ? '' : musicUrl,
+                    noteMusicId: _selectedMusicId,
+                    bgUrl, tags };
   try {
     let saved;
     if (editId) {
@@ -1454,6 +1596,11 @@ function buildNoteCard(n, index, total) {
   card.dataset.id = n.id;
   if (n.media && n.media.length) card.classList.add('has-media');
   if (n.pinned) card.classList.add('is-pinned');
+  // Background image from library or custom upload
+  if (n.bgUrl) {
+    card.classList.add('has-bg');
+    card.style.backgroundImage = `url('${n.bgUrl}')`;
+  }
 
   if (n.media && n.media.length) {
     const mediaWrap = document.createElement('div');
@@ -1745,9 +1892,11 @@ function renderDetail(note) {
   }).join('') || `<p style="color:var(--ink4);font-size:12px;font-style:italic;font-family:var(--sans)">No replies yet.</p>`;
 
   // ── render tinder detail body ──
-  // Top cover: if media exists show it full-width; else coloured title bg
+  // Top cover: background image > media > coloured title bg
   let coverHtml = '';
-  if (note.media && note.media.length) {
+  if (note.bgUrl && !note.media?.length) {
+    coverHtml = `<img src="${note.bgUrl}" class="td-cover-bg-img" alt="note background">`;
+  } else if (note.media && note.media.length) {
     coverHtml = `<div id="tdMediaMount" class="td-cover-media"></div>`;
   } else {
     coverHtml = `<div class="td-cover-textbg" style="background:${p.bg}">
@@ -1755,11 +1904,17 @@ function renderDetail(note) {
     </div>`;
   }
 
+  // Body bg style if note has bgUrl
+  const tdBodyStyle = note.bgUrl
+    ? `background-image:url('${note.bgUrl}')`
+    : '';
+  const tdBodyClass = note.bgUrl ? 'td-body has-bg' : 'td-body';
+
   const cont = document.getElementById('detailContent');
   cont.className = 'detail-body-wrap fade-enter';
   cont.innerHTML = `
     ${coverHtml}
-    <div class="td-body">
+    <div class="${tdBodyClass}" style="${tdBodyStyle}">
       <div class="detail-header">
         <h2 class="detail-title" style="font-family:${esc(note.font)};color:${p.accent}">${esc(note.title)}</h2>
       </div>
@@ -2193,7 +2348,12 @@ document.getElementById('musicVol').oninput = e => {
   if (entryId) {
     await enterSingleNote(entryId);
   } else if (urlUsername) {
-    await enterPublicDiary(urlUsername);
+    // If the URL username matches the logged-in user, go straight to owner mode
+    if (currentUser && currentUser.username === urlUsername) {
+      await enterOwnDiary();
+    } else {
+      await enterPublicDiary(urlUsername);
+    }
   } else if (currentUser) {
     await enterOwnDiary();
   } else {

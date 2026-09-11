@@ -179,10 +179,39 @@ if (!hasColumn('users', 'google_id'))           db.exec(`ALTER TABLE users ADD C
 if (!hasColumn('users', 'email'))               db.exec(`ALTER TABLE users ADD COLUMN email               TEXT NOT NULL DEFAULT ''`);
 if (!hasColumn('users', 'avatar_url'))          db.exec(`ALTER TABLE users ADD COLUMN avatar_url          TEXT NOT NULL DEFAULT ''`);
 
-// notes.user_id / tags / pinned
-if (!hasColumn('notes', 'user_id')) db.exec(`ALTER TABLE notes ADD COLUMN user_id TEXT NOT NULL DEFAULT ''`);
-if (!hasColumn('notes', 'tags'))    db.exec(`ALTER TABLE notes ADD COLUMN tags    TEXT NOT NULL DEFAULT '[]'`);
-if (!hasColumn('notes', 'pinned'))  db.exec(`ALTER TABLE notes ADD COLUMN pinned  INTEGER NOT NULL DEFAULT 0`);
+// notes.user_id / tags / pinned / bg_url / note_music_id
+if (!hasColumn('notes', 'user_id'))       db.exec(`ALTER TABLE notes ADD COLUMN user_id       TEXT NOT NULL DEFAULT ''`);
+if (!hasColumn('notes', 'tags'))          db.exec(`ALTER TABLE notes ADD COLUMN tags          TEXT NOT NULL DEFAULT '[]'`);
+if (!hasColumn('notes', 'pinned'))        db.exec(`ALTER TABLE notes ADD COLUMN pinned        INTEGER NOT NULL DEFAULT 0`);
+if (!hasColumn('notes', 'bg_url'))        db.exec(`ALTER TABLE notes ADD COLUMN bg_url        TEXT NOT NULL DEFAULT ''`);
+if (!hasColumn('notes', 'note_music_id')) db.exec(`ALTER TABLE notes ADD COLUMN note_music_id TEXT NOT NULL DEFAULT ''`);
+
+// note_backgrounds — admin-managed library of note background images
+if (!hasTable('note_backgrounds')) {
+  db.exec(`
+    CREATE TABLE note_backgrounds (
+      id         TEXT PRIMARY KEY,
+      filename   TEXT NOT NULL,
+      label      TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    )
+  `);
+}
+
+// music_library — admin-managed library of background music tracks
+if (!hasTable('music_library')) {
+  db.exec(`
+    CREATE TABLE music_library (
+      id         TEXT PRIMARY KEY,
+      filename   TEXT NOT NULL,
+      title      TEXT NOT NULL DEFAULT '',
+      artist     TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    )
+  `);
+}
 
 // replies.user_id
 if (!hasColumn('replies', 'user_id')) db.exec(`ALTER TABLE replies ADD COLUMN user_id TEXT`);

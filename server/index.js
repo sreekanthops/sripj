@@ -6,20 +6,22 @@ const path    = require('path');
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '20mb' }));
 app.use(morgan('dev'));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-app.use('/api/notes',          require('./routes/notes'));
-app.use('/api/auth',           require('./routes/auth'));
-app.use('/api/upload',         require('./routes/upload'));
-app.use('/api/admin',          require('./routes/admin'));
-app.use('/api/rephrase',       require('./routes/rephrase'));
-app.use('/api/ai',             require('./routes/ai'));
-app.use('/api/stickers',       require('./routes/stickers'));
-app.use('/api/subscriptions',  require('./routes/subscriptions'));
-app.use('/api/global-images',  require('./routes/global-images'));
-app.use('/api/payments',       require('./routes/payments'));
+app.use('/api/notes',             require('./routes/notes'));
+app.use('/api/auth',              require('./routes/auth'));
+app.use('/api/upload',            require('./routes/upload'));
+app.use('/api/admin',             require('./routes/admin'));
+app.use('/api/rephrase',          require('./routes/rephrase'));
+app.use('/api/ai',                require('./routes/ai'));
+app.use('/api/stickers',          require('./routes/stickers'));
+app.use('/api/subscriptions',     require('./routes/subscriptions'));
+app.use('/api/global-images',     require('./routes/global-images'));
+app.use('/api/payments',          require('./routes/payments'));
+app.use('/api/note-backgrounds',  require('./routes/note-backgrounds'));
+app.use('/api/music-library',     require('./routes/music-library'));
 
 // Admin portal — explicit route before SPA fallback
 app.get('/admin', (req, res) => {

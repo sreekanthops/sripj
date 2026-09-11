@@ -289,9 +289,36 @@
       <div id="tagsChips" class="tags-chips-edit"></div>
       <input type="text" id="fTags" placeholder="e.g. travel, love, rant…">
     </div>
+    <!-- ── Note Background ── -->
+    <div class="field" id="bgField">
+      <label>Note Background <span class="auth-hint">choose a paper texture or mood image</span></label>
+      <div class="note-bg-picker" id="noteBgPicker">
+        <button type="button" class="note-bg-opt note-bg-none active" id="noteBgNoneBtn" title="No background (default)">
+          <span class="note-bg-none-label">Default</span>
+        </button>
+        <!-- library thumbnails populated by JS -->
+      </div>
+      <div id="noteBgCustomRow" style="display:flex;align-items:center;gap:8px;margin-top:6px">
+        <label class="btn btn-outline btn-xs" style="cursor:pointer;gap:5px;padding:5px 10px">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload custom
+          <input type="file" id="fBgFile" accept="image/*" style="display:none">
+        </label>
+        <span id="noteBgSelectedLabel" style="font-size:11px;color:var(--ink4);font-family:var(--sans)"></span>
+        <button type="button" id="noteBgClearBtn" class="btn btn-ghost btn-xs" style="display:none">✕ Clear</button>
+      </div>
+    </div>
+
+    <!-- ── Music ── -->
     <div class="field" id="musicField">
-      <label>Background Music <span class="auth-hint">.mp3 URL</span></label>
-      <input type="text" id="fMusic" placeholder="https://…/song.mp3">
+      <label>Background Music</label>
+      <div class="music-picker-row" id="musicPickerRow">
+        <button type="button" class="music-pick-none active" id="musicNoneBtn">🔇 None</button>
+        <!-- library tracks populated by JS -->
+      </div>
+      <div style="margin-top:6px">
+        <input type="text" id="fMusic" placeholder="or paste custom .mp3 URL…" style="font-size:12px">
+      </div>
     </div>
     <div class="field" id="mediaField">
       <label>Photos &amp; Videos</label>

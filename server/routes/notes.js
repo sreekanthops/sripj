@@ -76,6 +76,13 @@ function buildNote(row, req, authorUser) {
   let tags = [];
   try { tags = JSON.parse(row.tags || '[]'); } catch { tags = []; }
 
+  // Resolve music URL: note_music_id → music_library row → url
+  let resolvedMusicUrl = row.music_url || '';
+  if (!resolvedMusicUrl && row.note_music_id) {
+    const track = db.prepare('SELECT filename FROM music_library WHERE id = ?').get(row.note_music_id);
+    if (track) resolvedMusicUrl = '/music-library/' + track.filename;
+  }
+
   const noteObj = {
     id:            row.id,
     userId:        row.user_id,
@@ -85,7 +92,9 @@ function buildNote(row, req, authorUser) {
     fontSize:      row.font_size,
     fontWeight:    row.font_weight,
     colorIdx:      row.color_idx,
-    musicUrl:      row.music_url,
+    musicUrl:      resolvedMusicUrl,
+    bgUrl:         row.bg_url || '',
+    noteMusicId:   row.note_music_id || '',
     tags:          tags,
     views:         row.views,
     pinned:        row.pinned ? true : false,
@@ -200,7 +209,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
 // POST /api/notes  (owner only)
 router.post('/', verifyToken, (req, res) => {
-  const { title, body, font, fontSize, fontWeight, colorIdx, musicUrl, tags } = req.body;
+  const { title, body, font, fontSize, fontWeight, colorIdx, musicUrl, tags, bgUrl, noteMusicId } = req.body;
   if (!title && !body) return res.status(400).json({ error: 'Title or body required' });
 
   // ── Enforce plan note limit ────────────────────────────────────────────────
@@ -218,10 +227,10 @@ router.post('/', verifyToken, (req, res) => {
   const id = uuidv4();
   const tagsJson = JSON.stringify(Array.isArray(tags) ? tags : []);
   db.prepare(`
-    INSERT INTO notes (id, user_id, title, body, font, font_size, font_weight, color_idx, music_url, tags, views, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+    INSERT INTO notes (id, user_id, title, body, font, font_size, font_weight, color_idx, music_url, tags, bg_url, note_music_id, views, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
   `).run(id, req.user.userId, title || '', body || '', font || 'Georgia,serif', fontSize || 14, fontWeight || 'normal',
-         colorIdx ?? 0, musicUrl || '', tagsJson, new Date().toISOString());
+         colorIdx ?? 0, musicUrl || '', tagsJson, bgUrl || '', noteMusicId || '', new Date().toISOString());
   res.status(201).json(buildNote(db.prepare('SELECT * FROM notes WHERE id = ?').get(id), req));
 });
 
@@ -230,15 +239,16 @@ router.put('/:id', verifyToken, (req, res) => {
   const row = db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Not found' });
   if (row.user_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
-  const { title, body, font, fontSize, fontWeight, colorIdx, musicUrl, tags } = req.body;
+  const { title, body, font, fontSize, fontWeight, colorIdx, musicUrl, tags, bgUrl, noteMusicId } = req.body;
   const tagsJson = tags !== undefined ? JSON.stringify(Array.isArray(tags) ? tags : []) : row.tags;
   db.prepare(`
-    UPDATE notes SET title=?, body=?, font=?, font_size=?, font_weight=?, color_idx=?, music_url=?, tags=?, edited_at=?
+    UPDATE notes SET title=?, body=?, font=?, font_size=?, font_weight=?, color_idx=?, music_url=?, tags=?, bg_url=?, note_music_id=?, edited_at=?
     WHERE id=?
   `).run(title ?? row.title, body ?? row.body, font ?? row.font,
          fontSize ?? row.font_size, fontWeight ?? row.font_weight,
          colorIdx ?? row.color_idx, musicUrl ?? row.music_url,
-         tagsJson, new Date().toISOString(), req.params.id);
+         tagsJson, bgUrl ?? row.bg_url ?? '', noteMusicId ?? row.note_music_id ?? '',
+         new Date().toISOString(), req.params.id);
   res.json(buildNote(db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id), req));
 });
 
