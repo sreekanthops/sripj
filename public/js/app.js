@@ -205,11 +205,29 @@ document.getElementById('signupPwd').onkeydown = e => {
 };
 
 // ── GOOGLE SIGN-IN INITIALIZATION ──────────────────────────────────────────
+window.handleGoogleCredentialResponse = async function(response) {
+  const errEl = document.getElementById('googleAuthErr');
+  if (errEl) errEl.textContent = '';
+  try {
+    toast('Signing in with Google…');
+    const data = await api('POST', '/auth/google', { credential: response.credential });
+    token = data.token;
+    currentUser = { userId: data.userId, username: data.username, displayName: data.displayName };
+    localStorage.setItem('diary_token', token);
+    await enterOwnDiary();
+    toast(`Welcome, ${currentUser.displayName}! 🌸`);
+  } catch (err) {
+    if (errEl) errEl.textContent = err.message || 'Google Sign-in failed';
+    toast('Error: ' + err.message);
+  }
+};
+
 async function initGoogleSignIn() {
   const gSection = document.getElementById('googleAuthSection');
   const gTarget = document.getElementById('g_id_signin');
+  const gOnload = document.getElementById('g_id_onload');
   const errEl = document.getElementById('googleAuthErr');
-  if (!gSection || !gTarget) return;
+  if (!gSection) return;
 
   try {
     const { googleClientId } = await api('GET', '/auth/config');
@@ -220,43 +238,34 @@ async function initGoogleSignIn() {
 
     gSection.style.display = 'block';
 
+    if (gOnload) {
+      gOnload.setAttribute('data-client_id', googleClientId);
+    }
+
     let attempts = 0;
     const checkGsi = () => {
       if (window.google?.accounts?.id) {
         try {
           window.google.accounts.id.initialize({
             client_id: googleClientId,
-            callback: async (response) => {
-              if (errEl) errEl.textContent = '';
-              try {
-                toast('Signing in with Google…');
-                const data = await api('POST', '/auth/google', { credential: response.credential });
-                token = data.token;
-                currentUser = { userId: data.userId, username: data.username, displayName: data.displayName };
-                localStorage.setItem('diary_token', token);
-                await enterOwnDiary();
-                toast(`Welcome, ${currentUser.displayName}! 🌸`);
-              } catch (err) {
-                if (errEl) errEl.textContent = err.message || 'Google Sign-in failed';
-                toast('Error: ' + err.message);
-              }
-            },
+            callback: window.handleGoogleCredentialResponse,
           });
 
-          gTarget.innerHTML = '';
-          window.google.accounts.id.renderButton(gTarget, {
-            theme: 'outline',
-            size: 'large',
-            type: 'standard',
-            shape: 'pill',
-            text: 'continue_with',
-            logo_alignment: 'left',
-            width: 280,
-          });
+          if (gTarget) {
+            window.google.accounts.id.renderButton(gTarget, {
+              theme: 'outline',
+              size: 'large',
+              type: 'standard',
+              shape: 'pill',
+              text: 'continue_with',
+              logo_alignment: 'left',
+              width: 320,
+            });
+          }
         } catch (e) {
           console.error('[Google GSI init]', e);
         }
-      } else if (attempts < 50) {
+      } else if (attempts < 60) {
         attempts++;
         setTimeout(checkGsi, 100);
       }
