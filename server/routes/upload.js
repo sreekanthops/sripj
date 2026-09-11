@@ -30,6 +30,14 @@ const upload = multer({
   },
 });
 
+// POST /api/upload/avatar  — upload user profile picture (DP)
+router.post('/avatar', verifyToken, upload.single('avatar'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No avatar image uploaded' });
+  const avatarUrl = '/uploads/' + req.file.filename;
+  db.prepare('UPDATE users SET avatar_url = ? WHERE id = ?').run(avatarUrl, req.user.userId);
+  res.json({ avatarUrl });
+});
+
 // POST /api/upload/:noteId  — upload media (note owner only)
 router.post('/:noteId', verifyToken, upload.array('files', 20), (req, res) => {
   // ── Enforce plan upload permission ────────────────────────────────────────

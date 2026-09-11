@@ -107,15 +107,22 @@ router.post('/google', async (req, res) => {
       const displayName = name?.trim() || uname;
 
       db.prepare(`
-        INSERT INTO users (id, username, display_name, bio, password_hash, google_id, email, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(id, uname, displayName, '', fakePassHash, googleId, email.toLowerCase(), new Date().toISOString());
+        INSERT INTO users (id, username, display_name, bio, password_hash, google_id, email, avatar_url, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(id, uname, displayName, '', fakePassHash, googleId, email.toLowerCase(), picture || '', new Date().toISOString());
 
       user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
-    } else if (!user.google_id) {
-      // Link Google account to existing user account with matching email
-      db.prepare('UPDATE users SET google_id = ? WHERE id = ?').run(googleId, user.id);
-      user.google_id = googleId;
+    } else {
+      let updateSql = 'UPDATE users SET google_id = ?';
+      const params = [googleId];
+      if (picture && !user.avatar_url) {
+        updateSql += ', avatar_url = ?';
+        params.push(picture);
+      }
+      updateSql += ' WHERE id = ?';
+      params.push(user.id);
+      db.prepare(updateSql).run(...params);
+      user = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
     }
 
     const token = signToken(user.id, user.username);
@@ -134,23 +141,52 @@ router.post('/google', async (req, res) => {
 
 // GET /api/auth/verify  — validate token
 router.get('/verify', verifyToken, (req, res) => {
-  const user = db.prepare('SELECT id, username, display_name, bio, share_protected FROM users WHERE id = ?').get(req.user.userId);
+  const user = db.prepare('SELECT id, username, display_name, email, bio, avatar_url, share_protected, (password_hash != "") as has_password FROM users WHERE id = ?').get(req.user.userId);
   if (!user) return res.status(401).json({ error: 'User not found' });
   res.json({
     userId: user.id,
     username: user.username,
     displayName: user.display_name,
+    email: user.email || '',
     bio: user.bio,
+    avatarUrl: user.avatar_url || '',
     shareProtected: !!user.share_protected,
+    hasPassword: !!user.has_password,
   });
 });
 
-// PUT /api/auth/profile  — update display name / bio
+// PUT /api/auth/profile  — update display name, bio, email, avatar_url
 router.put('/profile', verifyToken, (req, res) => {
-  const { displayName, bio } = req.body;
-  db.prepare('UPDATE users SET display_name=?, bio=? WHERE id=?')
-    .run(displayName?.trim() || '', bio?.trim() || '', req.user.userId);
+  const { displayName, bio, email, avatarUrl } = req.body;
+  db.prepare('UPDATE users SET display_name=?, bio=?, email=?, avatar_url=? WHERE id=?')
+    .run(displayName?.trim() || '', bio?.trim() || '', email?.trim().toLowerCase() || '', avatarUrl || '', req.user.userId);
   res.json({ ok: true });
+});
+
+// POST /api/auth/change-password  — change user account password
+router.post('/change-password', verifyToken, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!newPassword || newPassword.length < 4) {
+    return res.status(400).json({ error: 'New password must be at least 4 characters' });
+  }
+
+  const user = db.prepare('SELECT id, password_hash FROM users WHERE id = ?').get(req.user.userId);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  // If user already has a password, verify current password
+  if (user.password_hash) {
+    if (!currentPassword) {
+      return res.status(400).json({ error: 'Current password is required' });
+    }
+    const ok = await checkPassword(currentPassword, user.password_hash);
+    if (!ok) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+  }
+
+  const newHash = await hashPassword(newPassword);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(newHash, req.user.userId);
+  res.json({ ok: true, message: 'Password updated successfully' });
 });
 
 // GET /api/auth/share-settings — get current user's share settings

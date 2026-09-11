@@ -427,9 +427,7 @@ document.getElementById('headerActions').addEventListener('click', e => {
   if (action === 'share') {
     openShareModal();
   } else if (action === 'profile') {
-    document.getElementById('profName').value = currentUser.displayName || '';
-    document.getElementById('profBio').value  = currentUser.bio || '';
-    openOv('profileOverlay');
+    openProfileModal();
   } else if (action === 'logout') {
     token = null; currentUser = null; isOwner = false; viewingUser = null;
     localStorage.removeItem('diary_token');
@@ -450,18 +448,133 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 // ── PROFILE MODAL ──────────────────────────────────────────────────────────
+function renderProfileAvatar(avatarUrl) {
+  const imgEl = document.getElementById('profAvatarImg');
+  const phEl  = document.getElementById('profAvatarPlaceholder');
+  const rmBtn = document.getElementById('profAvatarRemoveBtn');
+  if (avatarUrl) {
+    if (imgEl) { imgEl.src = avatarUrl; imgEl.classList.remove('hidden'); }
+    if (phEl) phEl.classList.add('hidden');
+    if (rmBtn) rmBtn.style.display = 'inline-block';
+  } else {
+    if (imgEl) { imgEl.src = ''; imgEl.classList.add('hidden'); }
+    if (phEl) phEl.classList.remove('hidden');
+    if (rmBtn) rmBtn.style.display = 'none';
+  }
+}
+
+async function openProfileModal() {
+  if (!currentUser) return;
+  document.getElementById('profUsername').value = '@' + (currentUser.username || '');
+  document.getElementById('profEmail').value    = currentUser.email || '';
+  document.getElementById('profName').value     = currentUser.displayName || '';
+  document.getElementById('profBio').value      = currentUser.bio || '';
+  document.getElementById('profCurPwd').value   = '';
+  document.getElementById('profNewPwd').value   = '';
+  document.getElementById('profConfPwd').value  = '';
+  document.getElementById('profPwdErr').textContent = '';
+
+  renderProfileAvatar(currentUser.avatarUrl);
+
+  // Fetch latest user details
+  try {
+    const data = await api('GET', '/auth/verify');
+    currentUser.email = data.email || '';
+    currentUser.avatarUrl = data.avatarUrl || '';
+    currentUser.displayName = data.displayName || '';
+    currentUser.bio = data.bio || '';
+    document.getElementById('profEmail').value = currentUser.email;
+    document.getElementById('profName').value  = currentUser.displayName;
+    document.getElementById('profBio').value   = currentUser.bio;
+    renderProfileAvatar(currentUser.avatarUrl);
+  } catch {}
+
+  openOv('profileOverlay');
+}
+
+// DP File Upload
+document.getElementById('profAvatarInput')?.addEventListener('change', async e => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  try {
+    toast('Uploading profile picture…');
+    const fd = new FormData();
+    fd.append('avatar', file);
+    const res = await fetch('/api/upload/avatar', {
+      method: 'POST',
+      headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+      body: fd
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    currentUser.avatarUrl = data.avatarUrl;
+    renderProfileAvatar(currentUser.avatarUrl);
+    toast('Profile picture updated 📷✨');
+  } catch (err) {
+    toast('Error: ' + err.message);
+  }
+});
+
+// Remove DP
+document.getElementById('profAvatarRemoveBtn')?.addEventListener('click', async () => {
+  try {
+    await api('PUT', '/auth/profile', {
+      displayName: currentUser.displayName,
+      bio: currentUser.bio,
+      email: currentUser.email,
+      avatarUrl: ''
+    });
+    currentUser.avatarUrl = '';
+    renderProfileAvatar('');
+    toast('Profile picture removed');
+  } catch (err) {
+    toast('Error: ' + err.message);
+  }
+});
+
+// Save Profile Details
 document.getElementById('profSave').onclick = async () => {
   const displayName = document.getElementById('profName').value.trim();
+  const email       = document.getElementById('profEmail').value.trim();
   const bio         = document.getElementById('profBio').value.trim();
   try {
-    await api('PUT', '/auth/profile', { displayName, bio });
+    await api('PUT', '/auth/profile', { displayName, email, bio, avatarUrl: currentUser.avatarUrl || '' });
     currentUser.displayName = displayName;
+    currentUser.email = email;
     currentUser.bio = bio;
     document.getElementById('sidebarTitle').textContent = displayName || currentUser.username;
     closeOv('profileOverlay');
-    toast('Profile updated ✅');
+    toast('Profile details updated ✅');
   } catch (e) { toast('Error: ' + e.message); }
 };
+
+// Change Password
+document.getElementById('profPwdBtn')?.addEventListener('click', async () => {
+  const cur  = document.getElementById('profCurPwd').value;
+  const nw   = document.getElementById('profNewPwd').value;
+  const conf = document.getElementById('profConfPwd').value;
+  const err  = document.getElementById('profPwdErr');
+  err.textContent = '';
+
+  if (!nw || nw.length < 4) {
+    err.textContent = 'New password must be at least 4 characters';
+    return;
+  }
+  if (nw !== conf) {
+    err.textContent = 'New passwords do not match';
+    return;
+  }
+
+  try {
+    await api('POST', '/auth/change-password', { currentPassword: cur, newPassword: nw });
+    toast('Password changed successfully 🔑✅');
+    document.getElementById('profCurPwd').value = '';
+    document.getElementById('profNewPwd').value = '';
+    document.getElementById('profConfPwd').value = '';
+  } catch (e) {
+    err.textContent = e.message;
+  }
+});
 
 // ── SHARE MODAL LOGIC ──────────────────────────────────────────────────────
 async function openShareModal() {
@@ -1813,7 +1926,8 @@ document.getElementById('musicVol').oninput = e => {
 
   // ── Persistence helpers ──────────────────────────────────────────────────
   function storageKey() {
-    return currentUser ? `chat_history_${currentUser.userId}` : null;
+    const targetUser = viewingUser?.username || currentUser?.username || 'shared';
+    return `chat_history_${targetUser}`;
   }
   function saveHistory() {
     const k = storageKey();
@@ -1821,16 +1935,24 @@ document.getElementById('musicVol').oninput = e => {
   }
   function loadHistory() {
     const k = storageKey();
-    if (!k) return;
+    msgsEl.innerHTML = '';
+    const authorName = viewingUser?.displayName || viewingUser?.username || currentUser?.displayName || 'the author';
+    const welcomeText = isOwner
+      ? `Hi! I've read your stories. Ask me anything about your entries — patterns, moods, summaries, or memorable moments…`
+      : `Hi! I'm ${authorName}'s story assistant. Ask me anything about their diary — summary of notes, best entries, moods, or themes!`;
+
     try {
       const saved = JSON.parse(localStorage.getItem(k) || '[]');
       chatHistory = saved;
-      // Restore messages in DOM (skip the default welcome if we have history)
       if (saved.length) {
-        msgsEl.innerHTML = '';
         saved.forEach(m => appendBubble(m.role === 'user' ? 'user' : 'ai', m.content));
+      } else {
+        appendBubble('ai', welcomeText);
       }
-    } catch { chatHistory = []; }
+    } catch {
+      chatHistory = [];
+      appendBubble('ai', welcomeText);
+    }
   }
 
   // ── DOM helpers ─────────────────────────────────────────────────────────
@@ -1900,10 +2022,16 @@ document.getElementById('musicVol').oninput = e => {
     showTyping();
 
     try {
+      const headers = {};
+      if (currentEnteredPassword) {
+        headers['x-share-password'] = currentEnteredPassword;
+      }
+      const targetUsername = viewingUser?.username || currentUser?.username;
       const { reply } = await api('POST', '/ai/chat', {
         message: text,
         history: chatHistory.slice(-12),
-      });
+        username: targetUsername,
+      }, headers);
       removeTyping();
       appendBubble('ai', reply);
       chatHistory.push({ role: 'assistant', content: reply });
@@ -1927,10 +2055,8 @@ document.getElementById('musicVol').oninput = e => {
     appendBubble('ai', 'Chat cleared. Ask me anything about your stories!');
   }
 
-  // FAB visibility is now controlled purely by CSS: body.is-owner shows it.
-  // _chatbotSetOwner still called on logout to close the window if open.
   window._chatbotSetOwner = (owner) => {
-    if (!owner) closeChat();
+    // Keep available for all views
   };
 
   // ── Event listeners ──────────────────────────────────────────────────────

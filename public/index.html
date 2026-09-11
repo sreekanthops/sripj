@@ -308,20 +308,67 @@
 
 <!-- ══ PROFILE MODAL ═════════════════════════════════════════ -->
 <div class="overlay center" id="profileOverlay">
-  <div class="sheet" id="profileModal">
+  <div class="sheet" id="profileModal" style="max-width:480px">
     <button class="sheet-close" id="profileClose">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
     </button>
-    <div class="sheet-title">Edit Profile</div>
+    <div class="sheet-title">👤 User Profile</div>
+
+    <!-- DP / Avatar Upload & Preview -->
+    <div class="prof-avatar-section">
+      <div class="prof-avatar-wrap">
+        <img id="profAvatarImg" src="" alt="DP" class="prof-avatar-img hidden">
+        <div id="profAvatarPlaceholder" class="prof-avatar-placeholder">✦</div>
+      </div>
+      <div class="prof-avatar-actions">
+        <label class="btn btn-outline btn-sm prof-avatar-btn">
+          <span>📷 Change DP</span>
+          <input type="file" id="profAvatarInput" accept="image/*" style="display:none">
+        </label>
+        <button type="button" class="btn btn-ghost btn-xs text-red" id="profAvatarRemoveBtn" style="display:none">Remove DP</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="profUsername" readonly disabled style="opacity:0.8;background:var(--bg)">
+    </div>
+
+    <div class="field">
+      <label>Email Address</label>
+      <input type="email" id="profEmail" placeholder="yourname@gmail.com">
+    </div>
+
     <div class="field">
       <label>Display Name</label>
       <input type="text" id="profName" placeholder="Your Name">
     </div>
+
     <div class="field">
       <label>Bio <span class="auth-hint">shown on your public page</span></label>
-      <textarea id="profBio" placeholder="Tell the world about yourself…" style="min-height:80px"></textarea>
+      <textarea id="profBio" placeholder="Tell the world about yourself…" style="min-height:70px"></textarea>
     </div>
-    <button class="btn btn-primary" id="profSave" style="width:100%;justify-content:center">Save</button>
+
+    <button class="btn btn-primary" id="profSave" style="width:100%;justify-content:center;margin-top:4px">Save Profile Details</button>
+
+    <!-- Change Password Box -->
+    <div class="prof-pwd-box">
+      <div class="prof-pwd-title">🔑 Change Account Password</div>
+      <div class="field" id="profCurPwdField">
+        <label>Current Password</label>
+        <input type="password" id="profCurPwd" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div class="field">
+        <label>New Password <span class="auth-hint">min 4 characters</span></label>
+        <input type="password" id="profNewPwd" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label>Confirm New Password</label>
+        <input type="password" id="profConfPwd" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <p id="profPwdErr" class="auth-err" style="margin-bottom:8px"></p>
+      <button class="btn btn-outline" id="profPwdBtn" style="width:100%;justify-content:center">Update Password</button>
+    </div>
   </div>
 </div>
 
