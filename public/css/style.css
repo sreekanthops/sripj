@@ -148,14 +148,19 @@ body {
 
 .topbar-right { display: flex; align-items: center; gap: 8px; margin-left: 16px; flex-shrink: 0; }
 
-/* ── Brand title as link ── */
-.brand-link {
+/* ── Brand title as link — kill every possible underline source ── */
+a.brand-link,
+a.brand-link:link,
+a.brand-link:visited,
+a.brand-link:hover,
+a.brand-link:focus,
+a.brand-link:active {
   text-decoration: none !important;
-  color: inherit;
-  display: flex; flex-direction: column; align-items: flex-start;
+  color: inherit !important;
   outline: none;
+  display: flex; flex-direction: column; align-items: flex-start;
 }
-.brand-link:hover, .brand-link:focus { text-decoration: none !important; opacity: .78; }
+a.brand-link:hover { opacity: .78; }
 
 /* ── Topbar user avatar button (rightmost corner) ── */
 .topbar-avatar-btn {
@@ -1972,7 +1977,8 @@ body.is-owner .sticker.active .sticker-resize-handle {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-width: 160px;
+  min-width: 220px;
+  width: 230px;
   box-shadow: 0 8px 32px rgba(0,0,0,.14);
   transition: opacity .2s, transform .2s;
 }

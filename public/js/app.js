@@ -155,6 +155,7 @@ function showAuth() {
 function showApp() {
   document.getElementById('authScreen').classList.add('hidden');
   document.getElementById('appScreen').classList.remove('hidden');
+  renderTopbarUserChip();
 }
 
 // ── AUTH ───────────────────────────────────────────────────────────────────
