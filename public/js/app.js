@@ -411,17 +411,22 @@ document.getElementById('hamburgerBtn').onclick    = openSidebar;
 document.getElementById('sidebarCloseBtn').onclick = closeSidebar;
 document.getElementById('sidebarBackdrop').onclick = closeSidebar;
 
+// Brand title click — go to own diary if logged in, else home
+document.getElementById('brandHomeBtn')?.addEventListener('click', () => {
+  if (currentUser) enterOwnDiary();
+  else { history.replaceState({}, '', '/'); showAuth(); }
+});
+
 // ── HEADER ─────────────────────────────────────────────────────────────────
 function renderTopbarUserChip() {
   const chip    = document.getElementById('topbarUserChip');
   const imgEl   = document.getElementById('tucAvatarImg');
   const initial = document.getElementById('tucAvatarInitial');
-  const nameEl  = document.getElementById('tucName');
   if (!chip) return;
 
   if (currentUser) {
     const name = currentUser.displayName || currentUser.username || '';
-    nameEl.textContent = name;
+    chip.title = name ? name + ' · Profile' : 'My Profile';
 
     if (currentUser.avatarUrl) {
       imgEl.src = currentUser.avatarUrl;
@@ -431,7 +436,6 @@ function renderTopbarUserChip() {
       imgEl.classList.add('hidden');
       imgEl.src = '';
       initial.style.display = '';
-      // First letter of display name, or ✦ fallback
       initial.textContent = name ? name.charAt(0).toUpperCase() : '✦';
     }
     chip.classList.remove('hidden');

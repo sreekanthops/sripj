@@ -148,53 +148,43 @@ body {
 
 .topbar-right { display: flex; align-items: center; gap: 8px; margin-left: 16px; flex-shrink: 0; }
 
-/* ── Topbar user profile chip ── */
-.topbar-user-chip {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 4px 10px 4px 4px;
-  border: 1px solid var(--border2);
-  border-radius: 99px;
-  background: var(--surface);
-  cursor: pointer;
-  transition: all .15s var(--ease);
-  font-family: var(--sans);
-  white-space: nowrap;
-  flex-shrink: 0;
+/* ── Brand title as clickable button ── */
+.brand-btn {
+  background: none; border: none; cursor: pointer;
+  padding: 0; text-align: left;
+  border-radius: var(--r4);
+  transition: opacity .15s;
 }
-.topbar-user-chip:hover {
-  background: var(--bg3);
-  border-color: var(--accent-ring);
-  box-shadow: 0 0 0 2px var(--accent-bg);
-}
-.topbar-user-chip.hidden { display: none !important; }
+.brand-btn:hover { opacity: .75; }
 
-.tuc-avatar {
-  width: 28px; height: 28px; border-radius: 50%;
+/* ── Topbar user avatar button (rightmost corner) ── */
+.topbar-avatar-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
   overflow: hidden;
   background: var(--accent-bg);
-  border: 1.5px solid var(--accent-ring);
+  border: 2px solid var(--accent-ring);
   display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
+  cursor: pointer; flex-shrink: 0;
+  transition: border-color .15s, box-shadow .15s;
+  padding: 0;
 }
+.topbar-avatar-btn:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+.topbar-avatar-btn.hidden { display: none !important; }
+
 .tuc-avatar-img {
   width: 100%; height: 100%; object-fit: cover; display: block;
 }
 .tuc-avatar-img.hidden { display: none !important; }
 .tuc-avatar-initial {
-  font-size: 12px; font-weight: 700;
+  font-size: 15px; font-weight: 700;
   color: var(--accent);
   line-height: 1;
   font-family: var(--serif);
-}
-.tuc-name {
-  font-size: 12.5px; font-weight: 600;
-  color: var(--ink2);
-  max-width: 120px;
-  overflow: hidden; text-overflow: ellipsis;
-}
-@media (max-width: 600px) {
-  .tuc-name { display: none; }
-  .topbar-user-chip { padding: 4px; }
+  pointer-events: none;
 }
 
 /* Canvas button in topbar */
