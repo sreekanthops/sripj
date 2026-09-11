@@ -151,7 +151,6 @@ async function apiUpload(noteId, files) {
 function showAuth() {
   document.getElementById('authScreen').classList.remove('hidden');
   document.getElementById('appScreen').classList.add('hidden');
-  initGoogleSignIn();
 }
 function showApp() {
   document.getElementById('authScreen').classList.add('hidden');
@@ -203,76 +202,6 @@ document.getElementById('signupBtn').onclick = async () => {
 document.getElementById('signupPwd').onkeydown = e => {
   if (e.key === 'Enter') document.getElementById('signupBtn').click();
 };
-
-// ── GOOGLE SIGN-IN INITIALIZATION ──────────────────────────────────────────
-window.handleGoogleCredentialResponse = async function(response) {
-  const errEl = document.getElementById('googleAuthErr');
-  if (errEl) errEl.textContent = '';
-  try {
-    toast('Signing in with Google…');
-    const data = await api('POST', '/auth/google', { credential: response.credential });
-    token = data.token;
-    currentUser = { userId: data.userId, username: data.username, displayName: data.displayName };
-    localStorage.setItem('diary_token', token);
-    await enterOwnDiary();
-    toast(`Welcome, ${currentUser.displayName}! 🌸`);
-  } catch (err) {
-    if (errEl) errEl.textContent = err.message || 'Google Sign-in failed';
-    toast('Error: ' + err.message);
-  }
-};
-
-async function initGoogleSignIn() {
-  const gSection = document.getElementById('googleAuthSection');
-  const gTarget = document.getElementById('g_id_signin');
-  const errEl = document.getElementById('googleAuthErr');
-  if (!gSection || !gTarget) return;
-
-  try {
-    const { googleClientId } = await api('GET', '/auth/config');
-    const cleanId = (googleClientId || '').trim();
-    if (!cleanId) {
-      gSection.style.display = 'none';
-      return;
-    }
-
-    gSection.style.display = 'block';
-
-    let attempts = 0;
-    const checkGsi = () => {
-      if (window.google?.accounts?.id) {
-        try {
-          window.google.accounts.id.initialize({
-            client_id: cleanId,
-            callback: window.handleGoogleCredentialResponse,
-            auto_select: false,
-          });
-
-          gTarget.innerHTML = '';
-          window.google.accounts.id.renderButton(gTarget, {
-            theme: 'outline',
-            size: 'large',
-            type: 'standard',
-            shape: 'pill',
-            text: 'continue_with',
-            logo_alignment: 'left',
-            width: 280,
-          });
-        } catch (e) {
-          console.error('[Google GSI init]', e);
-        }
-      } else if (attempts < 60) {
-        attempts++;
-        setTimeout(checkGsi, 100);
-      }
-    };
-
-    checkGsi();
-  } catch (err) {
-    console.warn('[Google Auth] Could not initialize:', err);
-    if (gSection) gSection.style.display = 'none';
-  }
-}
 
 // ── OVERLAYS ───────────────────────────────────────────────────────────────
 function openOv(id)  { document.getElementById(id).classList.add('open'); }
@@ -1980,9 +1909,6 @@ document.getElementById('musicVol').oninput = e => {
   } else {
     showAuth();
   }
-
-  // Initialize Google sign in button if configured
-  initGoogleSignIn();
 })();
 
 // ══════════════════════════════════════════════════════════════════════════
