@@ -203,6 +203,66 @@ document.getElementById('signupPwd').onkeydown = e => {
   if (e.key === 'Enter') document.getElementById('signupBtn').click();
 };
 
+// ── GOOGLE SIGN-IN VIA CUSTOM BUTTON ───────────────────────────────────────
+let googleTokenClient = null;
+
+async function initGoogleOAuth() {
+  const btn = document.getElementById('googleCustomBtn');
+  const errEl = document.getElementById('googleAuthErr');
+  if (!btn) return;
+
+  btn.onclick = async () => {
+    if (errEl) errEl.textContent = '';
+    try {
+      const { googleClientId } = await api('GET', '/auth/config');
+      const cleanId = (googleClientId || '').trim();
+      if (!cleanId) {
+        toast('Google Client ID not configured');
+        return;
+      }
+
+      if (!window.google?.accounts?.oauth2 && !window.google?.accounts?.id) {
+        toast('Loading Google Sign-In…');
+        return;
+      }
+
+      // 1. Prefer One-Tap / ID Token flow via google.accounts.id
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.initialize({
+          client_id: cleanId,
+          callback: async (response) => {
+            if (errEl) errEl.textContent = '';
+            try {
+              toast('Signing in with Google…');
+              const data = await api('POST', '/auth/google', { credential: response.credential });
+              token = data.token;
+              currentUser = { userId: data.userId, username: data.username, displayName: data.displayName };
+              localStorage.setItem('diary_token', token);
+              await enterOwnDiary();
+              toast(`Welcome, ${currentUser.displayName}! 🌸`);
+            } catch (err) {
+              if (errEl) errEl.textContent = err.message || 'Google Sign-in failed';
+              toast('Error: ' + err.message);
+            }
+          },
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+
+        // Prompt Google Account picker
+        window.google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            console.warn('[GSI prompt]', notification.getNotDisplayedReason?.(), notification.getSkippedReason?.());
+          }
+        });
+      }
+    } catch (e) {
+      if (errEl) errEl.textContent = e.message;
+      toast('Error: ' + e.message);
+    }
+  };
+}
+
 // ── OVERLAYS ───────────────────────────────────────────────────────────────
 function openOv(id)  { document.getElementById(id).classList.add('open'); }
 function closeOv(id) { document.getElementById(id).classList.remove('open'); }
@@ -1909,6 +1969,8 @@ document.getElementById('musicVol').oninput = e => {
   } else {
     showAuth();
   }
+
+  initGoogleOAuth();
 })();
 
 // ══════════════════════════════════════════════════════════════════════════
