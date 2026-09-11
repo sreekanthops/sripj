@@ -199,6 +199,9 @@ if (!hasColumn('notes', 'tags'))          db.exec(`ALTER TABLE notes ADD COLUMN 
 if (!hasColumn('notes', 'pinned'))        db.exec(`ALTER TABLE notes ADD COLUMN pinned        INTEGER NOT NULL DEFAULT 0`);
 if (!hasColumn('notes', 'bg_url'))        db.exec(`ALTER TABLE notes ADD COLUMN bg_url        TEXT NOT NULL DEFAULT ''`);
 if (!hasColumn('notes', 'note_music_id')) db.exec(`ALTER TABLE notes ADD COLUMN note_music_id TEXT NOT NULL DEFAULT ''`);
+// notes TTS voice & tone settings
+if (!hasColumn('notes', 'tts_voice'))     db.exec(`ALTER TABLE notes ADD COLUMN tts_voice     TEXT NOT NULL DEFAULT 'female'`);
+if (!hasColumn('notes', 'tts_tone'))      db.exec(`ALTER TABLE notes ADD COLUMN tts_tone      TEXT NOT NULL DEFAULT 'auto'`);
 
 // note_backgrounds — admin-managed library of note background images
 if (!hasTable('note_backgrounds')) {

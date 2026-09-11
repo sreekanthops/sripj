@@ -281,6 +281,7 @@ function closeOv(id) { document.getElementById(id).classList.remove('open'); }
 });
 document.getElementById('detailClose')?.addEventListener('click', () => {
   closeOv('detailOverlay');
+  if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel();
   if (audio) { audio.pause(); audio.currentTime = 0; }
   const match = location.pathname.match(/^\/entry\/([^/]+)/);
   if (match) {
@@ -1053,6 +1054,135 @@ let _uploadedAudioUrl  = '';   // set after successful audio upload
 let _noteBgLibrary     = null; // cached [{id,url,label}]
 let _musicLibrary      = null; // cached [{id,url,title,artist}]
 
+// ── TTS (Read Aloud) helpers ───────────────────────────────────────────────
+// Wire pill clicks once at startup
+;(function wireTTSPills() {
+  document.getElementById('ttsVoicePills')?.addEventListener('click', e => {
+    const pill = e.target.closest('.tts-pill[data-voice]');
+    if (!pill) return;
+    document.querySelectorAll('#ttsVoicePills .tts-pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+  });
+  document.getElementById('ttsTonePills')?.addEventListener('click', e => {
+    const pill = e.target.closest('.tts-pill[data-tone]');
+    if (!pill) return;
+    document.querySelectorAll('#ttsTonePills .tts-pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+  });
+})();
+
+function getActiveTTSVoice() {
+  return document.querySelector('#ttsVoicePills .tts-pill.active')?.dataset.voice || 'female';
+}
+function getActiveTTSTone() {
+  return document.querySelector('#ttsTonePills .tts-pill.active')?.dataset.tone || 'auto';
+}
+function setActiveTTSVoice(v) {
+  document.querySelectorAll('#ttsVoicePills .tts-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.voice === v);
+  });
+}
+function setActiveTTSTone(t) {
+  document.querySelectorAll('#ttsTonePills .tts-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.tone === t);
+  });
+}
+
+// Tone → Web Speech pitch/rate map
+const TTS_TONE_PARAMS = {
+  auto:      { rate: 1.0,  pitch: 1.0  },
+  emotional: { rate: 0.88, pitch: 1.05 },
+  sad:       { rate: 0.78, pitch: 0.85 },
+  angry:     { rate: 1.15, pitch: 1.2  },
+  calm:      { rate: 0.85, pitch: 0.95 },
+  joyful:    { rate: 1.1,  pitch: 1.15 },
+  mixed:     { rate: 0.95, pitch: 1.0  },
+};
+
+// Pick best available voice for the given gender
+function pickVoice(gender) {
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+  const isFemale = gender !== 'male';
+  // Prefer English voices; prefer 'female'/'male' name hints
+  const enVoices = voices.filter(v => /^en/i.test(v.lang));
+  const pool = enVoices.length ? enVoices : voices;
+  const femaleHints = /female|woman|zira|samantha|karen|victoria|fiona|moira|veena|tessa/i;
+  const maleHints   = /male|man|daniel|alex|fred|lee|rishi|david|mark/i;
+  let matched = isFemale
+    ? pool.filter(v => femaleHints.test(v.name))
+    : pool.filter(v => maleHints.test(v.name));
+  if (!matched.length) {
+    // fallback: first en voice, or just first voice
+    matched = pool;
+  }
+  return matched[0] || null;
+}
+
+// Speak text with given voice/tone; returns utterance (cancel via speechSynthesis.cancel())
+function speakText(text, voice, tone) {
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  const params = TTS_TONE_PARAMS[tone] || TTS_TONE_PARAMS.auto;
+  utt.rate  = params.rate;
+  utt.pitch = params.pitch;
+  utt.volume = 1;
+  // Voices may not be loaded yet; wait and retry once
+  const doSpeak = () => {
+    const v = pickVoice(voice);
+    if (v) utt.voice = v;
+    window.speechSynthesis.speak(utt);
+  };
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length) doSpeak();
+  else { window.speechSynthesis.onvoiceschanged = doSpeak; }
+  return utt;
+}
+
+// ── TTS Preview button (inside form) ──────────────────────────────────────
+;(function wireTTSPreview() {
+  const btn      = document.getElementById('ttsPreviewBtn');
+  const lbl      = document.getElementById('ttsPreviewLabel');
+  const wave     = document.getElementById('ttsWave');
+  const hintEl   = document.getElementById('ttsPreviewHint');
+  if (!btn) return;
+
+  let _speaking = false;
+  let _utt      = null;
+
+  function stopPreview() {
+    window.speechSynthesis.cancel();
+    _speaking = false;
+    btn.classList.remove('speaking');
+    lbl.textContent = 'Preview Voice';
+    btn.querySelector('svg polygon')?.setAttribute('points', '5,3 19,12 5,21');
+    if (wave) wave.style.display = 'none';
+    if (hintEl) hintEl.textContent = 'Listen before saving';
+  }
+
+  btn.addEventListener('click', () => {
+    if (_speaking) { stopPreview(); return; }
+    const text = (document.getElementById('fBody').value.trim() || document.getElementById('fTitle').value.trim() || 'No content to preview yet.').slice(0, 300);
+    const voice = getActiveTTSVoice();
+    const tone  = getActiveTTSTone();
+
+    _utt = speakText(text, voice, tone);
+    _speaking = true;
+    btn.classList.add('speaking');
+    lbl.textContent = 'Stop Preview';
+    if (wave) wave.style.display = 'flex';
+    if (hintEl) hintEl.textContent = `Speaking in ${voice} voice · ${tone} tone`;
+
+    _utt.onend = _utt.onerror = stopPreview;
+  });
+
+  // Stop preview when form closes
+  document.getElementById('formClose')?.addEventListener('click', stopPreview);
+  document.getElementById('formOverlay')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('formOverlay')) stopPreview();
+  });
+})();
+
 // ── Audio upload helpers ───────────────────────────────────────────────────
 function updateAudioLabel() {
   const lbl     = document.getElementById('fAudioFileLabel');
@@ -1221,6 +1351,8 @@ function openNewForm() {
   document.getElementById('fMusic').value  = '';
   document.getElementById('fTags').value   = '';
   document.getElementById('existMediaRow').innerHTML = '';
+  setActiveTTSVoice('female');
+  setActiveTTSTone('auto');
   renderTagsChips();
   buildSwatches(0); setupUploadZone();
   applyBodyPreview();
@@ -1245,6 +1377,8 @@ function openEditForm(note) {
   // show custom URL only if it's not an uploaded file (uploaded shown in audio label)
   document.getElementById('fMusic').value  = (note.musicUrl && !note.noteMusicId && !note.musicUrl.startsWith('/uploads/')) ? note.musicUrl : '';
   document.getElementById('fTags').value   = '';
+  setActiveTTSVoice(note.ttsVoice || 'female');
+  setActiveTTSTone(note.ttsTone  || 'auto');
   renderTagsChips();
   buildSwatches(note.colorIdx || 0);
   renderExistMedia(note); setupUploadZone();
@@ -1255,6 +1389,8 @@ function openEditForm(note) {
 }
 
 document.getElementById('fSave').onclick = async () => {
+  // Stop any running preview before saving
+  if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel();
   if (document.getElementById('fTags').value.trim()) addPendingTag(document.getElementById('fTags').value);
   const title      = document.getElementById('fTitle').value.trim();
   const body       = document.getElementById('fBody').value.trim();
@@ -1264,6 +1400,8 @@ document.getElementById('fSave').onclick = async () => {
   const colorIdx   = activeCI();
   const musicUrl   = document.getElementById('fMusic').value.trim();
   const tags       = [...pendingTags];
+  const ttsVoice   = getActiveTTSVoice();
+  const ttsTone    = getActiveTTSTone();
   if (!title && !body) { toast('Write something first ✍'); return; }
 
   // Upload custom background via the sticker image endpoint (multipart, returns a real URL)
@@ -1293,7 +1431,7 @@ document.getElementById('fSave').onclick = async () => {
   const payload = { title: title||'Untitled', body, font, fontSize, fontWeight, colorIdx,
                     musicUrl: finalMusicUrl,
                     noteMusicId: _selectedMusicId,
-                    bgUrl, tags };
+                    bgUrl, tags, ttsVoice, ttsTone };
   try {
     let saved;
     if (editId) {
@@ -2002,8 +2140,8 @@ function renderDetail(note) {
   const tapR = document.getElementById('detailTapRight');
   tapL.style.display = prevId ? 'flex' : 'none';
   tapR.style.display = nextId ? 'flex' : 'none';
-  tapL.onclick = () => { detailIdx = idx - 1; openDetail(prevId); };
-  tapR.onclick = () => { detailIdx = idx + 1; openDetail(nextId); };
+  tapL.onclick = () => { detailIdx = idx - 1; if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel(); openDetail(prevId); };
+  tapR.onclick = () => { detailIdx = idx + 1; if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel(); openDetail(nextId); };
 
   // ── reactions ──
   const reactHtml = Object.entries(note.reactions||{}).filter(([,v])=>v>0)
@@ -2081,6 +2219,17 @@ function renderDetail(note) {
       </div>
       ${note.musicUrl ? `<div style="font-size:12px;color:var(--accent);margin-bottom:12px;font-style:italic;font-family:var(--sans)">♫ Background music is playing</div>` : ''}
       <div class="detail-body" style="font-family:${esc(note.font)};font-size:${note.fontSize||14}px;${fsCss};border-left-color:${p.accent}">${esc(note.body)}</div>
+      <!-- ── Read Aloud row ── -->
+      <div class="detail-read-aloud-row">
+        <button class="btn-read-aloud" id="detailReadAloudBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polygon points="5,3 19,12 5,21"/></svg>
+          <span id="detailReadAloudLabel">🔊 Read Aloud</span>
+        </button>
+        <div class="detail-tts-wave" id="detailTtsWave">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <span class="detail-tts-badge" id="detailTtsBadge">${note.ttsVoice||'female'} · ${note.ttsTone||'auto'}</span>
+      </div>
       <hr class="sep">
       <div class="section-label">React</div>
       <div class="emoji-grid">${EMOJIS.map(e => {
@@ -2124,6 +2273,38 @@ function renderDetail(note) {
   }
 
   // ── events ──────────────────────────────────────────────────────────────
+
+  // Read Aloud
+  ;(function wireReadAloud() {
+    const readBtn  = document.getElementById('detailReadAloudBtn');
+    const readLbl  = document.getElementById('detailReadAloudLabel');
+    const readWave = document.getElementById('detailTtsWave');
+    if (!readBtn || !window.speechSynthesis) return;
+
+    let _readSpeaking = false;
+
+    function stopRead() {
+      window.speechSynthesis.cancel();
+      _readSpeaking = false;
+      readBtn.classList.remove('speaking');
+      readLbl.textContent = '🔊 Read Aloud';
+      readWave?.classList.remove('active');
+    }
+
+    readBtn.addEventListener('click', () => {
+      if (_readSpeaking) { stopRead(); return; }
+      const voice = note.ttsVoice || 'female';
+      const tone  = note.ttsTone  || 'auto';
+      const text  = [note.title, note.body].filter(Boolean).join('. ');
+      const utt   = speakText(text.slice(0, 800), voice, tone);
+      _readSpeaking = true;
+      readBtn.classList.add('speaking');
+      readLbl.textContent = '⏹ Stop Reading';
+      readWave?.classList.add('active');
+      utt.onend = utt.onerror = stopRead;
+    });
+  })();
+
   cont.querySelector('.btn-dshare')?.addEventListener('click', e => {
     e.stopPropagation();
     shareSingleNote(note.id);

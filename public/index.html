@@ -360,6 +360,45 @@
         <input type="text" id="fMusic" placeholder="or paste custom .mp3 / .ogg URL…" style="font-size:12px">
       </div>
     </div>
+    <!-- ── Read Aloud (TTS) Settings ── -->
+    <div class="field" id="ttsField">
+      <label>Read Aloud <span class="auth-hint">voice &amp; tone for when this entry is spoken</span></label>
+      <div class="tts-row">
+        <!-- Voice gender -->
+        <div class="tts-group">
+          <span class="tts-group-label">Voice</span>
+          <div class="tts-pills" id="ttsVoicePills">
+            <button type="button" class="tts-pill active" data-voice="female">♀ Female</button>
+            <button type="button" class="tts-pill" data-voice="male">♂ Male</button>
+          </div>
+        </div>
+        <!-- Tone -->
+        <div class="tts-group">
+          <span class="tts-group-label">Tone <span class="auth-hint">controls speaking style</span></span>
+          <div class="tts-pills" id="ttsTonePills">
+            <button type="button" class="tts-pill active" data-tone="auto">✦ AI Decide</button>
+            <button type="button" class="tts-pill" data-tone="emotional">💔 Emotional</button>
+            <button type="button" class="tts-pill" data-tone="sad">😢 Sad</button>
+            <button type="button" class="tts-pill" data-tone="angry">😤 Angry</button>
+            <button type="button" class="tts-pill" data-tone="calm">🕊 Calm</button>
+            <button type="button" class="tts-pill" data-tone="joyful">🌟 Joyful</button>
+            <button type="button" class="tts-pill" data-tone="mixed">🌀 Mixed</button>
+          </div>
+        </div>
+      </div>
+      <!-- Preview row -->
+      <div class="tts-preview-row" id="ttsPreviewRow">
+        <button type="button" class="btn-tts-preview" id="ttsPreviewBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polygon points="5,3 19,12 5,21"/></svg>
+          <span id="ttsPreviewLabel">Preview Voice</span>
+        </button>
+        <div class="tts-wave" id="ttsWave" style="display:none">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <span class="tts-preview-hint" id="ttsPreviewHint">Listen before saving</span>
+      </div>
+    </div>
+
     <div class="field" id="mediaField">
       <label>Photos &amp; Videos</label>
       <div class="exist-media-row" id="existMediaRow"></div>

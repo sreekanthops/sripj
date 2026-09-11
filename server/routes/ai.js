@@ -172,4 +172,25 @@ router.post('/chat', optionalAuth, async (req, res) => {
   }
 });
 
+// POST /api/ai/emotion  — detect emotional tone from note text
+// Returns: { tone } — one of: emotional | sad | angry | calm | joyful | mixed
+router.post('/emotion', verifyToken, async (req, res) => {
+  const { text } = req.body;
+  if (!text?.trim()) return res.status(400).json({ error: 'text required' });
+  if (!OPENROUTER_API_KEY) return res.json({ tone: 'emotional' });
+
+  const systemPrompt =
+    `You are an emotion classifier for diary entries. ` +
+    `Read the text and respond with EXACTLY one word — the dominant emotional tone. ` +
+    `Choose only from: emotional, sad, angry, calm, joyful, mixed. ` +
+    `Return only the single word, nothing else.`;
+  try {
+    const result = await callOpenRouter(PRIMARY_MODEL, systemPrompt, text.slice(0, 600));
+    const tone = ['emotional','sad','angry','calm','joyful','mixed'].find(t => result.toLowerCase().includes(t)) || 'emotional';
+    res.json({ tone });
+  } catch {
+    res.json({ tone: 'emotional' });   // graceful fallback
+  }
+});
+
 module.exports = router;

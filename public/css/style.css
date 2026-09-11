@@ -1754,6 +1754,115 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 .music-pick-btn.active, .music-pick-none.active {
   background: var(--accent); border-color: var(--accent); color: #fff;
 }
+/* ── TTS (Read Aloud) picker ── */
+.tts-row {
+  display: flex; flex-direction: column; gap: 10px; margin-top: 4px;
+}
+.tts-group { display: flex; flex-direction: column; gap: 5px; }
+.tts-group-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--ink4);
+}
+.tts-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+.tts-pill {
+  padding: 5px 11px; border-radius: 20px; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--ink3);
+  font-family: var(--sans); font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.tts-pill:hover { background: var(--bg3); border-color: var(--border3); color: var(--ink); }
+.tts-pill.active {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+
+/* Read Aloud button in detail view */
+.btn-read-aloud {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 20px;
+  border: 1.5px solid var(--accent-ring);
+  background: var(--accent-bg); color: var(--accent);
+  font-family: var(--sans); font-size: 12.5px; font-weight: 600;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.btn-read-aloud:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-read-aloud.speaking {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+  animation: pulse-speak .8s ease-in-out infinite alternate;
+}
+@keyframes pulse-speak { from { opacity: .85; } to { opacity: 1; } }
+.btn-read-aloud svg { flex-shrink: 0; }
+
+.tts-info-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+/* ── TTS Preview row (in form) ── */
+.tts-preview-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.btn-tts-preview {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 15px; border-radius: 20px;
+  border: 1.5px solid var(--accent-ring);
+  background: var(--accent-bg); color: var(--accent);
+  font-family: var(--sans); font-size: 12.5px; font-weight: 600;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.btn-tts-preview:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-tts-preview.speaking {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}
+.tts-preview-hint {
+  font-size: 11px; color: var(--ink4); font-family: var(--sans);
+}
+
+/* Animated waveform bars */
+.tts-wave {
+  display: flex; align-items: center; gap: 2px; height: 18px;
+}
+.tts-wave span {
+  display: inline-block; width: 3px; border-radius: 3px;
+  background: var(--accent); transform-origin: bottom;
+  animation: tts-wave-anim .6s ease-in-out infinite alternate;
+}
+.tts-wave span:nth-child(1) { height: 8px;  animation-delay: 0s; }
+.tts-wave span:nth-child(2) { height: 14px; animation-delay: .1s; }
+.tts-wave span:nth-child(3) { height: 18px; animation-delay: .2s; }
+.tts-wave span:nth-child(4) { height: 12px; animation-delay: .3s; }
+.tts-wave span:nth-child(5) { height: 6px;  animation-delay: .4s; }
+@keyframes tts-wave-anim {
+  from { opacity: .5; transform: scaleY(.5); }
+  to   { opacity: 1;  transform: scaleY(1.1); }
+}
+
+/* ── Read Aloud section in detail view ── */
+.detail-read-aloud-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 0; margin: 4px 0;
+}
+.detail-tts-wave {
+  display: none; align-items: center; gap: 2px; height: 18px;
+}
+.detail-tts-wave.active { display: flex; }
+.detail-tts-wave span {
+  display: inline-block; width: 3px; border-radius: 3px;
+  background: var(--accent); transform-origin: bottom;
+  animation: tts-wave-anim .6s ease-in-out infinite alternate;
+}
+.detail-tts-wave span:nth-child(1) { height: 7px;  animation-delay: 0s; }
+.detail-tts-wave span:nth-child(2) { height: 13px; animation-delay: .1s; }
+.detail-tts-wave span:nth-child(3) { height: 17px; animation-delay: .2s; }
+.detail-tts-wave span:nth-child(4) { height: 11px; animation-delay: .3s; }
+.detail-tts-wave span:nth-child(5) { height: 5px;  animation-delay: .4s; }
+.detail-tts-badge {
+  font-size: 11px; color: var(--ink4); font-family: var(--sans);
+  padding: 3px 8px; border-radius: 10px;
+  border: 1px solid var(--border2); background: var(--surface);
+}
+
 .music-pick-btn .mp-artist {
   opacity: .7; font-size: 10px;
 }

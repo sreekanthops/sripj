@@ -104,6 +104,8 @@ function buildNote(row, req, authorUser) {
     userReactions: userReactions,
     replies:       repliesWithReactions,
     media:         media.map(m => ({ id: m.id, url: '/uploads/' + m.filename, mimetype: m.mimetype })),
+    ttsVoice:      row.tts_voice || 'female',
+    ttsTone:       row.tts_tone  || 'auto',
   };
 
   if (authorUser) {
@@ -209,28 +211,27 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
 // POST /api/notes  (owner only)
 router.post('/', verifyToken, (req, res) => {
-  const { title, body, font, fontSize, fontWeight, colorIdx, musicUrl, tags, bgUrl, noteMusicId } = req.body;
+  const { title, body, font, fontSize, fontWeight, colorIdx, musicUrl, tags, bgUrl, noteMusicId, ttsVoice, ttsTone } = req.body;
   if (!title && !body) return res.status(400).json({ error: 'Title or body required' });
 
-  // ── Enforce plan note limit ────────────────────────────────────────────────
   const plan = getUserPlan(req.user.userId);
   if (plan.notesLimit !== -1) {
     const count = db.prepare('SELECT COUNT(*) as c FROM notes WHERE user_id = ?').get(req.user.userId).c;
     if (count >= plan.notesLimit) {
       return res.status(403).json({
         error: `Free plan limit reached (${plan.notesLimit} entries). Upgrade to Pro for unlimited entries.`,
-        limitReached: true,
-        plan: plan.planId,
+        limitReached: true, plan: plan.planId,
       });
     }
   }
   const id = uuidv4();
   const tagsJson = JSON.stringify(Array.isArray(tags) ? tags : []);
   db.prepare(`
-    INSERT INTO notes (id, user_id, title, body, font, font_size, font_weight, color_idx, music_url, tags, bg_url, note_music_id, views, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+    INSERT INTO notes (id, user_id, title, body, font, font_size, font_weight, color_idx, music_url, tags, bg_url, note_music_id, tts_voice, tts_tone, views, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
   `).run(id, req.user.userId, title || '', body || '', font || 'Georgia,serif', fontSize || 14, fontWeight || 'normal',
-         colorIdx ?? 0, musicUrl || '', tagsJson, bgUrl || '', noteMusicId || '', new Date().toISOString());
+         colorIdx ?? 0, musicUrl || '', tagsJson, bgUrl || '', noteMusicId || '',
+         ttsVoice || 'female', ttsTone || 'auto', new Date().toISOString());
   res.status(201).json(buildNote(db.prepare('SELECT * FROM notes WHERE id = ?').get(id), req));
 });
 
@@ -239,15 +240,16 @@ router.put('/:id', verifyToken, (req, res) => {
   const row = db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Not found' });
   if (row.user_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
-  const { title, body, font, fontSize, fontWeight, colorIdx, musicUrl, tags, bgUrl, noteMusicId } = req.body;
+  const { title, body, font, fontSize, fontWeight, colorIdx, musicUrl, tags, bgUrl, noteMusicId, ttsVoice, ttsTone } = req.body;
   const tagsJson = tags !== undefined ? JSON.stringify(Array.isArray(tags) ? tags : []) : row.tags;
   db.prepare(`
-    UPDATE notes SET title=?, body=?, font=?, font_size=?, font_weight=?, color_idx=?, music_url=?, tags=?, bg_url=?, note_music_id=?, edited_at=?
+    UPDATE notes SET title=?, body=?, font=?, font_size=?, font_weight=?, color_idx=?, music_url=?, tags=?, bg_url=?, note_music_id=?, tts_voice=?, tts_tone=?, edited_at=?
     WHERE id=?
   `).run(title ?? row.title, body ?? row.body, font ?? row.font,
          fontSize ?? row.font_size, fontWeight ?? row.font_weight,
          colorIdx ?? row.color_idx, musicUrl ?? row.music_url,
          tagsJson, bgUrl ?? row.bg_url ?? '', noteMusicId ?? row.note_music_id ?? '',
+         ttsVoice ?? row.tts_voice ?? 'female', ttsTone ?? row.tts_tone ?? 'auto',
          new Date().toISOString(), req.params.id);
   res.json(buildNote(db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id), req));
 });
