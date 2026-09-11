@@ -36,6 +36,11 @@ app.get('/pricing', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'pricing.html'));
 });
 
+// /s/:token  — opaque diary share link → serves the SPA (JS handles resolution)
+app.get('/s/:token', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+});
+
 // SPA fallback
 app.get('/{*splat}', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));

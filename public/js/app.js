@@ -176,7 +176,7 @@ document.getElementById('loginBtn').onclick = async () => {
   try {
     const data = await api('POST', '/auth/login', { username, password });
     token = data.token;
-    currentUser = { userId: data.userId, username: data.username, displayName: data.displayName };
+    currentUser = { userId: data.userId, username: data.username, displayName: data.displayName, shareToken: data.shareToken || '' };
     localStorage.setItem('diary_token', token);
     await enterOwnDiary();
   } catch (e) { errEl.textContent = e.message; }
@@ -194,7 +194,7 @@ document.getElementById('signupBtn').onclick = async () => {
   try {
     const data = await api('POST', '/auth/signup', { username, password, displayName });
     token = data.token;
-    currentUser = { userId: data.userId, username: data.username, displayName: data.displayName };
+    currentUser = { userId: data.userId, username: data.username, displayName: data.displayName, shareToken: data.shareToken || '' };
     localStorage.setItem('diary_token', token);
     await enterOwnDiary();
   } catch (e) { errEl.textContent = e.message; }
@@ -244,7 +244,7 @@ async function initGoogleOAuth() {
               toast('Signing in with Google…');
               const data = await api('POST', '/auth/google', { accessToken: tokenResponse.access_token });
               token = data.token;
-              currentUser = { userId: data.userId, username: data.username, displayName: data.displayName };
+              currentUser = { userId: data.userId, username: data.username, displayName: data.displayName, shareToken: data.shareToken || '' };
               localStorage.setItem('diary_token', token);
               await enterOwnDiary();
               toast(`Welcome, ${currentUser.displayName}! 🌸`);
@@ -614,8 +614,12 @@ async function openShareModal(targetNoteId = null) {
     const titleEl = document.getElementById('shareModalTitle');
     const descEl  = document.getElementById('shareModalDesc');
     if (titleEl) titleEl.textContent = '🔗 Share Your Stories';
-    if (descEl)  descEl.textContent = 'Choose how others can view your diary page.';
-    const url = `${location.origin}/u/${targetUser?.username || ''}`;
+    if (descEl)  descEl.textContent = 'Share this link — it works even if you change your username.';
+    // Use opaque /s/:token URL; fall back to /u/:username if no token yet
+    const sToken = currentUser?.shareToken || '';
+    const url = sToken
+      ? `${location.origin}/s/${sToken}`
+      : `${location.origin}/u/${targetUser?.username || ''}`;
     const urlInput = document.getElementById('shareUrlInput');
     if (urlInput) urlInput.value = url;
   }
@@ -1142,16 +1146,24 @@ document.getElementById('fSave').onclick = async () => {
   const tags       = [...pendingTags];
   if (!title && !body) { toast('Write something first ✍'); return; }
 
-  // Upload custom background if pending
+  // Upload custom background via the sticker image endpoint (multipart, returns a real URL)
   let bgUrl = _selectedBgUrl;
   if (_pendingBgFile) {
     try {
       toast('Uploading background…', 4000);
-      const fd = new FormData(); fd.append('files', _pendingBgFile);
-      const res = await fetch('/api/note-backgrounds-user', { method: 'POST', body: fd });
-      // For now fall back to inline data URL (no user-upload endpoint needed — use sticker upload)
-      const reader = new FileReader();
-      bgUrl = await new Promise(resolve => { reader.onload = e => resolve(e.target.result); reader.readAsDataURL(_pendingBgFile); });
+      const fd = new FormData(); fd.append('file', _pendingBgFile);
+      const res = await fetch('/api/stickers/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: fd,
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.url) {
+        bgUrl = d.url;
+      } else {
+        toast('Background upload failed, proceeding without it');
+        bgUrl = '';
+      }
     } catch { bgUrl = ''; }
   }
 
@@ -2328,17 +2340,19 @@ document.getElementById('musicVol').oninput = e => {
 
 // ── INIT ───────────────────────────────────────────────────────────────────
 (async () => {
-  const userMatch = location.pathname.match(/^\/u\/([^/]+)/);
+  const userMatch  = location.pathname.match(/^\/u\/([^/]+)/);
   const urlUsername = userMatch ? userMatch[1].toLowerCase() : null;
 
   const entryMatch = location.pathname.match(/^\/entry\/([^/]+)/);
-  const urlParams = new URLSearchParams(location.search);
-  const entryId = entryMatch ? entryMatch[1] : urlParams.get('entry');
+  const shareMatch = location.pathname.match(/^\/s\/([^/]+)/);
+  const urlParams  = new URLSearchParams(location.search);
+  const entryId    = entryMatch ? entryMatch[1] : urlParams.get('entry');
+  const shareToken = shareMatch ? shareMatch[1] : null;
 
   if (token) {
     try {
       const data = await api('GET', '/auth/verify');
-      currentUser = { userId: data.userId, username: data.username, displayName: data.displayName, bio: data.bio };
+      currentUser = { userId: data.userId, username: data.username, displayName: data.displayName, bio: data.bio, shareToken: data.shareToken || '' };
     } catch {
       token = null;
       localStorage.removeItem('diary_token');
@@ -2347,8 +2361,22 @@ document.getElementById('musicVol').oninput = e => {
 
   if (entryId) {
     await enterSingleNote(entryId);
+  } else if (shareToken) {
+    // /s/:token — resolve token to username then enter that diary
+    try {
+      const res = await fetch(`/api/auth/resolve/${encodeURIComponent(shareToken)}`);
+      if (!res.ok) throw new Error('not found');
+      const { username } = await res.json();
+      if (currentUser && currentUser.username === username) {
+        await enterOwnDiary();
+      } else {
+        await enterPublicDiary(username);
+      }
+    } catch {
+      if (currentUser) await enterOwnDiary();
+      else showAuth();
+    }
   } else if (urlUsername) {
-    // If the URL username matches the logged-in user, go straight to owner mode
     if (currentUser && currentUser.username === urlUsername) {
       await enterOwnDiary();
     } else {

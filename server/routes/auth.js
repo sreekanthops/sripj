@@ -3,6 +3,10 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 const { signToken, verifyToken, hashPassword, checkPassword } = require('../auth');
 
+function genShareToken() {
+  return uuidv4().replace(/-/g, '').slice(0, 14);
+}
+
 // POST /api/auth/signup
 router.post('/signup', async (req, res) => {
   const { username, password, displayName } = req.body;
@@ -12,12 +16,13 @@ router.post('/signup', async (req, res) => {
   if (password.length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters' });
   const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(uname);
   if (exists) return res.status(409).json({ error: 'Username already taken' });
-  const id   = uuidv4();
-  const hash = await hashPassword(password);
-  db.prepare('INSERT INTO users (id, username, display_name, bio, password_hash, created_at) VALUES (?,?,?,?,?,?)')
-    .run(id, uname, displayName?.trim() || uname, '', hash, new Date().toISOString());
-  const token = signToken(id, uname);
-  res.status(201).json({ token, userId: id, username: uname, displayName: displayName?.trim() || uname });
+  const id    = uuidv4();
+  const hash  = await hashPassword(password);
+  const token = genShareToken();
+  db.prepare('INSERT INTO users (id, username, display_name, bio, password_hash, share_token, created_at) VALUES (?,?,?,?,?,?,?)')
+    .run(id, uname, displayName?.trim() || uname, '', hash, token, new Date().toISOString());
+  const jwt = signToken(id, uname);
+  res.status(201).json({ token: jwt, userId: id, username: uname, displayName: displayName?.trim() || uname, shareToken: token });
 });
 
 // POST /api/auth/login
@@ -105,11 +110,12 @@ router.post('/google', async (req, res) => {
       const id = uuidv4();
       const fakePassHash = await hashPassword(uuidv4()); // Secure random placeholder password
       const displayName = name?.trim() || uname;
+      const sToken = genShareToken();
 
       db.prepare(`
-        INSERT INTO users (id, username, display_name, bio, password_hash, google_id, email, avatar_url, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(id, uname, displayName, '', fakePassHash, googleId, email.toLowerCase(), picture || '', new Date().toISOString());
+        INSERT INTO users (id, username, display_name, bio, password_hash, google_id, email, avatar_url, share_token, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(id, uname, displayName, '', fakePassHash, googleId, email.toLowerCase(), picture || '', sToken, new Date().toISOString());
 
       user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
     } else {
@@ -141,8 +147,15 @@ router.post('/google', async (req, res) => {
 
 // GET /api/auth/verify  — validate token
 router.get('/verify', verifyToken, (req, res) => {
-  const user = db.prepare('SELECT id, username, display_name, email, bio, avatar_url, share_protected, (password_hash != "") as has_password FROM users WHERE id = ?').get(req.user.userId);
+  const user = db.prepare('SELECT id, username, display_name, email, bio, avatar_url, share_protected, share_token, (password_hash != "") as has_password FROM users WHERE id = ?').get(req.user.userId);
   if (!user) return res.status(401).json({ error: 'User not found' });
+  // ensure every user has a share_token (back-fill if missing)
+  let shareToken = user.share_token || '';
+  if (!shareToken) {
+    const { v4: uuidv4 } = require('uuid');
+    shareToken = uuidv4().replace(/-/g,'').slice(0,14);
+    db.prepare('UPDATE users SET share_token = ? WHERE id = ?').run(shareToken, user.id);
+  }
   res.json({
     userId: user.id,
     username: user.username,
@@ -152,7 +165,15 @@ router.get('/verify', verifyToken, (req, res) => {
     avatarUrl: user.avatar_url || '',
     shareProtected: !!user.share_protected,
     hasPassword: !!user.has_password,
+    shareToken,
   });
+});
+
+// GET /api/auth/resolve/:token  — public: token → username (for /s/:token routing)
+router.get('/resolve/:token', (req, res) => {
+  const user = db.prepare('SELECT username FROM users WHERE share_token = ?').get(req.params.token);
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  res.json({ username: user.username });
 });
 
 // PUT /api/auth/profile  — update display name, bio, email, avatar_url
