@@ -781,6 +781,16 @@ document.getElementById('btnSaveShareSettings')?.addEventListener('click', async
 // ── ENTERING DIARIES ────────────────────────────────────────────────────────
 async function enterOwnDiary() {
   isOwner = true;
+  // If shareToken is missing, fetch fresh from server (ensures back-fill is picked up)
+  if (!currentUser.shareToken) {
+    try {
+      const fresh = await api('GET', '/auth/verify');
+      currentUser.shareToken   = fresh.shareToken || '';
+      currentUser.displayName  = fresh.displayName || currentUser.displayName;
+      currentUser.avatarUrl    = fresh.avatarUrl   || currentUser.avatarUrl;
+      currentUser.email        = fresh.email        || currentUser.email;
+    } catch {}
+  }
   viewingUser = { id: currentUser.userId, username: currentUser.username, displayName: currentUser.displayName };
   document.body.classList.add('is-owner');
   document.getElementById('sidebarTitle').textContent = currentUser.displayName || currentUser.username;
@@ -2399,7 +2409,7 @@ document.getElementById('musicVol').oninput = e => {
 
 // ── INIT ───────────────────────────────────────────────────────────────────
 (async () => {
-  const userMatch  = location.pathname.match(/^\/u\/([^/]+)/);
+  const userMatch   = location.pathname.match(/^\/u\/([^/]+)/);
   const urlUsername = userMatch ? userMatch[1].toLowerCase() : null;
 
   const entryMatch = location.pathname.match(/^\/entry\/([^/]+)/);
@@ -2411,7 +2421,12 @@ document.getElementById('musicVol').oninput = e => {
   if (token) {
     try {
       const data = await api('GET', '/auth/verify');
-      currentUser = { userId: data.userId, username: data.username, displayName: data.displayName, email: data.email || '', bio: data.bio || '', avatarUrl: data.avatarUrl || '', shareToken: data.shareToken || '' };
+      currentUser = {
+        userId: data.userId, username: data.username,
+        displayName: data.displayName, email: data.email || '',
+        bio: data.bio || '', avatarUrl: data.avatarUrl || '',
+        shareToken: data.shareToken || ''
+      };
     } catch {
       token = null;
       localStorage.removeItem('diary_token');
@@ -2420,8 +2435,9 @@ document.getElementById('musicVol').oninput = e => {
 
   if (entryId) {
     await enterSingleNote(entryId);
+
   } else if (shareToken) {
-    // /s/:token — resolve token to username then enter that diary
+    // /s/:token — resolve token → username, then enter that diary
     try {
       const res = await fetch(`/api/auth/resolve/${encodeURIComponent(shareToken)}`);
       if (!res.ok) throw new Error('not found');
@@ -2435,12 +2451,20 @@ document.getElementById('musicVol').oninput = e => {
       if (currentUser) await enterOwnDiary();
       else showAuth();
     }
+
   } else if (urlUsername) {
+    // /u/:username — if this is the logged-in owner, treat as own diary
+    // (owner should always be redirected to /s/token by enterOwnDiary)
     if (currentUser && currentUser.username === urlUsername) {
-      await enterOwnDiary();
+      await enterOwnDiary(); // will rewrite URL to /s/<token>
+    } else if (currentUser) {
+      // logged in but viewing someone else's /u/ link
+      await enterPublicDiary(urlUsername);
     } else {
+      // not logged in — show as public visitor
       await enterPublicDiary(urlUsername);
     }
+
   } else if (currentUser) {
     await enterOwnDiary();
   } else {

@@ -2193,10 +2193,11 @@ body.is-owner .sticker.active .sticker-resize-handle {
     width: 100%;
     padding: 0 0 10px;
   }
-  .topbar-right { margin-left: auto; }
+  .topbar-right { margin-left: 0; flex-shrink: 0; }
   .brand-caption { display: none; }
   .topbar-canvas-btn span { display: none; }
   .topbar-canvas-btn { width: 36px; height: 36px; }
+  .topbar-avatar-btn { width: 38px; height: 38px; }
 }
 
 /* ── IMAGE LIBRARY PICKER ──────────────────────────────────────────────────── */
