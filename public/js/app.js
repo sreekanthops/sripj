@@ -412,22 +412,47 @@ document.getElementById('sidebarCloseBtn').onclick = closeSidebar;
 document.getElementById('sidebarBackdrop').onclick = closeSidebar;
 
 // ── HEADER ─────────────────────────────────────────────────────────────────
+function renderTopbarUserChip() {
+  const chip    = document.getElementById('topbarUserChip');
+  const imgEl   = document.getElementById('tucAvatarImg');
+  const initial = document.getElementById('tucAvatarInitial');
+  const nameEl  = document.getElementById('tucName');
+  if (!chip) return;
+
+  if (currentUser) {
+    const name = currentUser.displayName || currentUser.username || '';
+    nameEl.textContent = name;
+
+    if (currentUser.avatarUrl) {
+      imgEl.src = currentUser.avatarUrl;
+      imgEl.classList.remove('hidden');
+      initial.style.display = 'none';
+    } else {
+      imgEl.classList.add('hidden');
+      imgEl.src = '';
+      initial.style.display = '';
+      // First letter of display name, or ✦ fallback
+      initial.textContent = name ? name.charAt(0).toUpperCase() : '✦';
+    }
+    chip.classList.remove('hidden');
+  } else {
+    chip.classList.add('hidden');
+  }
+}
+
 function renderHeader() {
   const el  = document.getElementById('headerActions');
   const fab = document.getElementById('quickNewBtn');
   if (isOwner) {
     el.innerHTML = `
-      <span class="owner-badge">✦ ${esc(currentUser.displayName)}</span>
       <button class="btn btn-ghost btn-sm btn-nav-share" data-action="share">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="share-icon-svg"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
         <span>Share</span>
       </button>
-      <button class="btn btn-ghost btn-sm" data-action="profile">✏️ Profile</button>
       <button class="btn btn-ghost btn-sm" data-action="logout">Sign out</button>`;
     if (fab) { fab.style.display = 'flex'; fab.onclick = () => { closeSidebar(); openNewForm(); }; }
   } else if (currentUser && viewingUser) {
     el.innerHTML = `
-      <span class="owner-badge">👤 ${esc(currentUser.displayName)}</span>
       <button class="btn btn-ghost btn-sm" data-action="go-home">My Stories</button>`;
     if (fab) fab.style.display = 'none';
   } else if (!currentUser && viewingUser) {
@@ -438,7 +463,12 @@ function renderHeader() {
     el.innerHTML = '';
     if (fab) fab.style.display = 'none';
   }
+  renderTopbarUserChip();
 }
+
+document.getElementById('topbarUserChip')?.addEventListener('click', () => {
+  if (currentUser) openProfileModal();
+});
 
 document.getElementById('headerActions').addEventListener('click', e => {
   const btn = e.target.closest('[data-action]');
@@ -454,6 +484,7 @@ document.getElementById('headerActions').addEventListener('click', e => {
     localStorage.removeItem('diary_token');
     document.body.classList.remove('is-owner');
     window._chatbotSetOwner?.(false);
+    renderTopbarUserChip();
     history.replaceState({}, '', '/');
     showAuth();
   } else if (action === 'go-home') {
@@ -508,6 +539,7 @@ async function openProfileModal() {
     document.getElementById('profName').value  = currentUser.displayName;
     document.getElementById('profBio').value   = currentUser.bio;
     renderProfileAvatar(currentUser.avatarUrl);
+    renderTopbarUserChip();
   } catch {}
 
   openOv('profileOverlay');
@@ -530,6 +562,7 @@ document.getElementById('profAvatarInput')?.addEventListener('change', async e =
     if (!res.ok) throw new Error(data.error || 'Upload failed');
     currentUser.avatarUrl = data.avatarUrl;
     renderProfileAvatar(currentUser.avatarUrl);
+    renderTopbarUserChip();
     toast('Profile picture updated 📷✨');
   } catch (err) {
     toast('Error: ' + err.message);
@@ -547,6 +580,7 @@ document.getElementById('profAvatarRemoveBtn')?.addEventListener('click', async 
     });
     currentUser.avatarUrl = '';
     renderProfileAvatar('');
+    renderTopbarUserChip();
     toast('Profile picture removed');
   } catch (err) {
     toast('Error: ' + err.message);

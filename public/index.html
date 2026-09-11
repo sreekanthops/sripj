@@ -118,8 +118,16 @@
           <button id="btnClearFilter" class="ctrl-clear" style="display:none">✕</button>
         </div>
       </div>
-      <!-- Right: New + Canvas -->
+      <!-- Right: User chip + New + Canvas -->
       <div class="topbar-right">
+        <!-- User profile chip — shown when logged in -->
+        <button id="topbarUserChip" class="topbar-user-chip hidden" title="Profile" data-action="profile">
+          <div class="tuc-avatar" id="tucAvatar">
+            <img id="tucAvatarImg" src="" alt="" class="tuc-avatar-img hidden">
+            <span id="tucAvatarInitial" class="tuc-avatar-initial">✦</span>
+          </div>
+          <span id="tucName" class="tuc-name"></span>
+        </button>
         <button class="btn btn-primary btn-sm" id="quickNewBtn" style="display:none">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
           New
