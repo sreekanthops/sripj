@@ -420,7 +420,10 @@ function renderHeader() {
   if (isOwner) {
     el.innerHTML = `
       <span class="owner-badge">✦ ${esc(currentUser.displayName)}</span>
-      <button class="btn btn-ghost btn-sm" data-action="share">🔗 Share</button>
+      <button class="btn btn-ghost btn-sm btn-nav-share" data-action="share">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="share-icon-svg"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+        <span>Share</span>
+      </button>
       <button class="btn btn-ghost btn-sm" data-action="profile">✏️ Profile</button>
       <button class="btn btn-ghost btn-sm" data-action="logout">Sign out</button>`;
     if (fab) { fab.style.display = 'flex'; fab.onclick = () => { closeSidebar(); openNewForm(); }; }
@@ -1512,7 +1515,10 @@ function buildNoteCard(n, index, total) {
     n.musicUrl      ? `<span class="chip">♫</span>` : '',
     n.media?.length ? `<span class="chip">🎬 ${n.media.length}</span>` : '',
     (n.replies||[]).length ? `<span class="chip">💬 ${n.replies.length}</span>` : '',
-    `<button class="card-share-btn" data-nid="${n.id}" title="Share entry">🔗</button>`,
+    `<button class="card-share-btn" data-nid="${n.id}" title="Share entry" aria-label="Share entry">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="share-icon-svg"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+      <span>Share</span>
+    </button>`,
   ].filter(Boolean).join('');
 
   const foot = document.createElement('div');
@@ -1801,7 +1807,10 @@ function renderDetail(note) {
       </div>
       <div class="admin-note-bar" style="${isOwner ? '' : 'background:transparent;border:none;padding:8px 0'}">
         ${isOwner ? '<span class="admin-bar-label">Owner</span>' : ''}
-        <button class="btn btn-ghost btn-sm btn-dshare" data-id="${note.id}">🔗 Share Entry</button>
+        <button class="btn btn-gold btn-sm btn-dshare" data-id="${note.id}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="share-icon-svg"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+          Share Entry
+        </button>
         ${isOwner ? `
         <button class="btn btn-ghost btn-sm btn-dedit" data-id="${note.id}">✏️ Edit</button>
         <button class="btn btn-pin   btn-sm btn-dpin"  data-id="${note.id}" data-pinned="${note.pinned?'1':'0'}">${note.pinned ? '📌 Unpin' : '📌 Pin'}</button>
