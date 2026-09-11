@@ -362,40 +362,73 @@
     </div>
     <!-- ── Read Aloud (TTS) Settings ── -->
     <div class="field" id="ttsField">
-      <label>Read Aloud <span class="auth-hint">voice &amp; tone for when this entry is spoken</span></label>
-      <div class="tts-row">
-        <!-- Voice gender -->
-        <div class="tts-group">
-          <span class="tts-group-label">Voice</span>
-          <div class="tts-pills" id="ttsVoicePills">
-            <button type="button" class="tts-pill active" data-voice="female">♀ Female</button>
-            <button type="button" class="tts-pill" data-voice="male">♂ Male</button>
+      <label>🔊 Read Aloud <span class="auth-hint">pick a voice &amp; mood — preview before saving</span></label>
+      <div class="tts-card">
+
+        <!-- Voice gender row -->
+        <div class="tts-section-label">Voice</div>
+        <div class="tts-voice-row" id="ttsVoicePills">
+          <button type="button" class="tts-voice-btn active" data-voice="female">
+            <span class="tts-voice-icon">♀</span>
+            <span class="tts-voice-name">Female</span>
+          </button>
+          <button type="button" class="tts-voice-btn" data-voice="male">
+            <span class="tts-voice-icon">♂</span>
+            <span class="tts-voice-name">Male</span>
+          </button>
+        </div>
+
+        <!-- Tone divider -->
+        <div class="tts-divider"></div>
+
+        <!-- Tone grid -->
+        <div class="tts-section-label">Speaking Tone</div>
+        <div class="tts-tone-grid" id="ttsTonePills">
+          <button type="button" class="tts-tone-btn active" data-tone="auto">
+            <span class="tts-tone-icon">✦</span>
+            <span class="tts-tone-name">AI Decide</span>
+          </button>
+          <button type="button" class="tts-tone-btn" data-tone="emotional">
+            <span class="tts-tone-icon">💔</span>
+            <span class="tts-tone-name">Emotional</span>
+          </button>
+          <button type="button" class="tts-tone-btn" data-tone="sad">
+            <span class="tts-tone-icon">😢</span>
+            <span class="tts-tone-name">Sad</span>
+          </button>
+          <button type="button" class="tts-tone-btn" data-tone="angry">
+            <span class="tts-tone-icon">😤</span>
+            <span class="tts-tone-name">Angry</span>
+          </button>
+          <button type="button" class="tts-tone-btn" data-tone="calm">
+            <span class="tts-tone-icon">🕊</span>
+            <span class="tts-tone-name">Calm</span>
+          </button>
+          <button type="button" class="tts-tone-btn" data-tone="joyful">
+            <span class="tts-tone-icon">🌟</span>
+            <span class="tts-tone-name">Joyful</span>
+          </button>
+          <button type="button" class="tts-tone-btn" data-tone="mixed">
+            <span class="tts-tone-icon">🌀</span>
+            <span class="tts-tone-name">Mixed</span>
+          </button>
+        </div>
+
+        <!-- Divider -->
+        <div class="tts-divider"></div>
+
+        <!-- Preview row -->
+        <div class="tts-preview-row" id="ttsPreviewRow">
+          <button type="button" class="btn-tts-preview" id="ttsPreviewBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+            <span id="ttsPreviewLabel">Preview Voice</span>
+          </button>
+          <div class="tts-wave" id="ttsWave" style="display:none">
+            <span></span><span></span><span></span><span></span><span></span>
           </div>
+          <span class="tts-preview-hint" id="ttsPreviewHint">Tap to hear how it sounds</span>
         </div>
-        <!-- Tone -->
-        <div class="tts-group">
-          <span class="tts-group-label">Tone <span class="auth-hint">controls speaking style</span></span>
-          <div class="tts-pills" id="ttsTonePills">
-            <button type="button" class="tts-pill active" data-tone="auto">✦ AI Decide</button>
-            <button type="button" class="tts-pill" data-tone="emotional">💔 Emotional</button>
-            <button type="button" class="tts-pill" data-tone="sad">😢 Sad</button>
-            <button type="button" class="tts-pill" data-tone="angry">😤 Angry</button>
-            <button type="button" class="tts-pill" data-tone="calm">🕊 Calm</button>
-            <button type="button" class="tts-pill" data-tone="joyful">🌟 Joyful</button>
-            <button type="button" class="tts-pill" data-tone="mixed">🌀 Mixed</button>
-          </div>
-        </div>
-      </div>
-      <!-- Preview row -->
-      <div class="tts-preview-row" id="ttsPreviewRow">
-        <button type="button" class="btn-tts-preview" id="ttsPreviewBtn">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polygon points="5,3 19,12 5,21"/></svg>
-          <span id="ttsPreviewLabel">Preview Voice</span>
-        </button>
-        <div class="tts-wave" id="ttsWave" style="display:none">
-          <span></span><span></span><span></span><span></span><span></span>
-        </div>
-        <span class="tts-preview-hint" id="ttsPreviewHint">Listen before saving</span>
+
       </div>
     </div>
 

@@ -1055,35 +1055,34 @@ let _noteBgLibrary     = null; // cached [{id,url,label}]
 let _musicLibrary      = null; // cached [{id,url,title,artist}]
 
 // ── TTS (Read Aloud) helpers ───────────────────────────────────────────────
-// Wire pill clicks once at startup
-;(function wireTTSPills() {
-  document.getElementById('ttsVoicePills')?.addEventListener('click', e => {
-    const pill = e.target.closest('.tts-pill[data-voice]');
-    if (!pill) return;
-    document.querySelectorAll('#ttsVoicePills .tts-pill').forEach(p => p.classList.remove('active'));
-    pill.classList.add('active');
-  });
-  document.getElementById('ttsTonePills')?.addEventListener('click', e => {
-    const pill = e.target.closest('.tts-pill[data-tone]');
-    if (!pill) return;
-    document.querySelectorAll('#ttsTonePills .tts-pill').forEach(p => p.classList.remove('active'));
-    pill.classList.add('active');
-  });
-})();
+// Wire pill clicks — delegated on document so they always work
+document.addEventListener('click', e => {
+  const voiceBtn = e.target.closest('#ttsVoicePills .tts-voice-btn[data-voice]');
+  if (voiceBtn) {
+    document.querySelectorAll('#ttsVoicePills .tts-voice-btn').forEach(p => p.classList.remove('active'));
+    voiceBtn.classList.add('active');
+    return;
+  }
+  const toneBtn = e.target.closest('#ttsTonePills .tts-tone-btn[data-tone]');
+  if (toneBtn) {
+    document.querySelectorAll('#ttsTonePills .tts-tone-btn').forEach(p => p.classList.remove('active'));
+    toneBtn.classList.add('active');
+  }
+});
 
 function getActiveTTSVoice() {
-  return document.querySelector('#ttsVoicePills .tts-pill.active')?.dataset.voice || 'female';
+  return document.querySelector('#ttsVoicePills .tts-voice-btn.active')?.dataset.voice || 'female';
 }
 function getActiveTTSTone() {
-  return document.querySelector('#ttsTonePills .tts-pill.active')?.dataset.tone || 'auto';
+  return document.querySelector('#ttsTonePills .tts-tone-btn.active')?.dataset.tone || 'auto';
 }
 function setActiveTTSVoice(v) {
-  document.querySelectorAll('#ttsVoicePills .tts-pill').forEach(p => {
+  document.querySelectorAll('#ttsVoicePills .tts-voice-btn').forEach(p => {
     p.classList.toggle('active', p.dataset.voice === v);
   });
 }
 function setActiveTTSTone(t) {
-  document.querySelectorAll('#ttsTonePills .tts-pill').forEach(p => {
+  document.querySelectorAll('#ttsTonePills .tts-tone-btn').forEach(p => {
     p.classList.toggle('active', p.dataset.tone === t);
   });
 }
