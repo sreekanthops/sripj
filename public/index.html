@@ -212,16 +212,15 @@
 <!-- ══ DETAIL OVERLAY ════════════════════════════════════════ -->
 <div class="overlay tinder-mode" id="detailOverlay">
   <div class="detail-card" id="detailModal">
-    <div class="detail-top-actions">
-      <button class="detail-close" id="detailClose" aria-label="Close">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-          <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
-        </svg>
-      </button>
-    </div>
     <div class="td-story-bars" id="detailBars"></div>
     <div class="td-tap td-tap-left"  id="detailTapLeft">‹</div>
     <div class="td-tap td-tap-right" id="detailTapRight">›</div>
+    <!-- Close button — fixed at top-right of the card, always visible -->
+    <button class="detail-close" id="detailClose" aria-label="Close">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
+      </svg>
+    </button>
     <div class="detail-body-wrap" id="detailContent"></div>
   </div>
 </div>
