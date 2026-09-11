@@ -841,50 +841,79 @@ body.is-owner .slide-del { display: block; }
   position: absolute; top: 12px; right: 12px; z-index: 50;
   display: flex; align-items: center; gap: 8px;
 }
-.detail-share-btn {
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 99px;
-  background: rgba(30, 24, 16, 0.75);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--sans);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: .3px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  transition: all .18s var(--ease);
-}
-.detail-share-btn .share-icon-svg {
-  width: 14px;
-  height: 14px;
-  color: var(--gold);
-}
-.detail-share-btn:hover {
-  background: rgba(30, 24, 16, 0.95);
-  border-color: var(--gold);
-  color: var(--gold);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
-}
-.detail-share-btn:active {
-  transform: scale(0.96);
-}
 .detail-close {
-  width: 32px; height: 32px; border-radius: 50%;
-  background: rgba(30, 24, 16, 0.75); backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.18); color: #fff; cursor: pointer;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(30, 24, 16, 0.65); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  transition: all .15s;
+  transition: all .15s var(--ease);
 }
 .detail-close:hover { background: rgba(30, 24, 16, 0.95); border-color: #fff; transform: scale(1.08) rotate(90deg); }
-.detail-close svg { width: 12px; height: 12px; }
+.detail-close svg { width: 13px; height: 13px; }
+
+/* ── Clean modern bottom share action in Note Detail ── */
+.note-action-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: -10px;
+  margin-bottom: 20px;
+}
+.btn-share-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border2);
+  color: var(--ink);
+  padding: 6px 14px 6px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: .2px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+  transition: all .2s var(--ease);
+}
+.btn-share-pill .share-icon-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(47,90,110,.35);
+  transition: all .2s var(--ease);
+}
+.btn-share-pill .share-icon-circle svg {
+  width: 13px;
+  height: 13px;
+  stroke: #fff;
+}
+.btn-share-pill .share-pill-text {
+  color: var(--ink2);
+  font-weight: 600;
+}
+.btn-share-pill:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(47,90,110,.18);
+}
+.btn-share-pill:hover .share-icon-circle {
+  transform: scale(1.08) rotate(-10deg);
+  background: var(--accent2);
+}
+.btn-share-pill:hover .share-pill-text {
+  color: var(--accent);
+}
+.btn-share-pill:active {
+  transform: scale(.96);
+}
 
 .td-story-bars {
   position: absolute; top: 0; left: 0; right: 0; z-index: 40;

@@ -294,13 +294,6 @@ document.getElementById('profileClose')?.addEventListener('click', () => closeOv
 document.getElementById('upgradeClose')?.addEventListener('click', () => closeOv('upgradeOverlay'));
 document.getElementById('libraryClose')?.addEventListener('click', () => closeOv('libraryOverlay'));
 document.getElementById('shareClose')?.addEventListener('click', () => closeOv('shareOverlay'));
-document.getElementById('detailShareBtn')?.addEventListener('click', e => {
-  e.stopPropagation();
-  const curNote = notes[detailIdx];
-  if (curNote) {
-    shareSingleNote(curNote.id);
-  }
-});
 
 // Refresh upgrade overlay prices from live API when it opens
 ;(function() {
@@ -1789,6 +1782,20 @@ function renderDetail(note) {
       </div>
       ${note.musicUrl ? `<div style="font-size:12px;color:var(--accent);margin-bottom:12px;font-style:italic;font-family:var(--sans)">♫ Background music is playing</div>` : ''}
       <div class="detail-body" style="font-family:${esc(note.font)};font-size:${note.fontSize||14}px;${fsCss};border-left-color:${p.accent}">${esc(note.body)}</div>
+      <div class="note-action-footer">
+        <button class="btn-share-pill btn-dshare" data-id="${note.id}" title="Share this entry">
+          <div class="share-icon-circle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+          </div>
+          <span class="share-pill-text">Share Entry</span>
+        </button>
+      </div>
       <hr class="sep">
       <div class="section-label">React</div>
       <div class="emoji-grid">${EMOJIS.map(e => {
@@ -1805,17 +1812,13 @@ function renderDetail(note) {
         <textarea id="rText" placeholder="Share your thoughts or feelings…"></textarea>
         <button class="btn btn-gold btn-sm btn-rpost" data-id="${note.id}" style="align-self:flex-end">Post Reply</button>
       </div>
-      <div class="admin-note-bar" style="${isOwner ? '' : 'background:transparent;border:none;padding:8px 0'}">
-        ${isOwner ? '<span class="admin-bar-label">Owner</span>' : ''}
-        <button class="btn btn-gold btn-sm btn-dshare" data-id="${note.id}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="share-icon-svg"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-          Share Entry
-        </button>
-        ${isOwner ? `
+      ${isOwner ? `
+      <div class="admin-note-bar">
+        <span class="admin-bar-label">Owner Controls</span>
         <button class="btn btn-ghost btn-sm btn-dedit" data-id="${note.id}">✏️ Edit</button>
         <button class="btn btn-pin   btn-sm btn-dpin"  data-id="${note.id}" data-pinned="${note.pinned?'1':'0'}">${note.pinned ? '📌 Unpin' : '📌 Pin'}</button>
-        <button class="btn btn-red   btn-sm btn-ddel"  data-id="${note.id}">🗑 Delete</button>` : ''}
-      </div>
+        <button class="btn btn-red   btn-sm btn-ddel"  data-id="${note.id}">🗑 Delete</button>
+      </div>` : ''}
     </div>`;
 
   // mount media slider into cover area
