@@ -151,6 +151,7 @@ async function apiUpload(noteId, files) {
 function showAuth() {
   document.getElementById('authScreen').classList.remove('hidden');
   document.getElementById('appScreen').classList.add('hidden');
+  initGoogleSignIn();
 }
 function showApp() {
   document.getElementById('authScreen').classList.add('hidden');
@@ -219,38 +220,45 @@ async function initGoogleSignIn() {
 
     gSection.style.display = 'block';
 
+    let attempts = 0;
     const checkGsi = () => {
       if (window.google?.accounts?.id) {
-        window.google.accounts.id.initialize({
-          client_id: googleClientId,
-          callback: async (response) => {
-            if (errEl) errEl.textContent = '';
-            try {
-              toast('Signing in with Google…');
-              const data = await api('POST', '/auth/google', { credential: response.credential });
-              token = data.token;
-              currentUser = { userId: data.userId, username: data.username, displayName: data.displayName };
-              localStorage.setItem('diary_token', token);
-              await enterOwnDiary();
-              toast(`Welcome, ${currentUser.displayName}! 🌸`);
-            } catch (err) {
-              if (errEl) errEl.textContent = err.message || 'Google Sign-in failed';
-              toast('Error: ' + err.message);
-            }
-          },
-        });
+        try {
+          window.google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: async (response) => {
+              if (errEl) errEl.textContent = '';
+              try {
+                toast('Signing in with Google…');
+                const data = await api('POST', '/auth/google', { credential: response.credential });
+                token = data.token;
+                currentUser = { userId: data.userId, username: data.username, displayName: data.displayName };
+                localStorage.setItem('diary_token', token);
+                await enterOwnDiary();
+                toast(`Welcome, ${currentUser.displayName}! 🌸`);
+              } catch (err) {
+                if (errEl) errEl.textContent = err.message || 'Google Sign-in failed';
+                toast('Error: ' + err.message);
+              }
+            },
+          });
 
-        window.google.accounts.id.renderButton(gTarget, {
-          theme: 'outline',
-          size: 'large',
-          type: 'standard',
-          shape: 'pill',
-          text: 'continue_with',
-          logo_alignment: 'left',
-          width: 320,
-        });
-      } else {
-        setTimeout(checkGsi, 150);
+          gTarget.innerHTML = '';
+          window.google.accounts.id.renderButton(gTarget, {
+            theme: 'outline',
+            size: 'large',
+            type: 'standard',
+            shape: 'pill',
+            text: 'continue_with',
+            logo_alignment: 'left',
+            width: 280,
+          });
+        } catch (e) {
+          console.error('[Google GSI init]', e);
+        }
+      } else if (attempts < 50) {
+        attempts++;
+        setTimeout(checkGsi, 100);
       }
     };
 

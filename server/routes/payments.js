@@ -179,8 +179,8 @@ router.post('/admin/settings', verifyAdminToken, (req, res) => {
   `);
   const now = new Date().toISOString();
   for (const key of allowed) {
-    if (req.body[key] !== undefined && req.body[key] !== '') {
-      stmt.run(key, req.body[key].trim(), now);
+    if (req.body[key] !== undefined) {
+      stmt.run(key, String(req.body[key]).trim(), now);
     }
   }
   res.json({ ok: true });
