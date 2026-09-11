@@ -150,10 +150,12 @@ body {
 
 /* ── Brand title as link ── */
 .brand-link {
-  text-decoration: none; color: inherit;
+  text-decoration: none !important;
+  color: inherit;
   display: flex; flex-direction: column; align-items: flex-start;
+  outline: none;
 }
-.brand-link:hover { opacity: .72; }
+.brand-link:hover, .brand-link:focus { text-decoration: none !important; opacity: .78; }
 
 /* ── Topbar user avatar button (rightmost corner) ── */
 .topbar-avatar-btn {
