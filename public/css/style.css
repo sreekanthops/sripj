@@ -283,29 +283,87 @@ a.brand-link:hover { opacity: .78; }
 
 .sb-nav { display: flex; flex-direction: column; gap: 4px; padding: 16px 14px; flex: 1; }
 
-.music-bar {
-  display: none; align-items: center; gap: 8px;
-  padding: 10px 14px; border-top: 1px solid var(--border);
-  background: var(--surface);
-}
-.music-bar.active { display: flex; }
-.music-eq { display: flex; gap: 3px; align-items: flex-end; height: 14px; }
+/* Sidebar music bar — kept but hidden; floating player replaces it */
+.music-bar { display: none !important; }
+
+/* ── Eq bars (shared between sidebar + floating player) ── */
 .eq-bar { width: 3px; border-radius: 2px; background: var(--accent); animation: eq .9s ease-in-out infinite; }
 .eq-bar:nth-child(1) { height: 6px;  animation-delay: 0s; }
 .eq-bar:nth-child(2) { height: 13px; animation-delay: .15s; }
 .eq-bar:nth-child(3) { height: 8px;  animation-delay: .3s; }
 .eq-bar:nth-child(4) { height: 11px; animation-delay: .1s; }
 @keyframes eq { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(.25); } }
-.music-bar.paused .eq-bar { animation-play-state: paused; }
-.music-name { font-size: 11px; color: var(--ink3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-style: italic; }
-.music-ctrls { display: flex; align-items: center; gap: 6px; }
-.music-ctrls button {
-  background: var(--surface); border: 1px solid var(--border2);
-  color: var(--ink3); font-size: 13px; cursor: pointer;
-  padding: 5px 8px; border-radius: var(--r4); transition: all .15s;
+
+/* ══ FLOATING MUSIC PLAYER ══════════════════════════════════ */
+.fmp {
+  position: fixed;
+  bottom: 20px; left: 50%; transform: translateX(-50%);
+  z-index: 350;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: rgba(28,22,14,.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 40px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.40);
+  color: #fff;
+  min-width: 260px; max-width: min(480px, 92vw);
+  transition: opacity .25s, transform .25s;
 }
-.music-ctrls button:hover { background: var(--bg3); color: var(--ink); }
-#musicVol { flex: 1; accent-color: var(--accent); cursor: pointer; min-width: 0; }
+.fmp.hidden { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(12px); }
+.fmp.paused .eq-bar { animation-play-state: paused; }
+
+.fmp-eq { display: flex; gap: 3px; align-items: flex-end; height: 14px; flex-shrink: 0; }
+.fmp-eq .eq-bar { background: #d4a96a; }
+
+.fmp-title {
+  flex: 1; min-width: 0;
+  font-size: 12px; font-style: italic;
+  color: rgba(255,255,255,.82);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: var(--serif);
+}
+
+.fmp-controls { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+.fmp-btn {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.15);
+  color: rgba(255,255,255,.9);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .15s, transform .12s;
+  flex-shrink: 0;
+}
+.fmp-btn:hover { background: rgba(255,255,255,.22); transform: scale(1.1); }
+.fmp-btn:active { transform: scale(.92); }
+.fmp-mute.muted { color: rgba(255,255,255,.4); }
+.fmp-close { background: rgba(255,80,80,.15); border-color: rgba(255,80,80,.25); }
+.fmp-close:hover { background: rgba(255,80,80,.35); }
+
+.fmp-vol-wrap {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 20px; padding: 0 10px;
+  height: 30px;
+}
+.fmp-vol {
+  width: 72px; cursor: pointer;
+  accent-color: #d4a96a;
+  -webkit-appearance: none;
+  background: transparent; border: none; outline: none;
+}
+.fmp-vol::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #d4a96a; cursor: pointer; }
+.fmp-vol::-webkit-slider-runnable-track { height: 3px; background: rgba(255,255,255,.2); border-radius: 2px; }
+.fmp-vol::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #d4a96a; border: none; cursor: pointer; }
+.fmp-vol::-moz-range-track { height: 3px; background: rgba(255,255,255,.2); border-radius: 2px; }
+
+@media (max-width: 480px) {
+  .fmp { bottom: 12px; padding: 9px 12px; gap: 8px; min-width: 0; max-width: 96vw; }
+  .fmp-vol { width: 56px; }
+}
 
 /* ══════════════════════════════════════════════════════
    MAIN CONTENT

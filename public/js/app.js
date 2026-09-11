@@ -2281,38 +2281,92 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft'  && prevId) { detailIdx--; openDetail(prevId); }
 });
 
-// ── MUSIC ──────────────────────────────────────────────────────────────────
+// ── MUSIC — floating player ────────────────────────────────────────────────
+const fmp         = document.getElementById('floatingMusicPlayer');
+const fmpTitle    = document.getElementById('fmpTitle');
+const fmpPP       = document.getElementById('fmpPP');
+const fmpMute     = document.getElementById('fmpMute');
+const fmpVol      = document.getElementById('fmpVol');
+const fmpClose    = document.getElementById('fmpClose');
+const fmpIconPlay = document.getElementById('fmpIconPlay');
+const fmpIconPause= document.getElementById('fmpIconPause');
+const fmpIconSound= document.getElementById('fmpIconSound');
+const fmpIconMute = document.getElementById('fmpIconMute');
+
+function fmpSyncPlayState() {
+  const playing = !audio.paused;
+  fmpIconPlay.style.display  = playing ? 'none' : '';
+  fmpIconPause.style.display = playing ? ''     : 'none';
+  fmp?.classList.toggle('paused', !playing);
+}
+function fmpSyncMute() {
+  const muted = audio.muted || audio.volume === 0;
+  fmpIconSound.style.display = muted ? 'none' : '';
+  fmpIconMute.style.display  = muted ? ''     : 'none';
+  fmpMute?.classList.toggle('muted', muted);
+}
+function fmpShow(title) {
+  if (!fmp) return;
+  fmpTitle.textContent = title || 'Now Playing';
+  fmpVol.value = audio.volume;
+  fmpSyncPlayState();
+  fmpSyncMute();
+  fmp.classList.remove('hidden');
+}
+function fmpHide() {
+  fmp?.classList.add('hidden');
+}
+
 function playMusic(note) {
   if (!note.musicUrl) {
     audio.pause(); audio.src = '';
-    document.getElementById('musicBar').classList.remove('active');
+    fmpHide();
     return;
   }
-  if (audio.src !== note.musicUrl) { audio.src = note.musicUrl; audio.volume = 0.6; }
+  const fullUrl = note.musicUrl.startsWith('/') ? location.origin + note.musicUrl : note.musicUrl;
+  if (audio.src !== fullUrl) { audio.src = note.musicUrl; audio.volume = parseFloat(fmpVol?.value || 0.6); }
   audio.play().catch(() => {});
-  document.getElementById('musicTitle').textContent = note.title || 'Playing…';
-  document.getElementById('musicBar').classList.add('active');
+  fmpShow(note.title);
 }
-document.getElementById('btnMPP').onclick = () => {
-  if (audio.paused) {
-    audio.play();
-    document.getElementById('musicBar').classList.remove('paused');
-    document.getElementById('btnMPP').textContent = '⏸';
+
+// Play / Pause
+fmpPP?.addEventListener('click', () => {
+  if (audio.paused) { audio.play(); } else { audio.pause(); }
+});
+
+// Mute toggle
+fmpMute?.addEventListener('click', () => {
+  if (audio.muted || audio.volume === 0) {
+    audio.muted = false;
+    if (audio.volume === 0) { audio.volume = 0.6; if (fmpVol) fmpVol.value = 0.6; }
   } else {
-    audio.pause();
-    document.getElementById('musicBar').classList.add('paused');
-    document.getElementById('btnMPP').textContent = '▶';
+    audio.muted = true;
   }
-};
-document.getElementById('btnMute').onclick = () => {
-  audio.muted = !audio.muted;
-  document.getElementById('btnMute').textContent = audio.muted ? '🔇' : '♪';
-};
-document.getElementById('musicVol').oninput = e => {
-  audio.volume = parseFloat(e.target.value);
+  fmpSyncMute();
+});
+
+// Volume slider
+fmpVol?.addEventListener('input', () => {
+  audio.volume = parseFloat(fmpVol.value);
   audio.muted  = false;
-  document.getElementById('btnMute').textContent = '♪';
-};
+  fmpSyncMute();
+});
+
+// Stop / close
+fmpClose?.addEventListener('click', () => {
+  audio.pause(); audio.src = '';
+  fmpHide();
+});
+
+// Keep icons in sync with audio events
+audio.addEventListener('play',   fmpSyncPlayState);
+audio.addEventListener('pause',  fmpSyncPlayState);
+audio.addEventListener('ended',  fmpHide);
+
+// Legacy sidebar controls — kept wired but bar is hidden via CSS
+document.getElementById('btnMPP').onclick  = () => { if (audio.paused) audio.play(); else audio.pause(); };
+document.getElementById('btnMute').onclick = () => { audio.muted = !audio.muted; fmpSyncMute(); };
+document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e.target.value); audio.muted = false; };
 
 // ── CHATBOT ────────────────────────────────────────────────────────────────
 ;(function initChatbot() {

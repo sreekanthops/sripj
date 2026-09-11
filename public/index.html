@@ -209,6 +209,32 @@
 
 </div>
 
+<!-- ══ FLOATING MUSIC PLAYER ════════════════════════════════ -->
+<div id="floatingMusicPlayer" class="fmp hidden">
+  <div class="fmp-eq" id="fmpEq">
+    <span class="eq-bar"></span><span class="eq-bar"></span>
+    <span class="eq-bar"></span><span class="eq-bar"></span>
+  </div>
+  <span class="fmp-title" id="fmpTitle">Now Playing</span>
+  <div class="fmp-controls">
+    <button class="fmp-btn" id="fmpPP" title="Play / Pause">
+      <svg id="fmpIconPlay" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+      <svg id="fmpIconPause" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+    </button>
+    <button class="fmp-btn fmp-mute" id="fmpMute" title="Mute / Unmute">
+      <svg id="fmpIconSound" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+      <svg id="fmpIconMute" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"><polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+    </button>
+    <div class="fmp-vol-wrap">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;opacity:.5"><polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/></svg>
+      <input type="range" class="fmp-vol" id="fmpVol" min="0" max="1" step="0.02" value="0.6" title="Volume">
+    </div>
+    <button class="fmp-btn fmp-close" id="fmpClose" title="Stop music">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+    </button>
+  </div>
+</div>
+
 <!-- ══ DETAIL OVERLAY ════════════════════════════════════════ -->
 <div class="overlay tinder-mode" id="detailOverlay">
   <div class="detail-card" id="detailModal">
