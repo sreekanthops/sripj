@@ -33,12 +33,15 @@ router.post('/login', async (req, res) => {
   res.json({ token, userId: user.id, username: user.username, displayName: user.display_name });
 });
 
+// Hardcoded fallback Google Client ID from Google Cloud Console configuration
+const DEFAULT_GOOGLE_CLIENT_ID = '226581903418-3ed1eqsl14qlou4nmk2m9sdf6il1mluu.apps.googleusercontent.com';
+
 // GET /api/auth/config — public auth config (Google Client ID)
 router.get('/config', (req, res) => {
   const googleClientId = db.prepare("SELECT value FROM app_settings WHERE key = 'google_client_id'").get()?.value
     || process.env.GOOGLE_CLIENT_ID
-    || '';
-  res.json({ googleClientId });
+    || DEFAULT_GOOGLE_CLIENT_ID;
+  res.json({ googleClientId: (googleClientId || '').trim() });
 });
 
 // POST /api/auth/google — sign in / sign up with Google ID Token credential
