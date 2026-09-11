@@ -1894,6 +1894,10 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   transform: translateY(-1px);
 }
 .btn-tts-preview:active { transform: translateY(0); }
+.btn-tts-preview.loading {
+  opacity: .7; cursor: wait;
+  border-style: dashed;
+}
 .btn-tts-preview.speaking {
   background: var(--accent); color: #fff;
   border-color: var(--accent);
@@ -1958,6 +1962,10 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   transform: translateY(-1px);
 }
 .btn-read-aloud:active { transform: translateY(0); }
+.btn-read-aloud.loading {
+  opacity: .7; cursor: wait;
+  border-style: dashed;
+}
 .btn-read-aloud.speaking {
   background: var(--accent); color: #fff;
   border-color: var(--accent);

@@ -275,7 +275,7 @@ function openOv(id)  { document.getElementById(id).classList.add('open'); }
 function closeOv(id) {
   document.getElementById(id).classList.remove('open');
   // Always stop any TTS speech when any overlay is dismissed
-  if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel();
+  stopTTS();
 }
 
 ['detailOverlay','formOverlay','profileOverlay','upgradeOverlay','libraryOverlay','shareOverlay','passOverlay'].forEach(id => {
@@ -1090,98 +1090,129 @@ function setActiveTTSTone(t) {
   });
 }
 
-// Tone → Web Speech pitch/rate map
-const TTS_TONE_PARAMS = {
-  auto:      { rate: 1.0,  pitch: 1.0  },
-  emotional: { rate: 0.88, pitch: 1.05 },
-  sad:       { rate: 0.78, pitch: 0.85 },
-  angry:     { rate: 1.15, pitch: 1.2  },
-  calm:      { rate: 0.85, pitch: 0.95 },
-  joyful:    { rate: 1.1,  pitch: 1.15 },
-  mixed:     { rate: 0.95, pitch: 1.0  },
-};
+// ── TTS ENGINE — natural Indian voice via server /api/ai/tts ──────────────
+// Single shared audio element for TTS (separate from background music)
+const _ttsAudio = new Audio();
+_ttsAudio.preload = 'none';
 
-// Pick best available voice for the given gender
-function pickVoice(gender) {
-  const voices = window.speechSynthesis.getVoices();
-  if (!voices.length) return null;
-  const isFemale = gender !== 'male';
-  // Prefer English voices; prefer 'female'/'male' name hints
-  const enVoices = voices.filter(v => /^en/i.test(v.lang));
-  const pool = enVoices.length ? enVoices : voices;
-  const femaleHints = /female|woman|zira|samantha|karen|victoria|fiona|moira|veena|tessa/i;
-  const maleHints   = /male|man|daniel|alex|fred|lee|rishi|david|mark/i;
-  let matched = isFemale
-    ? pool.filter(v => femaleHints.test(v.name))
-    : pool.filter(v => maleHints.test(v.name));
-  if (!matched.length) {
-    // fallback: first en voice, or just first voice
-    matched = pool;
-  }
-  return matched[0] || null;
+// Active-stop callbacks registered by current speaker (preview or detail)
+let _ttsStopCb = null;
+
+_ttsAudio.addEventListener('ended',  () => { _ttsStopCb?.(); _ttsStopCb = null; });
+_ttsAudio.addEventListener('error',  () => { _ttsStopCb?.(); _ttsStopCb = null; });
+_ttsAudio.addEventListener('pause',  () => {
+  // only fire stop if truly done (not mid-seek)
+  if (_ttsAudio.ended) { _ttsStopCb?.(); _ttsStopCb = null; }
+});
+
+function stopTTS() {
+  _ttsAudio.pause();
+  _ttsAudio.src = '';
+  if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel();
+  const cb = _ttsStopCb;
+  _ttsStopCb = null;
+  cb?.();
 }
 
-// Speak text with given voice/tone; returns utterance (cancel via speechSynthesis.cancel())
-function speakText(text, voice, tone) {
-  window.speechSynthesis.cancel();
-  const utt = new SpeechSynthesisUtterance(text);
-  const params = TTS_TONE_PARAMS[tone] || TTS_TONE_PARAMS.auto;
-  utt.rate  = params.rate;
-  utt.pitch = params.pitch;
-  utt.volume = 1;
-  // Voices may not be loaded yet; wait and retry once
-  const doSpeak = () => {
-    const v = pickVoice(voice);
-    if (v) utt.voice = v;
+// speakText — fetches natural MP3 from server, plays it.
+// Returns an object with { stop() } so callers can cancel.
+// onEnd called when audio finishes or errors.
+async function speakText(text, _voice, tone, { onStart, onEnd, onError, onLoading } = {}) {
+  stopTTS();   // cancel anything already playing
+
+  onLoading?.();
+
+  try {
+    // Call server TTS endpoint — returns audio/mpeg
+    const res = await fetch('/api/ai/tts', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ text: text.slice(0, 500), tone }),
+    });
+
+    if (!res.ok) throw new Error('TTS server error ' + res.status);
+
+    const blob    = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    _ttsAudio.src    = blobUrl;
+    _ttsAudio.volume = 1;
+
+    _ttsStopCb = () => {
+      URL.revokeObjectURL(blobUrl);
+      onEnd?.();
+    };
+
+    await _ttsAudio.play();
+    onStart?.();
+
+  } catch (err) {
+    // Graceful fallback to browser speech synthesis
+    console.warn('TTS server failed, falling back to browser speech:', err.message);
+    _ttsStopCb = null;
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = 'hi-IN';   // best Indian voice available in browser
+    utt.rate = 0.92; utt.volume = 1;
+    utt.onstart = onStart;
+    utt.onend   = onEnd;
+    utt.onerror = onEnd;
     window.speechSynthesis.speak(utt);
-  };
-  const voices = window.speechSynthesis.getVoices();
-  if (voices.length) doSpeak();
-  else { window.speechSynthesis.onvoiceschanged = doSpeak; }
-  return utt;
+    onError?.(err);
+  }
 }
 
 // ── TTS Preview button (inside form) ──────────────────────────────────────
 ;(function wireTTSPreview() {
-  const btn      = document.getElementById('ttsPreviewBtn');
-  const lbl      = document.getElementById('ttsPreviewLabel');
-  const wave     = document.getElementById('ttsWave');
-  const hintEl   = document.getElementById('ttsPreviewHint');
+  const btn    = document.getElementById('ttsPreviewBtn');
+  const lbl    = document.getElementById('ttsPreviewLabel');
+  const wave   = document.getElementById('ttsWave');
+  const hintEl = document.getElementById('ttsPreviewHint');
   if (!btn) return;
 
-  let _speaking = false;
-  let _utt      = null;
+  let _active = false;
 
-  function stopPreview() {
-    window.speechSynthesis.cancel();
-    _speaking = false;
-    btn.classList.remove('speaking');
+  function resetPreview() {
+    _active = false;
+    btn.classList.remove('speaking', 'loading');
     lbl.textContent = 'Preview Voice';
-    btn.querySelector('svg polygon')?.setAttribute('points', '5,3 19,12 5,21');
-    if (wave) wave.style.display = 'none';
-    if (hintEl) hintEl.textContent = 'Listen before saving';
+    if (wave)   wave.style.display = 'none';
+    if (hintEl) hintEl.textContent = 'Tap to hear how it sounds';
   }
 
-  btn.addEventListener('click', () => {
-    if (_speaking) { stopPreview(); return; }
-    const text = (document.getElementById('fBody').value.trim() || document.getElementById('fTitle').value.trim() || 'No content to preview yet.').slice(0, 300);
+  btn.addEventListener('click', async () => {
+    if (_active) { stopTTS(); resetPreview(); return; }
+
+    const text  = (document.getElementById('fBody').value.trim() ||
+                   document.getElementById('fTitle').value.trim() ||
+                   'No content to preview yet.').slice(0, 500);
     const voice = getActiveTTSVoice();
     const tone  = getActiveTTSTone();
 
-    _utt = speakText(text, voice, tone);
-    _speaking = true;
-    btn.classList.add('speaking');
-    lbl.textContent = 'Stop Preview';
-    if (wave) wave.style.display = 'flex';
-    if (hintEl) hintEl.textContent = `Speaking in ${voice} voice · ${tone} tone`;
+    _active = true;
+    btn.disabled = true;
 
-    _utt.onend = _utt.onerror = stopPreview;
-  });
-
-  // Stop preview when form closes
-  document.getElementById('formClose')?.addEventListener('click', stopPreview);
-  document.getElementById('formOverlay')?.addEventListener('click', e => {
-    if (e.target === document.getElementById('formOverlay')) stopPreview();
+    await speakText(text, voice, tone, {
+      onLoading: () => {
+        btn.classList.add('loading');
+        lbl.textContent = 'Loading…';
+        if (hintEl) hintEl.textContent = 'Fetching natural voice…';
+      },
+      onStart: () => {
+        btn.disabled = false;
+        btn.classList.remove('loading');
+        btn.classList.add('speaking');
+        lbl.textContent = 'Stop';
+        if (wave)   wave.style.display = 'flex';
+        if (hintEl) hintEl.textContent = `${voice} voice · ${tone} tone`;
+      },
+      onEnd: () => {
+        btn.disabled = false;
+        resetPreview();
+      },
+      onError: () => {
+        btn.disabled = false;
+      },
+    });
   });
 })();
 
@@ -2142,8 +2173,8 @@ function renderDetail(note) {
   const tapR = document.getElementById('detailTapRight');
   tapL.style.display = prevId ? 'flex' : 'none';
   tapR.style.display = nextId ? 'flex' : 'none';
-  tapL.onclick = () => { detailIdx = idx - 1; if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel(); openDetail(prevId); };
-  tapR.onclick = () => { detailIdx = idx + 1; if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel(); openDetail(nextId); };
+  tapL.onclick = () => { detailIdx = idx - 1; stopTTS(); openDetail(prevId); };
+  tapR.onclick = () => { detailIdx = idx + 1; stopTTS(); openDetail(nextId); };
 
   // ── reactions ──
   const reactHtml = Object.entries(note.reactions||{}).filter(([,v])=>v>0)
@@ -2281,29 +2312,48 @@ function renderDetail(note) {
     const readBtn  = document.getElementById('detailReadAloudBtn');
     const readLbl  = document.getElementById('detailReadAloudLabel');
     const readWave = document.getElementById('detailTtsWave');
-    if (!readBtn || !window.speechSynthesis) return;
+    if (!readBtn) return;
 
-    let _readSpeaking = false;
+    let _active = false;
 
-    function stopRead() {
-      window.speechSynthesis.cancel();
-      _readSpeaking = false;
-      readBtn.classList.remove('speaking');
+    function resetRead() {
+      _active = false;
+      readBtn.disabled = false;
+      readBtn.classList.remove('speaking', 'loading');
       readLbl.textContent = '🔊 Read Aloud';
       readWave?.classList.remove('active');
     }
 
-    readBtn.addEventListener('click', () => {
-      if (_readSpeaking) { stopRead(); return; }
+    readBtn.addEventListener('click', async () => {
+      if (_active) { stopTTS(); resetRead(); return; }
+
       const voice = note.ttsVoice || 'female';
       const tone  = note.ttsTone  || 'auto';
       const text  = [note.title, note.body].filter(Boolean).join('. ');
-      const utt   = speakText(text.slice(0, 800), voice, tone);
-      _readSpeaking = true;
-      readBtn.classList.add('speaking');
-      readLbl.textContent = '⏹ Stop Reading';
-      readWave?.classList.add('active');
-      utt.onend = utt.onerror = stopRead;
+
+      _active = true;
+      readBtn.disabled = true;
+
+      await speakText(text.slice(0, 500), voice, tone, {
+        onLoading: () => {
+          readBtn.classList.add('loading');
+          readLbl.textContent = 'Loading…';
+        },
+        onStart: () => {
+          readBtn.disabled = false;
+          readBtn.classList.remove('loading');
+          readBtn.classList.add('speaking');
+          readLbl.textContent = '⏹ Stop';
+          readWave?.classList.add('active');
+        },
+        onEnd: () => {
+          readBtn.disabled = false;
+          resetRead();
+        },
+        onError: () => {
+          readBtn.disabled = false;
+        },
+      });
     });
   })();
 
