@@ -127,53 +127,6 @@ export default function NoteDetail({ noteId, notes, isOwner, currentUser, onClos
             {note.body}
           </div>
 
-          {/* Share Button Bottom of Note */}
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -8, marginBottom: 16 }}>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              whileHover={{ y: -1 }}
-              onClick={() => {
-                const url = `${window.location.origin}/entry/${note.id}`;
-                if (navigator.clipboard) {
-                  navigator.clipboard.writeText(url).then(() => alert("Entry link copied! 📋"));
-                } else {
-                  prompt("Copy entry link:", url);
-                }
-              }}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                background: "var(--c-surface)",
-                border: "1.5px solid var(--c-border)",
-                color: "var(--c-ink)",
-                padding: "6px 14px 6px 8px",
-                borderRadius: 999,
-                cursor: "pointer",
-                fontFamily: "var(--font-sans)",
-                fontSize: 12.5,
-                fontWeight: 600,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-              }}
-            >
-              <div
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: "50%",
-                  background: "var(--c-accent)",
-                  color: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Share2 size={13} color="#fff" />
-              </div>
-              <span style={{ color: "var(--c-ink)" }}>Share Entry</span>
-            </motion.button>
-          </div>
-
           <hr className="sep"/>
 
           {/* Reactions */}
@@ -343,18 +296,35 @@ export default function NoteDetail({ noteId, notes, isOwner, currentUser, onClos
               : <span/>}
           </div>
 
-          {/* Owner bar */}
-          {isOwner && (
-            <div className="owner-bar">
-              <span className="owner-bar-label">Owner</span>
-              <motion.button whileTap={{ scale:0.97 }} className="btn-outline" onClick={() => onEdit(note)}>
-                <Pencil size={11}/>Edit Entry
-              </motion.button>
-              <motion.button whileTap={{ scale:0.97 }} className="btn-danger" onClick={del}>
-                <Trash2 size={11}/>Delete Entry
-              </motion.button>
-            </div>
-          )}
+          {/* Action / Owner bar at the very bottom */}
+          <div className="owner-bar" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {isOwner && <span className="owner-bar-label">Owner</span>}
+            {isOwner && (
+              <>
+                <motion.button whileTap={{ scale:0.97 }} className="btn-outline" onClick={() => onEdit(note)}>
+                  <Pencil size={11}/>Edit
+                </motion.button>
+                <motion.button whileTap={{ scale:0.97 }} className="btn-danger" onClick={del}>
+                  <Trash2 size={11}/>Delete
+                </motion.button>
+              </>
+            )}
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              className="btn-outline"
+              onClick={() => {
+                const url = `${window.location.origin}/entry/${note.id}`;
+                if (navigator.clipboard) {
+                  navigator.clipboard.writeText(url).then(() => alert("Link copied to clipboard! 📋"));
+                } else {
+                  prompt("Copy link:", url);
+                }
+              }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 600 }}
+            >
+              <Share2 size={12}/>Share
+            </motion.button>
+          </div>
         </motion.div>
       )}
     </Modal>

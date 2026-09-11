@@ -555,45 +555,6 @@ footer {
   background: var(--surface); border: 1px solid var(--border2);
   color: var(--ink4);
 }
-.share-icon-svg {
-  width: 13px;
-  height: 13px;
-  display: inline-block;
-  vertical-align: middle;
-  flex-shrink: 0;
-}
-.card-share-btn {
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  color: var(--ink3);
-  cursor: pointer;
-  border-radius: 99px;
-  padding: 3px 9px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-family: var(--sans);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .2px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06);
-  transition: all .18s var(--ease);
-}
-.card-share-btn .share-icon-svg {
-  width: 12px;
-  height: 12px;
-  color: var(--accent);
-}
-.card-share-btn:hover {
-  background: var(--accent-bg);
-  color: var(--accent);
-  border-color: var(--accent-ring);
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(0,0,0,.1);
-}
-.card-share-btn:active {
-  transform: scale(.95);
-}
 .btn-nav-share {
   display: inline-flex;
   align-items: center;
@@ -604,15 +565,34 @@ footer {
   height: 14px;
   color: var(--accent);
 }
-.btn-dshare {
+.btn-share-action {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1.5px solid var(--border2);
   font-weight: 600;
+  cursor: pointer;
+  transition: all .15s var(--ease);
 }
-.btn-dshare .share-icon-svg {
-  width: 14px;
-  height: 14px;
+.btn-share-action .share-btn-icon {
+  width: 13px;
+  height: 13px;
+  color: var(--accent);
+  transition: transform .15s var(--ease);
+}
+.btn-share-action:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+.btn-share-action:hover .share-btn-icon {
+  transform: scale(1.15) rotate(-8deg);
+}
+.btn-share-action:active {
+  transform: scale(.96);
 }
 
 /* ── Card tags ── */
@@ -852,68 +832,6 @@ body.is-owner .slide-del { display: block; }
 .detail-close:hover { background: rgba(30, 24, 16, 0.95); border-color: #fff; transform: scale(1.08) rotate(90deg); }
 .detail-close svg { width: 13px; height: 13px; }
 
-/* ── Clean modern bottom share action in Note Detail ── */
-.note-action-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  margin-top: -10px;
-  margin-bottom: 20px;
-}
-.btn-share-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--surface2);
-  border: 1.5px solid var(--border2);
-  color: var(--ink);
-  padding: 6px 14px 6px 8px;
-  border-radius: 999px;
-  cursor: pointer;
-  font-family: var(--sans);
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: .2px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.05);
-  transition: all .2s var(--ease);
-}
-.btn-share-pill .share-icon-circle {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(47,90,110,.35);
-  transition: all .2s var(--ease);
-}
-.btn-share-pill .share-icon-circle svg {
-  width: 13px;
-  height: 13px;
-  stroke: #fff;
-}
-.btn-share-pill .share-pill-text {
-  color: var(--ink2);
-  font-weight: 600;
-}
-.btn-share-pill:hover {
-  background: var(--accent-bg);
-  border-color: var(--accent);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(47,90,110,.18);
-}
-.btn-share-pill:hover .share-icon-circle {
-  transform: scale(1.08) rotate(-10deg);
-  background: var(--accent2);
-}
-.btn-share-pill:hover .share-pill-text {
-  color: var(--accent);
-}
-.btn-share-pill:active {
-  transform: scale(.96);
-}
 
 .td-story-bars {
   position: absolute; top: 0; left: 0; right: 0; z-index: 40;

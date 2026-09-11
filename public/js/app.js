@@ -1417,16 +1417,9 @@ function renderGrid() {
 
     grid.querySelectorAll('.note-card').forEach(card => {
       card.onclick = e => {
-        if (e.target.closest('.slider-root') || e.target.closest('.card-react-btn') || e.target.closest('.tag-chip') || e.target.closest('.card-share-btn')) return;
+        if (e.target.closest('.slider-root') || e.target.closest('.card-react-btn') || e.target.closest('.tag-chip')) return;
         detailIdx = notes.findIndex(n => n.id === card.dataset.id);
         openDetail(card.dataset.id);
-      };
-    });
-
-    grid.querySelectorAll('.card-share-btn').forEach(btn => {
-      btn.onclick = e => {
-        e.stopPropagation();
-        shareSingleNote(btn.dataset.nid);
       };
     });
 
@@ -1508,10 +1501,6 @@ function buildNoteCard(n, index, total) {
     n.musicUrl      ? `<span class="chip">♫</span>` : '',
     n.media?.length ? `<span class="chip">🎬 ${n.media.length}</span>` : '',
     (n.replies||[]).length ? `<span class="chip">💬 ${n.replies.length}</span>` : '',
-    `<button class="card-share-btn" data-nid="${n.id}" title="Share entry" aria-label="Share entry">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="share-icon-svg"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-      <span>Share</span>
-    </button>`,
   ].filter(Boolean).join('');
 
   const foot = document.createElement('div');
@@ -1782,20 +1771,6 @@ function renderDetail(note) {
       </div>
       ${note.musicUrl ? `<div style="font-size:12px;color:var(--accent);margin-bottom:12px;font-style:italic;font-family:var(--sans)">♫ Background music is playing</div>` : ''}
       <div class="detail-body" style="font-family:${esc(note.font)};font-size:${note.fontSize||14}px;${fsCss};border-left-color:${p.accent}">${esc(note.body)}</div>
-      <div class="note-action-footer">
-        <button class="btn-share-pill btn-dshare" data-id="${note.id}" title="Share this entry">
-          <div class="share-icon-circle">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="18" cy="5" r="3"></circle>
-              <circle cx="6" cy="12" r="3"></circle>
-              <circle cx="18" cy="19" r="3"></circle>
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-            </svg>
-          </div>
-          <span class="share-pill-text">Share Entry</span>
-        </button>
-      </div>
       <hr class="sep">
       <div class="section-label">React</div>
       <div class="emoji-grid">${EMOJIS.map(e => {
@@ -1812,13 +1787,23 @@ function renderDetail(note) {
         <textarea id="rText" placeholder="Share your thoughts or feelings…"></textarea>
         <button class="btn btn-gold btn-sm btn-rpost" data-id="${note.id}" style="align-self:flex-end">Post Reply</button>
       </div>
-      ${isOwner ? `
       <div class="admin-note-bar">
-        <span class="admin-bar-label">Owner Controls</span>
+        ${isOwner ? '<span class="admin-bar-label">Owner Controls</span>' : ''}
+        ${isOwner ? `
         <button class="btn btn-ghost btn-sm btn-dedit" data-id="${note.id}">✏️ Edit</button>
         <button class="btn btn-pin   btn-sm btn-dpin"  data-id="${note.id}" data-pinned="${note.pinned?'1':'0'}">${note.pinned ? '📌 Unpin' : '📌 Pin'}</button>
-        <button class="btn btn-red   btn-sm btn-ddel"  data-id="${note.id}">🗑 Delete</button>
-      </div>` : ''}
+        <button class="btn btn-red   btn-sm btn-ddel"  data-id="${note.id}">🗑 Delete</button>` : ''}
+        <button class="btn btn-share-action btn-sm btn-dshare" data-id="${note.id}" title="Share this note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="share-btn-icon">
+            <circle cx="18" cy="5" r="3"></circle>
+            <circle cx="6" cy="12" r="3"></circle>
+            <circle cx="18" cy="19" r="3"></circle>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+          </svg>
+          <span>Share</span>
+        </button>
+      </div>
     </div>`;
 
   // mount media slider into cover area
