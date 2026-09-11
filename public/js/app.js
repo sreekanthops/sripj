@@ -274,8 +274,6 @@ async function initGoogleOAuth() {
 function openOv(id)  { document.getElementById(id).classList.add('open'); }
 function closeOv(id) {
   document.getElementById(id).classList.remove('open');
-  // Always stop any TTS speech when any overlay is dismissed
-  stopTTS();
 }
 
 ['detailOverlay','formOverlay','profileOverlay','upgradeOverlay','libraryOverlay','shareOverlay','passOverlay'].forEach(id => {
@@ -1057,165 +1055,6 @@ let _uploadedAudioUrl  = '';   // set after successful audio upload
 let _noteBgLibrary     = null; // cached [{id,url,label}]
 let _musicLibrary      = null; // cached [{id,url,title,artist}]
 
-// ── TTS (Read Aloud) helpers ───────────────────────────────────────────────
-// Wire pill clicks — delegated on document so they always work
-document.addEventListener('click', e => {
-  const voiceBtn = e.target.closest('#ttsVoicePills .tts-voice-btn[data-voice]');
-  if (voiceBtn) {
-    document.querySelectorAll('#ttsVoicePills .tts-voice-btn').forEach(p => p.classList.remove('active'));
-    voiceBtn.classList.add('active');
-    return;
-  }
-  const toneBtn = e.target.closest('#ttsTonePills .tts-tone-btn[data-tone]');
-  if (toneBtn) {
-    document.querySelectorAll('#ttsTonePills .tts-tone-btn').forEach(p => p.classList.remove('active'));
-    toneBtn.classList.add('active');
-  }
-});
-
-function getActiveTTSVoice() {
-  return document.querySelector('#ttsVoicePills .tts-voice-btn.active')?.dataset.voice || 'female';
-}
-function getActiveTTSTone() {
-  return document.querySelector('#ttsTonePills .tts-tone-btn.active')?.dataset.tone || 'auto';
-}
-function setActiveTTSVoice(v) {
-  document.querySelectorAll('#ttsVoicePills .tts-voice-btn').forEach(p => {
-    p.classList.toggle('active', p.dataset.voice === v);
-  });
-}
-function setActiveTTSTone(t) {
-  document.querySelectorAll('#ttsTonePills .tts-tone-btn').forEach(p => {
-    p.classList.toggle('active', p.dataset.tone === t);
-  });
-}
-
-// ── TTS ENGINE — natural Indian voice via server /api/ai/tts ──────────────
-// Single shared audio element for TTS (separate from background music)
-const _ttsAudio = new Audio();
-_ttsAudio.preload = 'none';
-
-// Active-stop callbacks registered by current speaker (preview or detail)
-let _ttsStopCb = null;
-
-_ttsAudio.addEventListener('ended',  () => { _ttsStopCb?.(); _ttsStopCb = null; });
-_ttsAudio.addEventListener('error',  () => { _ttsStopCb?.(); _ttsStopCb = null; });
-_ttsAudio.addEventListener('pause',  () => {
-  // only fire stop if truly done (not mid-seek)
-  if (_ttsAudio.ended) { _ttsStopCb?.(); _ttsStopCb = null; }
-});
-
-function stopTTS() {
-  _ttsAudio.pause();
-  _ttsAudio.src = '';
-  if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel();
-  const cb = _ttsStopCb;
-  _ttsStopCb = null;
-  cb?.();
-}
-
-// speakText — fetches natural MP3 from server, plays it.
-// Returns an object with { stop() } so callers can cancel.
-// onEnd called when audio finishes or errors.
-async function speakText(text, _voice, tone, { onStart, onEnd, onError, onLoading } = {}) {
-  stopTTS();   // cancel anything already playing
-
-  onLoading?.();
-
-  try {
-    // Call server TTS endpoint — returns audio/mpeg
-    const res = await fetch('/api/ai/tts', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ text: text.slice(0, 500), tone }),
-    });
-
-    if (!res.ok) throw new Error('TTS server error ' + res.status);
-
-    const blob    = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-
-    _ttsAudio.src    = blobUrl;
-    _ttsAudio.volume = 1;
-
-    _ttsStopCb = () => {
-      URL.revokeObjectURL(blobUrl);
-      onEnd?.();
-    };
-
-    await _ttsAudio.play();
-    onStart?.();
-
-  } catch (err) {
-    // Graceful fallback to browser speech synthesis
-    console.warn('TTS server failed, falling back to browser speech:', err.message);
-    _ttsStopCb = null;
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.lang = 'hi-IN';   // best Indian voice available in browser
-    utt.rate = 0.92; utt.volume = 1;
-    utt.onstart = onStart;
-    utt.onend   = onEnd;
-    utt.onerror = onEnd;
-    window.speechSynthesis.speak(utt);
-    onError?.(err);
-  }
-}
-
-// ── TTS Preview button (inside form) ──────────────────────────────────────
-;(function wireTTSPreview() {
-  const btn    = document.getElementById('ttsPreviewBtn');
-  const lbl    = document.getElementById('ttsPreviewLabel');
-  const wave   = document.getElementById('ttsWave');
-  const hintEl = document.getElementById('ttsPreviewHint');
-  if (!btn) return;
-
-  let _active = false;
-
-  function resetPreview() {
-    _active = false;
-    btn.classList.remove('speaking', 'loading');
-    lbl.textContent = 'Preview Voice';
-    if (wave)   wave.style.display = 'none';
-    if (hintEl) hintEl.textContent = 'Tap to hear how it sounds';
-  }
-
-  btn.addEventListener('click', async () => {
-    if (_active) { stopTTS(); resetPreview(); return; }
-
-    const text  = (document.getElementById('fBody').value.trim() ||
-                   document.getElementById('fTitle').value.trim() ||
-                   'No content to preview yet.').slice(0, 500);
-    const voice = getActiveTTSVoice();
-    const tone  = getActiveTTSTone();
-
-    _active = true;
-    btn.disabled = true;
-
-    await speakText(text, voice, tone, {
-      onLoading: () => {
-        btn.classList.add('loading');
-        lbl.textContent = 'Loading…';
-        if (hintEl) hintEl.textContent = 'Fetching natural voice…';
-      },
-      onStart: () => {
-        btn.disabled = false;
-        btn.classList.remove('loading');
-        btn.classList.add('speaking');
-        lbl.textContent = 'Stop';
-        if (wave)   wave.style.display = 'flex';
-        if (hintEl) hintEl.textContent = `${voice} voice · ${tone} tone`;
-      },
-      onEnd: () => {
-        btn.disabled = false;
-        resetPreview();
-      },
-      onError: () => {
-        btn.disabled = false;
-      },
-    });
-  });
-})();
-
 // ── Audio upload helpers ───────────────────────────────────────────────────
 function updateAudioLabel() {
   const lbl     = document.getElementById('fAudioFileLabel');
@@ -1384,8 +1223,6 @@ function openNewForm() {
   document.getElementById('fMusic').value  = '';
   document.getElementById('fTags').value   = '';
   document.getElementById('existMediaRow').innerHTML = '';
-  setActiveTTSVoice('female');
-  setActiveTTSTone('auto');
   renderTagsChips();
   buildSwatches(0); setupUploadZone();
   applyBodyPreview();
@@ -1410,8 +1247,6 @@ function openEditForm(note) {
   // show custom URL only if it's not an uploaded file (uploaded shown in audio label)
   document.getElementById('fMusic').value  = (note.musicUrl && !note.noteMusicId && !note.musicUrl.startsWith('/uploads/')) ? note.musicUrl : '';
   document.getElementById('fTags').value   = '';
-  setActiveTTSVoice(note.ttsVoice || 'female');
-  setActiveTTSTone(note.ttsTone  || 'auto');
   renderTagsChips();
   buildSwatches(note.colorIdx || 0);
   renderExistMedia(note); setupUploadZone();
@@ -1422,8 +1257,6 @@ function openEditForm(note) {
 }
 
 document.getElementById('fSave').onclick = async () => {
-  // Stop any running preview before saving
-  if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel();
   if (document.getElementById('fTags').value.trim()) addPendingTag(document.getElementById('fTags').value);
   const title      = document.getElementById('fTitle').value.trim();
   const body       = document.getElementById('fBody').value.trim();
@@ -1433,8 +1266,6 @@ document.getElementById('fSave').onclick = async () => {
   const colorIdx   = activeCI();
   const musicUrl   = document.getElementById('fMusic').value.trim();
   const tags       = [...pendingTags];
-  const ttsVoice   = getActiveTTSVoice();
-  const ttsTone    = getActiveTTSTone();
   if (!title && !body) { toast('Write something first ✍'); return; }
 
   // Upload custom background via the sticker image endpoint (multipart, returns a real URL)
@@ -1464,7 +1295,7 @@ document.getElementById('fSave').onclick = async () => {
   const payload = { title: title||'Untitled', body, font, fontSize, fontWeight, colorIdx,
                     musicUrl: finalMusicUrl,
                     noteMusicId: _selectedMusicId,
-                    bgUrl, tags, ttsVoice, ttsTone };
+                    bgUrl, tags };
   try {
     let saved;
     if (editId) {
@@ -2173,8 +2004,8 @@ function renderDetail(note) {
   const tapR = document.getElementById('detailTapRight');
   tapL.style.display = prevId ? 'flex' : 'none';
   tapR.style.display = nextId ? 'flex' : 'none';
-  tapL.onclick = () => { detailIdx = idx - 1; stopTTS(); openDetail(prevId); };
-  tapR.onclick = () => { detailIdx = idx + 1; stopTTS(); openDetail(nextId); };
+  tapL.onclick = () => { detailIdx = idx - 1; openDetail(prevId); };
+  tapR.onclick = () => { detailIdx = idx + 1; openDetail(nextId); };
 
   // ── reactions ──
   const reactHtml = Object.entries(note.reactions||{}).filter(([,v])=>v>0)
@@ -2252,17 +2083,6 @@ function renderDetail(note) {
       </div>
       ${note.musicUrl ? `<div style="font-size:12px;color:var(--accent);margin-bottom:12px;font-style:italic;font-family:var(--sans)">♫ Background music is playing</div>` : ''}
       <div class="detail-body" style="font-family:${esc(note.font)};font-size:${note.fontSize||14}px;${fsCss};border-left-color:${p.accent}">${esc(note.body)}</div>
-      <!-- ── Read Aloud row ── -->
-      <div class="detail-read-aloud-row">
-        <button class="btn-read-aloud" id="detailReadAloudBtn">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polygon points="5,3 19,12 5,21"/></svg>
-          <span id="detailReadAloudLabel">🔊 Read Aloud</span>
-        </button>
-        <div class="detail-tts-wave" id="detailTtsWave">
-          <span></span><span></span><span></span><span></span><span></span>
-        </div>
-        <span class="detail-tts-badge" id="detailTtsBadge">${note.ttsVoice||'female'} · ${note.ttsTone||'auto'}</span>
-      </div>
       <hr class="sep">
       <div class="section-label">React</div>
       <div class="emoji-grid">${EMOJIS.map(e => {
@@ -2306,56 +2126,6 @@ function renderDetail(note) {
   }
 
   // ── events ──────────────────────────────────────────────────────────────
-
-  // Read Aloud
-  ;(function wireReadAloud() {
-    const readBtn  = document.getElementById('detailReadAloudBtn');
-    const readLbl  = document.getElementById('detailReadAloudLabel');
-    const readWave = document.getElementById('detailTtsWave');
-    if (!readBtn) return;
-
-    let _active = false;
-
-    function resetRead() {
-      _active = false;
-      readBtn.disabled = false;
-      readBtn.classList.remove('speaking', 'loading');
-      readLbl.textContent = '🔊 Read Aloud';
-      readWave?.classList.remove('active');
-    }
-
-    readBtn.addEventListener('click', async () => {
-      if (_active) { stopTTS(); resetRead(); return; }
-
-      const voice = note.ttsVoice || 'female';
-      const tone  = note.ttsTone  || 'auto';
-      const text  = [note.title, note.body].filter(Boolean).join('. ');
-
-      _active = true;
-      readBtn.disabled = true;
-
-      await speakText(text.slice(0, 500), voice, tone, {
-        onLoading: () => {
-          readBtn.classList.add('loading');
-          readLbl.textContent = 'Loading…';
-        },
-        onStart: () => {
-          readBtn.disabled = false;
-          readBtn.classList.remove('loading');
-          readBtn.classList.add('speaking');
-          readLbl.textContent = '⏹ Stop';
-          readWave?.classList.add('active');
-        },
-        onEnd: () => {
-          readBtn.disabled = false;
-          resetRead();
-        },
-        onError: () => {
-          readBtn.disabled = false;
-        },
-      });
-    });
-  })();
 
   cont.querySelector('.btn-dshare')?.addEventListener('click', e => {
     e.stopPropagation();
