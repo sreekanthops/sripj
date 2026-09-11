@@ -890,13 +890,13 @@ body.is-owner .slide-del { display: block; }
 .td-tap {
   position: absolute; top: 0; z-index: 30;
   width: 38%;
-  /* Only cover the top half so buttons in the scrollable body stay tappable */
   height: 50%;
   display: flex; align-items: center;
   font-size: 22px; color: rgba(255,255,255,.5);
   cursor: pointer; user-select: none; opacity: 0; transition: opacity .15s;
-  pointer-events: auto;
+  pointer-events: none; /* disabled by default — enabled only when overlay is open */
 }
+.overlay.open .td-tap { pointer-events: auto; }
 .td-tap:hover, .td-tap:active { opacity: 1; }
 .td-tap-left  { left: 0;  justify-content: flex-start; padding-left: 10px; }
 .td-tap-right { right: 0; justify-content: flex-end;   padding-right: 10px; }
