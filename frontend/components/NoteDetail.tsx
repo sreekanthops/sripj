@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Eye, Pencil, Trash2, Music, ChevronLeft, ChevronRight, Send, Edit2, Trash } from "lucide-react";
+import { Calendar, Eye, Pencil, Trash2, Music, ChevronLeft, ChevronRight, Send, Edit2, Trash, Share2 } from "lucide-react";
 import Modal from "./Modal";
 import { api, fmtDate, fmtTime, PALETTE, EMOJIS } from "@/lib/api";
 import type { Note, User } from "@/lib/api";
@@ -125,6 +125,53 @@ export default function NoteDetail({ noteId, notes, isOwner, currentUser, onClos
           <div className="detail-body"
             style={{ fontFamily:note.font, fontSize:note.fontSize||14, borderLeftColor:p.accent, ...fsCss }}>
             {note.body}
+          </div>
+
+          {/* Share Button Bottom of Note */}
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -8, marginBottom: 16 }}>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              whileHover={{ y: -1 }}
+              onClick={() => {
+                const url = `${window.location.origin}/entry/${note.id}`;
+                if (navigator.clipboard) {
+                  navigator.clipboard.writeText(url).then(() => alert("Entry link copied! 📋"));
+                } else {
+                  prompt("Copy entry link:", url);
+                }
+              }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                background: "var(--c-surface)",
+                border: "1.5px solid var(--c-border)",
+                color: "var(--c-ink)",
+                padding: "6px 14px 6px 8px",
+                borderRadius: 999,
+                cursor: "pointer",
+                fontFamily: "var(--font-sans)",
+                fontSize: 12.5,
+                fontWeight: 600,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+              }}
+            >
+              <div
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: "50%",
+                  background: "var(--c-accent)",
+                  color: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Share2 size={13} color="#fff" />
+              </div>
+              <span style={{ color: "var(--c-ink)" }}>Share Entry</span>
+            </motion.button>
           </div>
 
           <hr className="sep"/>
