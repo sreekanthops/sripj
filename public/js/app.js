@@ -263,17 +263,19 @@ document.getElementById('signupBtn').onclick = async () => {
   const username    = document.getElementById('signupUser').value.trim();
   const displayName = document.getElementById('signupName').value.trim();
   const email       = document.getElementById('signupEmail').value.trim();
+  const phone       = document.getElementById('signupPhone').value.trim();
   const password    = document.getElementById('signupPwd').value;
   const errEl       = document.getElementById('signupErr');
   errEl.textContent = '';
   // Client-side pre-validation
   if (username.length < 6)       { errEl.textContent = 'Username must be at least 6 characters.'; return; }
   if (!/[@_.!#-]/.test(username)) { errEl.textContent = 'Username must include a special character (@ _ . - ! #).'; return; }
+  if (!phone)                     { errEl.textContent = 'Phone number is required.'; return; }
   try {
-    const data = await api('POST', '/auth/signup', { username, password, displayName, email });
+    const data = await api('POST', '/auth/signup', { username, password, displayName, email, phone });
     token = data.token;
     localStorage.setItem('diary_token', token);
-    currentUser = { userId: data.userId, username: data.username, displayName: data.displayName || username, email: data.email || '', bio: '', avatarUrl: '', shareToken: data.shareToken || '' };
+    currentUser = { userId: data.userId, username: data.username, displayName: data.displayName || username, email: data.email || '', phone: data.phone || '', bio: '', avatarUrl: '', shareToken: data.shareToken || '' };
     await enterOwnDiary();
   } catch (e) { errEl.textContent = e.message; }
 };
@@ -712,6 +714,7 @@ document.getElementById('profSave').onclick = async () => {
   const email       = document.getElementById('profEmail').value.trim();
   const phone       = document.getElementById('profPhone').value.trim();
   const bio         = document.getElementById('profBio').value.trim();
+  if (!phone) { toast('Phone number is required'); return; }
   try {
     await api('PUT', '/auth/profile', { displayName, email, phone, bio, avatarUrl: currentUser.avatarUrl || '' });
     currentUser.displayName = displayName;

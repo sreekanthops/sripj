@@ -837,7 +837,7 @@ select.field-select:focus{border-color:var(--accent)}
           <input type="email" id="adminProfileEmail" placeholder="admin@example.com">
         </div>
         <div class="field">
-          <label>Phone Number <span style="color:var(--red);font-weight:400;font-size:11px">*required</span></label>
+          <label>Phone Number <span style="color:var(--ink4);font-weight:400;font-size:11px">optional</span></label>
           <input type="tel" id="adminProfilePhone" placeholder="+91 87900 07228">
         </div>
         <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
@@ -1627,7 +1627,6 @@ document.getElementById('adminProfileSaveBtn').onclick = async () => {
   const errEl    = document.getElementById('adminProfileErr');
   statusEl.textContent = ''; errEl.textContent = '';
   if (!email) { errEl.textContent = 'Email is required'; return; }
-  if (!phone) { errEl.textContent = 'Phone number is required'; return; }
   try {
     await api('PUT', '/profile', { email, phone });
     statusEl.textContent = '✅ Saved!';

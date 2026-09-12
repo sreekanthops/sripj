@@ -72,11 +72,15 @@ router.get('/check-username', (req, res) => {
 
 // POST /api/auth/signup
 router.post('/signup', async (req, res) => {
-  const { username, password, displayName, email } = req.body;
+  const { username, password, displayName, email, phone } = req.body;
   if (!username?.trim() || !password) return res.status(400).json({ error: 'Username and password required' });
   if (!email?.trim()) return res.status(400).json({ error: 'Email address is required' });
   const emailClean = email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailClean)) return res.status(400).json({ error: 'Please enter a valid email address' });
+  const rawPhone = (phone || '').trim();
+  if (!rawPhone) return res.status(400).json({ error: 'Phone number is required' });
+  const phoneClean = rawPhone.replace(/[^\d+]/g, '').replace(/(?<=.)\+/g, '');
+  if (!/^\+?[0-9]{7,15}$/.test(phoneClean)) return res.status(400).json({ error: 'Enter a valid phone number (7–15 digits)' });
   const { uname, error: unameErr } = validateUsername(username);
   if (unameErr) return res.status(400).json({ error: unameErr });
   if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
@@ -87,10 +91,10 @@ router.post('/signup', async (req, res) => {
   const id    = uuidv4();
   const hash  = await hashPassword(password);
   const token = genShareToken();
-  db.prepare('INSERT INTO users (id, username, display_name, bio, password_hash, email, share_token, created_at) VALUES (?,?,?,?,?,?,?,?)')
-    .run(id, uname, displayName?.trim() || uname, '', hash, emailClean, token, new Date().toISOString());
+  db.prepare('INSERT INTO users (id, username, display_name, bio, password_hash, email, phone, share_token, created_at) VALUES (?,?,?,?,?,?,?,?,?)')
+    .run(id, uname, displayName?.trim() || uname, '', hash, emailClean, phoneClean, token, new Date().toISOString());
   const jwt = signToken(id, uname);
-  res.status(201).json({ token: jwt, userId: id, username: uname, displayName: displayName?.trim() || uname, email: emailClean, shareToken: token });
+  res.status(201).json({ token: jwt, userId: id, username: uname, displayName: displayName?.trim() || uname, email: emailClean, phone: phoneClean, shareToken: token });
 });
 
 // POST /api/auth/forgot-password
