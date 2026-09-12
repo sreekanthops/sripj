@@ -973,7 +973,8 @@ async function enterPublicDiary(usernameOrToken, password = '', byToken = false)
     } else {
       const name = viewingUser.displayName || viewingUser.username;
       document.getElementById('pageTitle').innerHTML =
-        `<span class="brand-unsent"><span class="brand-visitor-prefix">@${esc(viewingUser.username)}&thinsp;·&thinsp;</span>Unsent</span>` +
+        '<span class="brand-unsent">Unsent</span>' +
+        `<span class="brand-visitor-prefix">@${esc(viewingUser.username)}</span>` +
         '<span class="brand-stories">Stories</span>';
     }
     document.getElementById('pageTitleCaption').textContent = '';
