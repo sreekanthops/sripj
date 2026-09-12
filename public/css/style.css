@@ -1295,6 +1295,59 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 .style-row select:focus, .style-row input:focus { outline: none; border-color: var(--accent); }
 .style-row input[type=number] { width: 68px; }
 
+/* ── Font picker grid ── */
+.font-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+@media (max-width: 480px) {
+  .font-picker-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.fpick-btn {
+  padding: 8px 6px 6px;
+  border: 1.5px solid var(--border2);
+  border-radius: var(--r3);
+  background: var(--surface);
+  color: var(--ink2);
+  font-size: 15px;
+  line-height: 1.2;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color .12s, background .12s, color .12s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fpick-btn:hover {
+  border-color: var(--gold);
+  background: var(--surface2);
+  color: var(--ink);
+}
+.fpick-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-ring);
+}
+/* live title font preview */
+.title-font-preview {
+  margin-top: 2px;
+  margin-bottom: 4px;
+  padding: 7px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r3);
+  font-size: 20px;
+  color: var(--ink3);
+  font-style: italic;
+  min-height: 40px;
+  transition: font-family .15s;
+  pointer-events: none;
+  user-select: none;
+}
+
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 .swatch {
   width: 24px; height: 24px; border-radius: 50%; cursor: pointer;

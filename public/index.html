@@ -6,7 +6,7 @@
   <title>Unsent Stories</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/css/style.css?v=12">
+  <link rel="stylesheet" href="/css/style.css?v=13">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -324,33 +324,37 @@
     </div>
     <div class="field">
       <label>Title Font</label>
-      <div class="style-row">
-        <select id="fTitleFont">
-          <option value="">Default (Caveat italic)</option>
-          <option value="'Satisfy',cursive">Satisfy ✍</option>
-          <option value="'Kalam',cursive">Kalam ✍️</option>
-          <option value="'Caveat',cursive">Caveat</option>
-          <option value="'Playfair Display',serif">Playfair Display</option>
-          <option value="Georgia,serif">Georgia</option>
-          <option value="'Palatino Linotype',serif">Palatino</option>
-          <option value="Arial,sans-serif">Arial</option>
-        </select>
+      <!-- hidden input keeps the value; buttons are the visual picker -->
+      <input type="hidden" id="fTitleFont" value="">
+      <div class="font-picker-grid" id="titleFontPicker">
+        <button type="button" class="fpick-btn active" data-font="" style="font-family:'Caveat',cursive;font-style:italic">Aa Default</button>
+        <button type="button" class="fpick-btn" data-font="'Satisfy',cursive" style="font-family:'Satisfy',cursive">Satisfy</button>
+        <button type="button" class="fpick-btn" data-font="'Kalam',cursive" style="font-family:'Kalam',cursive">Kalam</button>
+        <button type="button" class="fpick-btn" data-font="'Caveat',cursive" style="font-family:'Caveat',cursive">Caveat</button>
+        <button type="button" class="fpick-btn" data-font="'Playfair Display',serif" style="font-family:'Playfair Display',serif">Playfair</button>
+        <button type="button" class="fpick-btn" data-font="Georgia,serif" style="font-family:Georgia,serif">Georgia</button>
+        <button type="button" class="fpick-btn" data-font="'Palatino Linotype',serif" style="font-family:'Palatino Linotype',serif">Palatino</button>
+        <button type="button" class="fpick-btn" data-font="Arial,sans-serif" style="font-family:Arial,sans-serif">Arial</button>
       </div>
+      <!-- live title preview -->
+      <div class="title-font-preview" id="titleFontPreview">Your title here…</div>
     </div>
     <div class="field">
       <label>Body Style</label>
-      <div class="style-row">
-        <select id="fFont">
-          <option value="'Kalam',cursive">Kalam ✍️</option>
-          <option value="Georgia,serif">Georgia</option>
-          <option value="'Palatino Linotype',serif">Palatino</option>
-          <option value="'Courier New',monospace">Courier</option>
-          <option value="Arial,sans-serif">Arial</option>
-          <option value="Verdana,sans-serif">Verdana</option>
-          <option value="'Caveat',cursive">Caveat</option>
-          <option value="'Comic Sans MS',cursive">Comic Sans</option>
-        </select>
-        <input type="number" id="fSize" value="14" min="10" max="28" title="Size">
+      <!-- hidden input keeps the value; buttons are the visual picker -->
+      <input type="hidden" id="fFont" value="'Kalam',cursive">
+      <div class="font-picker-grid" id="bodyFontPicker">
+        <button type="button" class="fpick-btn active" data-font="'Kalam',cursive" style="font-family:'Kalam',cursive">Kalam</button>
+        <button type="button" class="fpick-btn" data-font="Georgia,serif" style="font-family:Georgia,serif">Georgia</button>
+        <button type="button" class="fpick-btn" data-font="'Palatino Linotype',serif" style="font-family:'Palatino Linotype',serif">Palatino</button>
+        <button type="button" class="fpick-btn" data-font="'Courier New',monospace" style="font-family:'Courier New',monospace">Courier</button>
+        <button type="button" class="fpick-btn" data-font="Arial,sans-serif" style="font-family:Arial,sans-serif">Arial</button>
+        <button type="button" class="fpick-btn" data-font="Verdana,sans-serif" style="font-family:Verdana,sans-serif">Verdana</button>
+        <button type="button" class="fpick-btn" data-font="'Caveat',cursive" style="font-family:'Caveat',cursive">Caveat</button>
+        <button type="button" class="fpick-btn" data-font="'Comic Sans MS',cursive" style="font-family:'Comic Sans MS',cursive">Comic Sans</button>
+      </div>
+      <div class="style-row" style="margin-top:8px;margin-bottom:0">
+        <input type="number" id="fSize" value="14" min="10" max="28" title="Font size">
         <select id="fWeight">
           <option value="normal">Normal</option>
           <option value="bold">Bold</option>

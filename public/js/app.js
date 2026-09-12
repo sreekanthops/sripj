@@ -1000,6 +1000,51 @@ function activeCI() {
   return a ? parseInt(a.dataset.ci) : 0;
 }
 
+// ── FONT PICKERS ──────────────────────────────────────────────────────────
+// Wire a font-picker-grid: clicking a button updates hidden input + active state
+function wireFontPicker(gridId, hiddenId, onPick) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  grid.addEventListener('click', e => {
+    const btn = e.target.closest('.fpick-btn');
+    if (!btn) return;
+    grid.querySelectorAll('.fpick-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const val = btn.dataset.font || '';
+    document.getElementById(hiddenId).value = val;
+    if (onPick) onPick(val);
+  });
+}
+
+// Set active button in a font picker grid to match a given font value
+function syncFontPicker(gridId, hiddenId, fontValue) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  document.getElementById(hiddenId).value = fontValue || '';
+  let matched = false;
+  grid.querySelectorAll('.fpick-btn').forEach(btn => {
+    const match = (btn.dataset.font || '') === (fontValue || '');
+    btn.classList.toggle('active', match);
+    if (match) matched = true;
+  });
+  // If no exact match, mark Default (first button) active
+  if (!matched) {
+    grid.querySelector('.fpick-btn')?.classList.add('active');
+    document.getElementById(hiddenId).value = grid.querySelector('.fpick-btn')?.dataset.font || '';
+  }
+}
+
+// Update the title font preview strip
+function applyTitleFontPreview() {
+  const preview  = document.getElementById('titleFontPreview');
+  const titleVal = document.getElementById('fTitle').value.trim();
+  const font     = document.getElementById('fTitleFont').value;
+  if (!preview) return;
+  preview.textContent    = titleVal || 'Your title here…';
+  preview.style.fontFamily  = font || "'Caveat',cursive";
+  preview.style.fontStyle   = font ? 'normal' : 'italic';
+}
+
 // ── LIVE PREVIEW — applies current style controls to the textarea ──────────
 function applyBodyPreview() {
   const ta     = document.getElementById('fBody');
@@ -1008,7 +1053,7 @@ function applyBodyPreview() {
   const weight = document.getElementById('fWeight').value;
   const p      = PALETTE[activeCI()] || PALETTE[0];
 
-  ta.style.fontFamily  = font;
+  ta.style.fontFamily  = font || "'Kalam',cursive";
   ta.style.fontSize    = size + 'px';
   ta.style.fontWeight  = weight === 'bold' || weight === 'bold italic' ? 'bold'   : 'normal';
   ta.style.fontStyle   = weight === 'italic' || weight === 'bold italic' ? 'italic' : 'normal';
@@ -1019,10 +1064,14 @@ function applyBodyPreview() {
 
 // Wire live preview to all style controls (called once at page load)
 ;(function wirePreviewControls() {
-  ['fFont', 'fSize', 'fWeight'].forEach(id => {
+  wireFontPicker('titleFontPicker', 'fTitleFont', () => applyTitleFontPreview());
+  wireFontPicker('bodyFontPicker',  'fFont',      () => applyBodyPreview());
+  ['fSize', 'fWeight'].forEach(id => {
     document.getElementById(id).addEventListener('input',  applyBodyPreview);
     document.getElementById(id).addEventListener('change', applyBodyPreview);
   });
+  // Also update title preview when user types in title input
+  document.getElementById('fTitle')?.addEventListener('input', applyTitleFontPreview);
 })();
 
 // ── UPLOAD ZONE ────────────────────────────────────────────────────────────
@@ -1391,18 +1440,19 @@ async function openNewForm() {
   _selectedBgUrl = ''; _selectedMusicId = ''; _pendingBgFile = null;
   resetAudioState();
   document.getElementById('formTitle').textContent = '✒ New Entry';
-  document.getElementById('fTitle').value      = '';
-  document.getElementById('fBody').value       = '';
-  document.getElementById('fTitleFont').value  = '';
-  document.getElementById('fFont').value       = "'Kalam',cursive";
+  document.getElementById('fTitle').value  = '';
+  document.getElementById('fBody').value   = '';
   document.getElementById('fSize').value   = 14;
   document.getElementById('fWeight').value = 'normal';
   document.getElementById('fMusic').value  = '';
   document.getElementById('fTags').value   = '';
   document.getElementById('existMediaRow').innerHTML = '';
+  syncFontPicker('titleFontPicker', 'fTitleFont', '');
+  syncFontPicker('bodyFontPicker',  'fFont',      "'Kalam',cursive");
   renderTagsChips();
   buildSwatches(0); setupUploadZone();
   applyBodyPreview();
+  applyTitleFontPreview();
   openOv('formOverlay');
   setTimeout(() => document.getElementById('fTitle').focus(), 120);
   try { await renderNoteBgPicker(''); } catch(e) {}
@@ -1411,24 +1461,23 @@ async function openNewForm() {
 async function openEditForm(note) {
   editId = note.id; pendingTags = Array.isArray(note.tags) ? [...note.tags] : [];
   _selectedBgUrl = note.bgUrl || ''; _selectedMusicId = note.noteMusicId || ''; _pendingBgFile = null;
-  // Restore any previously uploaded audio (shows filename in label)
   _pendingAudioFile = null;
   _uploadedAudioUrl = (note.musicUrl && !note.noteMusicId && note.musicUrl.startsWith('/uploads/')) ? note.musicUrl : '';
   updateAudioLabel();
   document.getElementById('formTitle').textContent = '✒ Edit Entry';
-  document.getElementById('fTitle').value      = note.title;
-  document.getElementById('fBody').value       = note.body;
-  document.getElementById('fTitleFont').value  = note.titleFont || '';
-  document.getElementById('fFont').value       = note.font || "'Kalam',cursive";
+  document.getElementById('fTitle').value  = note.title;
+  document.getElementById('fBody').value   = note.body;
   document.getElementById('fSize').value   = note.fontSize || 14;
   document.getElementById('fWeight').value = note.fontWeight || 'normal';
-  // show custom URL only if it's not an uploaded file (uploaded shown in audio label)
   document.getElementById('fMusic').value  = (note.musicUrl && !note.noteMusicId && !note.musicUrl.startsWith('/uploads/')) ? note.musicUrl : '';
   document.getElementById('fTags').value   = '';
+  syncFontPicker('titleFontPicker', 'fTitleFont', note.titleFont || '');
+  syncFontPicker('bodyFontPicker',  'fFont',      note.font || "'Kalam',cursive");
   renderTagsChips();
   buildSwatches(note.colorIdx || 0);
   renderExistMedia(note); setupUploadZone();
   applyBodyPreview();
+  applyTitleFontPreview();
   openOv('formOverlay');
   try { await renderNoteBgPicker(note.bgUrl || ''); } catch(e) {}
   try { await renderMusicPicker(note.noteMusicId || '', note.musicUrl || ''); } catch(e) {}
