@@ -512,25 +512,40 @@ footer {
 #notesGrid { perspective: 1200px; }
 
 .note-card {
-  /* Parchment paper texture — torn edges + daisy decoration */
-  background-image: url('/img/paper-card.svg');
-  background-size: 100% 100%;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-color: transparent;
+  /* Pure CSS parchment card — no SVG stretching issues */
+  background: linear-gradient(160deg, #f6f0e4 0%, #ede5d2 55%, #e6ddc8 100%);
+  background-color: #ede5d2;
   border: none;
-  box-shadow: none;
-  filter: drop-shadow(0 6px 14px rgba(0,0,0,.12));
+  border-radius: 2px;
+  box-shadow: 0 4px 18px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.07);
   cursor: pointer;
-  overflow: visible;
+  overflow: hidden;
   display: flex; flex-direction: column;
-  transition: transform .28s var(--ease), filter .28s var(--ease);
+  transition: transform .28s var(--ease), box-shadow .28s var(--ease);
   position: relative;
-  padding: 10px 14px 14px;
-  /* slight default tilt — overridden per card via JS */
+  padding: 14px 16px 56px;   /* extra bottom padding for daisy space */
   transform: rotate(-0.5deg);
   transform-origin: center bottom;
 }
+/* Paper grain texture via pseudo-element */
+.note-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  pointer-events: none; z-index: 0; border-radius: inherit;
+}
+/* Daisy decoration via ::after — bottom-right corner */
+.note-card::after {
+  content: '';
+  position: absolute; bottom: 6px; right: 10px;
+  width: 80px; height: 70px;
+  background-image: url('/img/daisy.svg');
+  background-size: contain; background-repeat: no-repeat;
+  background-position: bottom right;
+  pointer-events: none; z-index: 1; opacity: .88;
+}
+.note-card > * { position: relative; z-index: 2; }
 
 /* Rotation variants — assigned by JS */
 .note-card.rot-0  { transform: rotate(-1.2deg); }
@@ -542,15 +557,9 @@ footer {
 
 .note-card:hover {
   transform: rotate(0deg) translateY(-6px) scale(1.015) !important;
-  filter: drop-shadow(0 14px 24px rgba(0,0,0,.18));
+  box-shadow: 0 14px 32px rgba(0,0,0,.16), 0 2px 8px rgba(0,0,0,.09);
   z-index: 10;
 }
-
-.note-card::before {
-  display: none;
-}
-
-/* Daisy decoration — bottom right, from the paper image itself */
 
 /* has-media cards: stack image nicely inside paper */
 .note-card.has-media .card-media {
@@ -1887,15 +1896,14 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   background-position: center;
   background-repeat: no-repeat;
 }
+/* has-bg: override the grain ::before with a semi-transparent wash instead */
 .note-card.has-bg::before {
-  content: '';
-  position: absolute; inset: 0;
+  background-image: none;
   background: rgba(250,246,240,.82);
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 0;
 }
-.note-card.has-bg > * { position: relative; z-index: 1; }
+/* hide daisy ::after when there's a custom bg image */
+.note-card.has-bg::after { display: none; }
+.note-card.has-bg > * { position: relative; z-index: 2; }
 
 /* ── Detail view bg ── */
 .td-body.has-bg {
