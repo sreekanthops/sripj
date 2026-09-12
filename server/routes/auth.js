@@ -35,7 +35,16 @@ router.post('/login', async (req, res) => {
   const ok = await checkPassword(password, user.password_hash);
   if (!ok) return res.status(401).json({ error: 'Invalid username or password' });
   const token = signToken(user.id, user.username);
-  res.json({ token, userId: user.id, username: user.username, displayName: user.display_name });
+  res.json({
+    token,
+    userId:      user.id,
+    username:    user.username,
+    displayName: user.display_name,
+    email:       user.email       || '',
+    bio:         user.bio         || '',
+    avatarUrl:   user.avatar_url  || '',
+    shareToken:  user.share_token || '',
+  });
 });
 
 // Hardcoded fallback Google Client ID from Google Cloud Console configuration

@@ -203,9 +203,17 @@ document.getElementById('loginBtn').onclick = async () => {
     const data = await api('POST', '/auth/login', { username, password });
     token = data.token;
     localStorage.setItem('diary_token', token);
-    // Fetch full profile so email/bio/avatarUrl are available from the start
+    // Login now returns full profile; also call verify to ensure freshest data
     const profile = await api('GET', '/auth/verify').catch(() => data);
-    currentUser = { userId: data.userId, username: data.username, displayName: profile.displayName || data.displayName, email: profile.email || '', bio: profile.bio || '', avatarUrl: profile.avatarUrl || '', shareToken: profile.shareToken || '' };
+    currentUser = {
+      userId:      data.userId,
+      username:    data.username,
+      displayName: profile.displayName ?? data.displayName ?? '',
+      email:       profile.email       ?? data.email       ?? '',
+      bio:         profile.bio         ?? data.bio         ?? '',
+      avatarUrl:   profile.avatarUrl   ?? data.avatarUrl   ?? '',
+      shareToken:  profile.shareToken  ?? data.shareToken  ?? '',
+    };
     await enterOwnDiary();
   } catch (e) { errEl.textContent = e.message; }
 };
@@ -274,7 +282,15 @@ async function initGoogleOAuth() {
               token = data.token;
               localStorage.setItem('diary_token', token);
               const gprofile = await api('GET', '/auth/verify').catch(() => data);
-              currentUser = { userId: data.userId, username: data.username, displayName: gprofile.displayName || data.displayName, email: gprofile.email || data.email || '', bio: gprofile.bio || '', avatarUrl: gprofile.avatarUrl || '', shareToken: gprofile.shareToken || '' };
+              currentUser = {
+                userId:      data.userId,
+                username:    data.username,
+                displayName: gprofile.displayName ?? data.displayName ?? '',
+                email:       gprofile.email       ?? data.email       ?? '',
+                bio:         gprofile.bio         ?? data.bio         ?? '',
+                avatarUrl:   gprofile.avatarUrl   ?? data.avatarUrl   ?? '',
+                shareToken:  gprofile.shareToken  ?? data.shareToken  ?? '',
+              };
               await enterOwnDiary();
               toast(`Welcome, ${currentUser.displayName}! 🌸`);
             } catch (err) {
@@ -831,9 +847,11 @@ async function enterOwnDiary() {
       _storedShareToken = fresh.shareToken;
       localStorage.setItem('diary_share_token', fresh.shareToken);
     }
-    currentUser.displayName  = fresh.displayName  || currentUser.displayName;
-    currentUser.avatarUrl    = fresh.avatarUrl     || currentUser.avatarUrl;
-    currentUser.email        = fresh.email         || currentUser.email;
+    // Always overwrite with server values — use ?? so empty string is preserved (e.g. after removing DP)
+    if (fresh.displayName !== undefined) currentUser.displayName = fresh.displayName;
+    if (fresh.avatarUrl   !== undefined) currentUser.avatarUrl   = fresh.avatarUrl;
+    if (fresh.email       !== undefined) currentUser.email       = fresh.email;
+    if (fresh.bio         !== undefined) currentUser.bio         = fresh.bio;
   } catch {}
   // Persist shareToken to localStorage for session restore on refresh
   if (currentUser.shareToken) {
