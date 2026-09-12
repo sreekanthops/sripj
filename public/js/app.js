@@ -374,7 +374,7 @@ document.getElementById('detailClose')?.addEventListener('click', () => {
   const match = location.pathname.match(/^\/entry\/([^/]+)/);
   if (match) {
     if (isOwner && currentUser) {
-      history.pushState({}, '', '/@' + currentUser.username);
+      history.pushState({}, '', '/@' + encodeURIComponent(currentUser.username));
     } else if (viewingUser?.shareToken) {
       history.pushState({}, '', '/s/' + viewingUser.shareToken);
     } else {
@@ -924,7 +924,7 @@ async function enterOwnDiary() {
   document.getElementById('sidebarSub').textContent   = '@' + currentUser.username;
   document.getElementById('pageTitle').innerHTML       = '<span class="brand-unsent">Unsent</span> <span class="brand-stories">Stories</span>';
   document.getElementById('pageTitleCaption').textContent = 'write · reflect · remember';
-  history.replaceState({}, '', '/@' + currentUser.username);
+  history.replaceState({}, '', '/@' + encodeURIComponent(currentUser.username));
   renderHeader();
   buildSwatches(0);
   setupUploadZone();
@@ -957,7 +957,7 @@ async function enterPublicDiary(usernameOrToken, password = '', byToken = false)
     // Rewrite URL — owner keeps /@username, visitors get /s/<token>
     const sToken = viewingUser.shareToken || '';
     if (isOwner && currentUser) {
-      history.replaceState({}, '', '/@' + currentUser.username);
+      history.replaceState({}, '', '/@' + encodeURIComponent(currentUser.username));
       if (sToken) currentUser.shareToken = sToken;
     } else if (sToken) {
       history.replaceState({}, '', '/s/' + sToken);
@@ -2936,7 +2936,8 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
   const shareMatch = location.pathname.match(/^\/s\/([^/]+)/);
   const urlParams  = new URLSearchParams(location.search);
 
-  const urlUsername = (atMatch?.[1] || userMatch?.[1] || '').toLowerCase() || null;
+  // Decode percent-encoding so /@sri%40123 matches username sri@123
+  const urlUsername = decodeURIComponent((atMatch?.[1] || userMatch?.[1] || '')).toLowerCase() || null;
   const entryId     = entryMatch ? entryMatch[1] : urlParams.get('entry');
   const shareToken  = shareMatch ? shareMatch[1] : null;
 
