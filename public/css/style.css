@@ -1150,6 +1150,27 @@ body.is-owner .slide-del { display: block; }
   white-space: nowrap;
 }
 
+/* Public badge on card (owner view) */
+.card-public-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 700; letter-spacing: .4px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-ring);
+  border-radius: 99px; padding: 2px 8px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+}
+
+/* Make Public / Make Private button in owner controls */
+.btn-public {
+  background: var(--surface);
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+.btn-public:hover { background: var(--accent-bg); }
+
 hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 .section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink4); margin-bottom: 12px; }
 
@@ -3172,6 +3193,19 @@ body.draw-mode.tool-select #drawingCanvas {
 .feed-follow-btn.following {
   background: var(--accent-bg); color: var(--accent); border-color: var(--accent-ring);
 }
+
+/* "View Profile" button on feed cards */
+.feed-profile-btn {
+  font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px;
+  border: 1.5px solid var(--border2); background: transparent; color: var(--ink3);
+  cursor: pointer; white-space: nowrap; flex-shrink: 0; margin-left: auto;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.feed-profile-btn:hover {
+  background: var(--accent-bg); color: var(--accent); border-color: var(--accent-ring);
+}
+/* Author name underline hint on hover */
+.feed-author-link:hover { text-decoration: underline; color: var(--accent); }
 .feed-card-title {
   font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 8px; line-height: 1.3;
 }

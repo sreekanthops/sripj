@@ -2310,6 +2310,7 @@ function buildNoteCard(n, index, total) {
       <span class="card-date">✦ ${fmtDiaryDate(n.createdAt)}</span>
       <span class="card-num">${n.pinned ? '<span class="pin-badge">📌 Pinned</span>' : numStr}</span>
     </div>
+    ${isOwner && n.isPublic ? '<div class="card-public-badge">🌍 Public</div>' : ''}
     <div class="card-title" ${n.titleFont ? `style="font-family:${esc(n.titleFont)}"` : ''}>${esc(n.title)}</div>
     ${!n.media?.length && n.body
       ? `<div class="card-excerpt" style="font-family:${esc(n.font||"'Kalam',cursive")}">${esc(n.body)}</div>`
@@ -2637,7 +2638,8 @@ function renderDetail(note) {
         ${isOwner ? `
         <button class="btn btn-ghost btn-sm btn-dedit" data-id="${note.id}">✏️ Edit</button>
         <button class="btn btn-pin   btn-sm btn-dpin"  data-id="${note.id}" data-pinned="${note.pinned?'1':'0'}">${note.pinned ? '📌 Unpin' : '📌 Pin'}</button>
-        <button class="btn btn-red   btn-sm btn-ddel"  data-id="${note.id}">🗑 Delete</button>` : ''}
+        <button class="btn btn-red   btn-sm btn-ddel"  data-id="${note.id}">🗑 Delete</button>
+        <button class="btn btn-public btn-sm btn-dpublic" data-id="${note.id}" data-public="${note.isPublic?'1':'0'}">${note.isPublic ? '🔒 Make Private' : '🌍 Make Public'}</button>` : ''}
         <button class="btn btn-share-action btn-sm btn-dshare" data-id="${note.id}" title="Share this note">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="share-btn-icon">
             <circle cx="18" cy="5" r="3"></circle>
@@ -2659,6 +2661,22 @@ function renderDetail(note) {
   }
 
   // ── events ──────────────────────────────────────────────────────────────
+
+  cont.querySelector('.btn-dpublic')?.addEventListener('click', async e => {
+    e.stopPropagation();
+    const btn = e.currentTarget;
+    const making = btn.dataset.public !== '1'; // toggling to public
+    try {
+      const { isPublic } = await api('PUT', `/notes/${note.id}/public`, { isPublic: making });
+      const idx = notes.findIndex(n => n.id === note.id);
+      if (idx !== -1) notes[idx].isPublic = isPublic;
+      note.isPublic = isPublic;
+      btn.dataset.public = isPublic ? '1' : '0';
+      btn.textContent = isPublic ? '🔒 Make Private' : '🌍 Make Public';
+      toast(isPublic ? '🌍 Note is now public!' : '🔒 Note is now private');
+      renderGrid();
+    } catch (err) { toast('Error: ' + err.message); }
+  });
 
   cont.querySelector('.btn-dshare')?.addEventListener('click', e => {
     e.stopPropagation();

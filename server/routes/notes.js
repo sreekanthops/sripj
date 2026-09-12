@@ -153,7 +153,11 @@ async function loadPublicDiary(req, res, user) {
   }
 
   const { from, to } = req.query;
-  let sql = 'SELECT * FROM notes WHERE user_id = ?';
+
+  // Visitors only see public notes; the owner sees all their own notes
+  let sql = isOwner
+    ? 'SELECT * FROM notes WHERE user_id = ?'
+    : 'SELECT * FROM notes WHERE user_id = ? AND is_public = 1';
   const params = [user.id];
   if (from) { sql += ' AND DATE(created_at) >= ?'; params.push(from); }
   if (to)   { sql += ' AND DATE(created_at) <= ?'; params.push(to); }
