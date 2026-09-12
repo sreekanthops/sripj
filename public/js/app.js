@@ -701,8 +701,8 @@ document.getElementById('profPwdBtn')?.addEventListener('click', async () => {
   const err  = document.getElementById('profPwdErr');
   err.textContent = '';
 
-  if (!nw || nw.length < 4) {
-    err.textContent = 'New password must be at least 4 characters';
+  if (!nw || nw.length < 6) {
+    err.textContent = 'New password must be at least 6 characters';
     return;
   }
   if (nw !== conf) {
@@ -3743,7 +3743,7 @@ document.getElementById('resetSubmitBtn')?.addEventListener('click', async () =>
   const okEl     = document.getElementById('resetOk');
   const btn      = document.getElementById('resetSubmitBtn');
   errEl.textContent = ''; okEl.style.display = 'none';
-  if (!newPwd || newPwd.length < 4) { errEl.textContent = 'Password must be at least 4 characters.'; return; }
+  if (!newPwd || newPwd.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
   if (newPwd !== confPwd)           { errEl.textContent = 'Passwords do not match.'; return; }
   btn.disabled = true;
   btn.textContent = 'Resetting…';
