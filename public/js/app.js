@@ -17,6 +17,7 @@ const PALETTE = [
 
 // ── STATE ──────────────────────────────────────────────────────────────────
 let token        = localStorage.getItem('diary_token') || null;
+let _storedShareToken = localStorage.getItem('diary_share_token') || '';
 let currentUser  = null;
 let viewingUser  = null;
 let isOwner      = false;
@@ -506,7 +507,9 @@ document.getElementById('headerActions').addEventListener('click', e => {
     openProfileModal();
   } else if (action === 'logout') {
     token = null; currentUser = null; isOwner = false; viewingUser = null;
+    _storedShareToken = '';
     localStorage.removeItem('diary_token');
+    localStorage.removeItem('diary_share_token');
     document.body.classList.remove('is-owner');
     window._chatbotSetOwner?.(false);
     renderTopbarUserChip();
@@ -801,14 +804,23 @@ document.getElementById('btnSaveShareSettings')?.addEventListener('click', async
 // ── ENTERING DIARIES ────────────────────────────────────────────────────────
 async function enterOwnDiary() {
   isOwner = true;
-  // Always fetch fresh verify to ensure shareToken is current
+  // Use stored token immediately for instant URL rewrite, then refresh from server
+  if (!currentUser.shareToken && _storedShareToken) currentUser.shareToken = _storedShareToken;
   try {
     const fresh = await api('GET', '/auth/verify');
-    currentUser.shareToken   = fresh.shareToken   || currentUser.shareToken;
+    if (fresh.shareToken) {
+      currentUser.shareToken = fresh.shareToken;
+      _storedShareToken = fresh.shareToken;
+      localStorage.setItem('diary_share_token', fresh.shareToken);
+    }
     currentUser.displayName  = fresh.displayName  || currentUser.displayName;
     currentUser.avatarUrl    = fresh.avatarUrl     || currentUser.avatarUrl;
     currentUser.email        = fresh.email         || currentUser.email;
   } catch {}
+  // Persist shareToken to localStorage for session restore on refresh
+  if (currentUser.shareToken) {
+    localStorage.setItem('diary_share_token', currentUser.shareToken);
+  }
   viewingUser = { id: currentUser.userId, username: currentUser.username, displayName: currentUser.displayName };
   document.body.classList.add('is-owner');
   document.getElementById('sidebarTitle').textContent = currentUser.displayName || currentUser.username;
@@ -2580,15 +2592,22 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
   if (token) {
     try {
       const data = await api('GET', '/auth/verify');
+      const sToken = data.shareToken || _storedShareToken || '';
+      if (sToken) {
+        _storedShareToken = sToken;
+        localStorage.setItem('diary_share_token', sToken);
+      }
       currentUser = {
         userId: data.userId, username: data.username,
         displayName: data.displayName, email: data.email || '',
         bio: data.bio || '', avatarUrl: data.avatarUrl || '',
-        shareToken: data.shareToken || ''
+        shareToken: sToken
       };
     } catch {
       token = null;
+      _storedShareToken = '';
       localStorage.removeItem('diary_token');
+      localStorage.removeItem('diary_share_token');
     }
   }
 
