@@ -73,12 +73,14 @@ router.post('/signup', async (req, res) => {
 
 // POST /api/auth/forgot-password
 router.post('/forgot-password', async (req, res) => {
-  const { email } = req.body;
-  if (!email?.trim()) return res.status(400).json({ error: 'Email required' });
-  const emailClean = email.trim().toLowerCase();
-  const user = db.prepare('SELECT id, email FROM users WHERE email = ?').get(emailClean);
-  // Always respond OK to prevent email enumeration
-  if (!user) return res.json({ ok: true, message: 'If an account with that email exists, a reset link has been sent.' });
+  const { username } = req.body;
+  if (!username?.trim()) return res.status(400).json({ error: 'Username required' });
+  const uname = username.trim().toLowerCase();
+  const user = db.prepare('SELECT id, email FROM users WHERE username = ?').get(uname);
+  // User not found — tell them no email is linked (safe: username is not secret)
+  if (!user || !user.email) {
+    return res.status(404).json({ error: 'No account found with that username, or no email is linked to it. Please update your email in Profile settings first.' });
+  }
 
   // Invalidate any existing tokens for this user
   db.prepare('UPDATE password_reset_tokens SET used = 1 WHERE user_id = ?').run(user.id);
@@ -97,7 +99,14 @@ router.post('/forgot-password', async (req, res) => {
     console.error('[auth] forgot-password email failed:', err.message);
     // Still return ok so we don't leak whether email exists
   }
-  res.json({ ok: true, message: 'If an account with that email exists, a reset link has been sent.' });
+  // Mask the email: s*****i@gmail.com
+  const [localPart, domain] = user.email.split('@');
+  const masked = localPart.length <= 2
+    ? localPart[0] + '*'.repeat(localPart.length - 1)
+    : localPart[0] + '*'.repeat(localPart.length - 2) + localPart[localPart.length - 1];
+  const maskedEmail = masked + '@' + domain;
+
+  res.json({ ok: true, message: `Reset link sent to ${maskedEmail}. Check your inbox (and spam folder).` });
 });
 
 // POST /api/auth/reset-password

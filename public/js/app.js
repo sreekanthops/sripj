@@ -3635,12 +3635,12 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
 // Helpers to open/close the modals
 function openForgotModal() {
   document.getElementById('forgotPwdModal').classList.remove('hidden');
-  document.getElementById('forgotEmail').value = '';
+  document.getElementById('forgotUsername').value = '';
   document.getElementById('forgotErr').textContent = '';
   const okEl = document.getElementById('forgotOk');
   okEl.textContent = ''; okEl.style.display = 'none';
   document.getElementById('forgotSubmitBtn').disabled = false;
-  setTimeout(() => document.getElementById('forgotEmail').focus(), 50);
+  setTimeout(() => document.getElementById('forgotUsername').focus(), 50);
 }
 function closeForgotModal() {
   document.getElementById('forgotPwdModal').classList.add('hidden');
@@ -3659,16 +3659,16 @@ document.getElementById('forgotPwdModal')?.addEventListener('click', e => {
 
 // Submit forgot-password form
 document.getElementById('forgotSubmitBtn')?.addEventListener('click', async () => {
-  const email  = document.getElementById('forgotEmail').value.trim();
-  const errEl  = document.getElementById('forgotErr');
-  const okEl   = document.getElementById('forgotOk');
-  const btn    = document.getElementById('forgotSubmitBtn');
+  const username = document.getElementById('forgotUsername').value.trim();
+  const errEl    = document.getElementById('forgotErr');
+  const okEl     = document.getElementById('forgotOk');
+  const btn      = document.getElementById('forgotSubmitBtn');
   errEl.textContent = ''; okEl.style.display = 'none';
-  if (!email) { errEl.textContent = 'Please enter your email address.'; return; }
+  if (!username) { errEl.textContent = 'Please enter your username.'; return; }
   btn.disabled = true;
   btn.textContent = 'Sending…';
   try {
-    const data = await api('POST', '/auth/forgot-password', { email });
+    const data = await api('POST', '/auth/forgot-password', { username });
     okEl.textContent = data.message || 'Reset link sent! Check your inbox.';
     okEl.style.display = 'block';
     btn.textContent = 'Sent ✓';
@@ -3679,8 +3679,8 @@ document.getElementById('forgotSubmitBtn')?.addEventListener('click', async () =
   }
 });
 
-// Enter key on forgot email field
-document.getElementById('forgotEmail')?.addEventListener('keydown', e => {
+// Enter key on forgot username field
+document.getElementById('forgotUsername')?.addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('forgotSubmitBtn')?.click();
 });
 
