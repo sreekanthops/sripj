@@ -561,7 +561,34 @@ function renderHeader() {
     if (shareBtn) shareBtn.classList.add('hidden');
     if (fab) fab.style.display = 'none';
   }
+  renderVisitorHostDp();
   renderTopbarUserChip();
+}
+
+function renderVisitorHostDp() {
+  const dp      = document.getElementById('visitorHostDp');
+  const imgEl   = document.getElementById('vhdImg');
+  const initial = document.getElementById('vhdInitial');
+  if (!dp) return;
+  // Show only when viewing someone else's diary
+  if (viewingUser && !isOwner) {
+    const name = viewingUser.displayName || viewingUser.username || '';
+    dp.setAttribute('data-name', name);
+    dp.title = name;
+    if (viewingUser.avatarUrl) {
+      imgEl.src = viewingUser.avatarUrl;
+      imgEl.classList.remove('hidden');
+      initial.style.display = 'none';
+    } else {
+      imgEl.classList.add('hidden');
+      imgEl.src = '';
+      initial.style.display = '';
+      initial.textContent = name ? name.charAt(0).toUpperCase() : '✦';
+    }
+    dp.classList.remove('hidden');
+  } else {
+    dp.classList.add('hidden');
+  }
 }
 
 document.getElementById('topbarUserChip')?.addEventListener('click', () => {
