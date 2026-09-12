@@ -3,148 +3,330 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pricing — Unsent Stories</title>
+<title>Unsent Stories · Pricing</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Caveat:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=Satisfy&display=swap">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:15px;scroll-behavior:smooth}
 :root{
-  --bg:#f8f9fb;--surface:#ffffff;--border:#e2e5ea;
-  --ink:#111827;--ink2:#374151;--ink3:#6b7280;--ink4:#9ca3af;
-  --accent:#4f6ef7;--accent2:#3b54d4;--accent-bg:rgba(79,110,247,.08);
-  --green:#16a34a;--green-bg:rgba(22,163,74,.09);
-  --amber:#d97706;--amber-bg:rgba(217,119,6,.09);
-  --purple:#7c3aed;--purple-bg:rgba(124,58,237,.09);
-  --red:#dc2626;
-  --r:14px;--r2:10px;
-  --sans:'Inter',system-ui,sans-serif;
-  --shadow:0 1px 4px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.05);
-  --shadow2:0 8px 30px rgba(0,0,0,.1);
+  --bg:#e8e0d0;--bg2:#e0d8c6;--bg3:#d8cfbc;
+  --surface:#f2ede4;--surface2:#faf6f0;--surface3:#fff;
+  --border:rgba(120,100,70,.13);--border2:rgba(120,100,70,.22);--border3:rgba(120,100,70,.35);
+  --ink:#2c2416;--ink2:#3d3220;--ink3:#6b5c46;--ink4:#a08c74;
+  --gold:#8c6d3f;--gold2:#7a5e32;--gold3:#b8913a;
+  --glow:rgba(140,109,63,.12);--glow2:rgba(140,109,63,.25);
+  --accent:#2f5a6e;--accent2:#224455;--accent-bg:rgba(47,90,110,.10);--accent-ring:rgba(47,90,110,.25);
+  --green:#2d6a4f;--green-bg:rgba(45,106,79,.10);
+  --red:#b83232;
+  --r:14px;--r2:10px;--r3:8px;
+  --sans:'DM Sans',system-ui,sans-serif;
+  --serif:'Playfair Display',Georgia,serif;
+  --script:'Caveat',cursive;
+  --brand:'Satisfy',cursive;
+  --shadow:0 2px 12px rgba(0,0,0,.07);
+  --shadow2:0 8px 32px rgba(0,0,0,.12);
 }
-body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:var(--accent);text-decoration:none}
+a:hover{opacity:.75}
 
-.header{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:56px}
-.header-logo{font-size:16px;font-weight:700;letter-spacing:-.3px;color:var(--ink);text-decoration:none;display:inline-flex;align-items:baseline;gap:5px}
-.header-logo em{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-weight:700;color:#1f2328}
-.header-logo span{font-family:'Caveat',cursive;font-weight:700;color:#d97706;font-size:1.2em;letter-spacing:.4px}
-.header-nav{display:flex;align-items:center;gap:14px}
-.nav-link{font-size:13px;color:var(--ink3);text-decoration:none;font-weight:500;transition:color .15s}
-.nav-link:hover{color:var(--ink)}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:var(--r2);font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:var(--sans);text-decoration:none;transition:opacity .15s,background .15s}
-.btn-primary{background:var(--accent);color:#fff}
-.btn-primary:hover{background:var(--accent2)}
-.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--ink2)}
-.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
-.btn-full{width:100%;justify-content:center;padding:13px 20px;font-size:14px}
-.btn-full.popular{background:var(--accent);color:#fff}
-.btn-full.popular:hover{background:var(--accent2)}
-.btn-full:disabled{opacity:.5;cursor:not-allowed}
+/* ── NAV ── */
+.p-nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(232,224,208,.96);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--border2);
+}
+.p-nav-inner{
+  max-width:960px;margin:0 auto;height:60px;padding:0 28px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.p-nav-brand{display:flex;align-items:center;gap:8px;text-decoration:none}
+.p-nav-icon{font-size:18px;color:var(--accent)}
+.p-nav-unsent{font-family:var(--brand);font-size:24px;color:var(--ink)}
+.p-nav-stories{font-family:var(--serif);font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--ink2);margin-left:2px}
+.p-nav-back{
+  font-family:var(--sans);font-size:13px;font-weight:500;
+  color:var(--ink3);letter-spacing:.2px;transition:color .15s;
+}
+.p-nav-back:hover{color:var(--ink)}
 
-.hero{text-align:center;padding:72px 24px 48px}
-.hero-eyebrow{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--accent);background:var(--accent-bg);padding:5px 14px;border-radius:99px;margin-bottom:20px;border:1px solid rgba(79,110,247,.2)}
-.hero h1{font-size:40px;font-weight:700;letter-spacing:-.8px;line-height:1.15;color:var(--ink);margin-bottom:16px}
-.hero p{font-size:17px;color:var(--ink3);line-height:1.6;max-width:560px;margin:0 auto 32px}
+/* ── HERO ── */
+.p-hero{text-align:center;padding:64px 24px 52px;max-width:620px;margin:0 auto}
+.p-hero-eyebrow{
+  display:inline-block;font-family:var(--sans);font-size:10px;font-weight:700;
+  letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);
+  background:var(--accent-bg);border:1px solid var(--accent-ring);
+  padding:5px 16px;border-radius:99px;margin-bottom:22px;
+}
+.p-hero h1{
+  font-family:var(--serif);font-size:clamp(28px,6vw,44px);font-weight:700;
+  font-style:italic;line-height:1.2;color:var(--ink);margin-bottom:14px;letter-spacing:-.4px;
+}
+.p-hero p{
+  font-family:var(--script);font-size:20px;color:var(--ink3);line-height:1.7;
+}
 
-.pricing-section{max-width:1040px;margin:0 auto;padding:0 24px 80px}
-.pricing-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;align-items:start}
-@media(max-width:900px){.pricing-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:560px){.pricing-grid{grid-template-columns:1fr}}
+/* ── RULE ── */
+.p-rule{border:none;border-top:1px solid var(--border2);max-width:960px;margin:0 auto}
 
-.pricing-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding:32px 28px;display:flex;flex-direction:column;box-shadow:var(--shadow);position:relative}
-.pricing-card.popular{border-color:var(--accent);border-width:2px;box-shadow:0 0 0 4px rgba(79,110,247,.08),var(--shadow2)}
-.popular-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:4px 16px;border-radius:99px;letter-spacing:.4px;white-space:nowrap}
-.card-plan{font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--ink3);margin-bottom:12px}
-.card-price-wrap{margin-bottom:4px}
-.card-price{font-size:36px;font-weight:700;letter-spacing:-.8px;color:var(--ink);line-height:1}
-.card-price sup{font-size:18px;font-weight:600;vertical-align:super;letter-spacing:0}
-.card-price-original{font-size:16px;color:var(--ink4);text-decoration:line-through;margin-left:6px}
-.card-period{font-size:13px;color:var(--ink4);margin-bottom:4px}
-.card-discount-badge{display:inline-block;font-size:11px;font-weight:700;background:var(--green-bg);color:var(--green);border:1px solid rgba(22,163,74,.2);border-radius:99px;padding:2px 10px;margin-bottom:4px}
-.card-discount-countdown{font-size:11px;color:var(--amber);font-weight:600;min-height:16px;margin-bottom:12px}
-.card-divider{height:1px;background:var(--border);margin-bottom:20px}
-.card-features{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:28px;flex:1}
-.card-features li{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--ink2);line-height:1.4}
-.card-features li .check{width:18px;height:18px;flex-shrink:0;border-radius:50%;background:var(--green-bg);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-top:1px}
-.card-features li .cross{width:18px;height:18px;flex-shrink:0;border-radius:50%;background:#f3f4f6;color:var(--ink4);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-top:1px}
-.card-features li.dim{color:var(--ink4)}
+/* ── PRICING GRID ── */
+.p-section{max-width:960px;margin:0 auto;padding:48px 24px 80px}
+.p-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:18px;align-items:start;
+}
+@media(max-width:860px){.p-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.p-grid{grid-template-columns:1fr}}
 
-.notes-section{max-width:720px;margin:0 auto 80px;padding:0 24px}
-.notes-section h2{font-size:22px;font-weight:700;letter-spacing:-.3px;color:var(--ink);margin-bottom:24px;text-align:center}
-.faq-item{border:1px solid var(--border);border-radius:var(--r2);background:var(--surface);margin-bottom:10px;overflow:hidden}
-.faq-q{padding:16px 20px;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;user-select:none}
-.faq-q::after{content:'＋';font-size:16px;color:var(--ink3);flex-shrink:0}
-.faq-item.open .faq-q::after{content:'－'}
-.faq-a{display:none;padding:0 20px 16px;font-size:13px;color:var(--ink3);line-height:1.7}
-.faq-item.open .faq-a{display:block}
+/* ── CARD — torn paper ── */
+.p-card{
+  background:linear-gradient(160deg,#f6f0e4 0%,#ede5d2 55%,#e6ddc8 100%);
+  border:none;border-radius:2px;
+  box-shadow:0 4px 18px rgba(0,0,0,.10),0 1px 4px rgba(0,0,0,.07);
+  padding:26px 22px 28px;
+  display:flex;flex-direction:column;
+  position:relative;overflow:visible;
+  transform:rotate(-.4deg);
+}
+.p-card:nth-child(2){transform:rotate(.5deg)}
+.p-card:nth-child(3){transform:rotate(-.3deg)}
+.p-card:nth-child(4){transform:rotate(.4deg)}
+/* grain */
+.p-card::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-size:200px 200px;pointer-events:none;z-index:0;
+}
+.p-card>*{position:relative;z-index:1}
+.p-card.featured{
+  transform:rotate(.2deg) translateY(-6px) scale(1.02);
+  box-shadow:0 12px 40px rgba(0,0,0,.15),0 2px 8px rgba(0,0,0,.08);
+}
+.p-featured-badge{
+  position:absolute;top:-11px;left:50%;transform:translateX(-50%);
+  background:var(--accent);color:#fff;font-family:var(--sans);
+  font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  padding:4px 16px;border-radius:99px;white-space:nowrap;z-index:2;
+}
+.p-card-plan{
+  font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;color:var(--ink4);margin-bottom:14px;
+  border-bottom:1px solid rgba(100,80,50,.18);padding-bottom:12px;
+}
+.p-card-price{
+  font-family:var(--serif);font-size:36px;font-weight:700;
+  color:var(--ink);line-height:1;letter-spacing:-.5px;margin-bottom:2px;
+}
+.p-card-price sup{font-size:18px;vertical-align:super;letter-spacing:0;font-weight:600}
+.p-card-price-orig{
+  font-size:15px;color:var(--ink4);text-decoration:line-through;margin-left:5px;
+}
+.p-card-period{
+  font-family:var(--sans);font-size:12px;color:var(--ink4);margin-bottom:4px;
+}
+.p-card-discount{
+  display:inline-block;font-size:10px;font-weight:700;
+  background:var(--green-bg);color:var(--green);
+  border:1px solid rgba(45,106,79,.2);border-radius:99px;
+  padding:2px 10px;margin-bottom:4px;
+}
+.p-card-countdown{
+  font-family:var(--sans);font-size:11px;color:var(--gold);
+  font-weight:600;min-height:16px;margin-bottom:14px;
+}
+.p-card-divider{height:1px;background:rgba(100,80,50,.18);margin:14px 0}
+.p-card-features{
+  list-style:none;display:flex;flex-direction:column;gap:10px;
+  margin-bottom:24px;flex:1;
+}
+.p-card-features li{
+  display:flex;align-items:flex-start;gap:9px;
+  font-family:var(--sans);font-size:13px;color:var(--ink2);line-height:1.4;
+}
+.p-card-features li.dim{color:var(--ink4)}
+.feat-check{
+  width:17px;height:17px;flex-shrink:0;border-radius:50%;
+  background:var(--green-bg);color:var(--green);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;margin-top:1px;
+}
+.feat-cross{
+  width:17px;height:17px;flex-shrink:0;border-radius:50%;
+  background:rgba(120,100,70,.1);color:var(--ink4);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;margin-top:1px;
+}
 
-.guarantee{max-width:600px;margin:0 auto 80px;text-align:center;padding:0 24px}
-.guarantee-icon{font-size:32px;margin-bottom:12px}
-.guarantee h3{font-size:17px;font-weight:700;color:var(--ink);margin-bottom:8px}
-.guarantee p{font-size:13px;color:var(--ink3);line-height:1.7}
+/* ── CTA button — plain ink link style, no big button ── */
+.p-card-cta{
+  margin-top:auto;text-align:center;padding-top:4px;
+}
+.p-card-cta-link{
+  font-family:var(--serif);font-size:14px;font-style:italic;
+  color:var(--accent);cursor:pointer;
+  transition:opacity .15s;display:inline-block;
+}
+.p-card-cta-link:hover{opacity:.7}
+.p-card-cta-link.featured-cta{
+  font-family:var(--sans);font-style:normal;font-size:13px;font-weight:600;
+  background:var(--accent);color:#fff;
+  padding:10px 20px;border-radius:var(--r3);border:none;cursor:pointer;
+  letter-spacing:.2px;transition:background .15s,opacity .15s;display:inline-block;
+}
+.p-card-cta-link.featured-cta:hover{background:var(--accent2);opacity:1}
+.p-card-cta-status{
+  font-size:11px;color:var(--ink4);text-align:center;
+  margin-top:6px;min-height:14px;
+}
 
-/* toast */
-#toast{position:fixed;bottom:28px;right:28px;z-index:9999;font-size:13px;font-weight:600;padding:12px 20px;border-radius:10px;background:#111827;color:#fff;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none}
+/* ── GUARANTEE ── */
+.p-guarantee{
+  max-width:560px;margin:0 auto 72px;
+  text-align:center;padding:0 24px;
+}
+.p-guarantee-icon{font-size:28px;margin-bottom:10px}
+.p-guarantee h3{
+  font-family:var(--serif);font-size:18px;font-weight:700;font-style:italic;
+  color:var(--ink);margin-bottom:8px;
+}
+.p-guarantee p{
+  font-family:var(--sans);font-size:13px;color:var(--ink3);line-height:1.75;
+}
+
+/* ── FAQ ── */
+.p-faq-section{max-width:640px;margin:0 auto 80px;padding:0 24px}
+.p-faq-title{
+  font-family:var(--serif);font-size:22px;font-weight:700;font-style:italic;
+  color:var(--ink);margin-bottom:28px;text-align:center;
+}
+.p-faq-item{
+  border-bottom:1px solid var(--border2);overflow:hidden;
+}
+.p-faq-q{
+  padding:16px 4px;font-family:var(--sans);font-size:14px;font-weight:600;
+  color:var(--ink);cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+  user-select:none;transition:color .15s;
+}
+.p-faq-q:hover{color:var(--accent)}
+.p-faq-q::after{content:'＋';font-size:15px;color:var(--ink4);flex-shrink:0;transition:color .15s}
+.p-faq-item.open .p-faq-q::after{content:'－';color:var(--accent)}
+.p-faq-a{
+  display:none;padding:0 4px 16px;
+  font-family:var(--sans);font-size:13px;color:var(--ink3);line-height:1.8;
+}
+.p-faq-item.open .p-faq-a{display:block}
+
+/* ── FOOTER ── */
+.p-footer{
+  text-align:center;padding:20px;font-family:var(--sans);
+  font-size:12px;color:var(--ink4);border-top:1px solid var(--border);
+}
+.p-footer a{color:var(--accent)}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:28px;right:28px;z-index:9999;
+  font-family:var(--sans);font-size:13px;font-weight:600;
+  padding:12px 20px;border-radius:var(--r2);
+  background:var(--ink);color:#fff;
+  opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;
+  box-shadow:var(--shadow2);
+}
 #toast.show{opacity:1;transform:translateY(0)}
 </style>
 </head>
 <body>
 
-<header class="header">
-  <a href="/" class="header-logo"><em>Unsent</em> <span>Stories</span></a>
-  <nav class="header-nav">
-    <a href="/" class="nav-link">Home</a>
-    <a href="/" class="btn btn-primary">Get started free</a>
-  </nav>
-</header>
+<!-- NAV -->
+<nav class="p-nav">
+  <div class="p-nav-inner">
+    <a href="/" class="p-nav-brand">
+      <span class="p-nav-icon">✦</span>
+      <span class="p-nav-unsent">Unsent</span>
+      <span class="p-nav-stories">Stories</span>
+    </a>
+    <a href="/" class="p-nav-back">← Back</a>
+  </div>
+</nav>
 
-<section class="hero">
-  <div class="hero-eyebrow">Pricing</div>
+<!-- HERO -->
+<section class="p-hero">
+  <div class="p-hero-eyebrow">Pricing</div>
   <h1>Simple, honest pricing</h1>
-  <p>Start free forever. Upgrade when you need unlimited writing, photo &amp; video uploads, and canvas stickers.</p>
+  <p>Start free, write at your own pace. Upgrade only when you're ready for more.</p>
 </section>
 
-<section class="pricing-section">
-  <div class="pricing-grid" id="pricingGrid">
-    <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--ink4);font-size:13px">Loading plans…</div>
+<hr class="p-rule">
+
+<!-- PRICING CARDS -->
+<section class="p-section">
+  <div class="p-grid" id="pricingGrid">
+    <div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--ink4);font-family:var(--script);font-size:18px">
+      Loading plans…
+    </div>
   </div>
 </section>
 
-<div class="guarantee">
-  <div class="guarantee-icon">🔒</div>
+<!-- GUARANTEE -->
+<div class="p-guarantee">
+  <div class="p-guarantee-icon">🔒</div>
   <h3>No surprises, ever</h3>
-  <p>You keep access to every entry you've written, regardless of plan. Downgrade or cancel any time — your data is always yours.</p>
+  <p>Every entry you've written stays with you, regardless of plan. Downgrade or cancel any time — your words are always yours.</p>
 </div>
 
-<section class="notes-section">
-  <h2>Frequently asked questions</h2>
-  <div class="faq-item"><div class="faq-q">Can I try before I pay?</div><div class="faq-a">Yes — the Free plan lets you write up to 5 diary entries with no credit card required. Upgrade whenever you need more.</div></div>
-  <div class="faq-item"><div class="faq-q">What happens to my entries if I downgrade?</div><div class="faq-a">All your existing entries are preserved. You'll just be limited to creating new entries once you reach 5. No data is ever deleted.</div></div>
-  <div class="faq-item"><div class="faq-q">What file types can I upload?</div><div class="faq-a">Pro and Lifetime plans support JPEG, PNG, GIF, WebP images and MP4, WebM, OGG, QuickTime videos up to 200 MB per file.</div></div>
-  <div class="faq-item"><div class="faq-q">Is the Lifetime plan really one-time?</div><div class="faq-a">Yes. Pay once and get unlimited access forever — including all future features at no extra cost.</div></div>
-  <div class="faq-item"><div class="faq-q">Is payment secure?</div><div class="faq-a">Yes — payments are processed by Razorpay, a PCI-DSS compliant payment gateway. We never store your card details.</div></div>
+<hr class="p-rule">
+
+<!-- FAQ -->
+<section class="p-faq-section" style="margin-top:56px">
+  <h2 class="p-faq-title">Frequently asked questions</h2>
+  <div class="p-faq-item">
+    <div class="p-faq-q">Can I try before I pay?</div>
+    <div class="p-faq-a">Yes — the Free plan lets you write up to 5 diary entries with no credit card required. Upgrade whenever you need more.</div>
+  </div>
+  <div class="p-faq-item">
+    <div class="p-faq-q">What happens to my entries if I downgrade?</div>
+    <div class="p-faq-a">All your existing entries are preserved. You'll just be limited to creating new entries once you reach 5. No data is ever deleted.</div>
+  </div>
+  <div class="p-faq-item">
+    <div class="p-faq-q">What file types can I upload?</div>
+    <div class="p-faq-a">Pro and Lifetime plans support JPEG, PNG, GIF, WebP images and MP4, WebM, OGG, QuickTime videos up to 200 MB per file.</div>
+  </div>
+  <div class="p-faq-item">
+    <div class="p-faq-q">Is the Lifetime plan really one-time?</div>
+    <div class="p-faq-a">Yes. Pay once and get unlimited access forever — including all future features at no extra cost.</div>
+  </div>
+  <div class="p-faq-item">
+    <div class="p-faq-q">Is payment secure?</div>
+    <div class="p-faq-a">Yes — payments are processed by Razorpay, a PCI-DSS compliant payment gateway. We never store your card details.</div>
+  </div>
 </section>
+
+<footer class="p-footer">
+  &copy; 2025 Unsent Stories &nbsp;·&nbsp; <a href="/">Home</a>
+</footer>
 
 <div id="toast"></div>
 
 <script>
-// ── Helpers ──────────────────────────────────────────────────────────────────
 function toast(msg, dur) {
   const el = document.getElementById('toast');
   el.textContent = msg; el.classList.add('show');
   clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), dur || 3000);
 }
-function fmtINR(paise) { return '\u20b9' + (paise / 100).toLocaleString('en-IN'); }
 
-// Get JWT token if logged in
 function getToken() { try { return localStorage.getItem('diary_token'); } catch { return null; } }
 
-// ── Load plans & render cards ─────────────────────────────────────────────────
 const FEATURES = {
-  free:     [ 'Up to <b>5 diary entries</b>', 'Public shareable links', 'Emoji reactions & replies', ['Media uploads (photos / videos)', false], ['Canvas stickers', false], ['Unlimited entries', false] ],
+  free:     [ 'Up to <b>5 diary entries</b>', 'Public shareable links', 'Emoji reactions & replies', ['Photo & video uploads', false], ['Canvas stickers', false], ['Unlimited entries', false] ],
   monthly:  [ '<b>Unlimited</b> diary entries', 'Photo & video uploads', 'Canvas stickers', 'Public shareable links', 'Emoji reactions & replies', 'Priority support' ],
   yearly:   [ '<b>Unlimited</b> diary entries', 'Photo & video uploads', 'Canvas stickers', 'Public shareable links', 'Emoji reactions & replies', 'Priority support' ],
-  lifetime: [ '<b>Unlimited</b> diary entries', 'Photo & video uploads', 'Canvas stickers', 'Public shareable links', 'Emoji reactions & replies', 'Lifetime updates — never pay again' ],
+  lifetime: [ '<b>Unlimited</b> diary entries', 'Photo & video uploads', 'Canvas stickers', 'Public shareable links', 'Emoji reactions & replies', 'Lifetime updates — pay once, forever' ],
 };
 
 async function loadPlans() {
@@ -155,9 +337,9 @@ async function loadPlans() {
       fetch('/api/payments/config').then(r => r.json()),
       fetch('/api/payments/geo-price').then(r => r.json()).catch(() => ({ region: 'IN', prices: {} })),
     ]);
-    const plans    = plansRes.plans || [];
-    const keyId    = cfgRes.keyId;
-    const geoPrices = geoRes.prices || {};   // { monthly: { symbol, currency, amount }, … }
+    const plans     = plansRes.plans || [];
+    const keyId     = cfgRes.keyId;
+    const geoPrices = geoRes.prices || {};
     const geoRegion = geoRes.region || 'IN';
 
     grid.innerHTML = '';
@@ -165,94 +347,91 @@ async function loadPlans() {
       const isPopular = p.id === 'monthly';
       const isFree    = p.id === 'free';
       const features  = FEATURES[p.id] || [];
-      const geo       = geoPrices[p.id];     // local price for this plan, may be undefined
+      const geo       = geoPrices[p.id];
 
-      // Countdown timer text
+      // Countdown
       let countdownHtml = '&nbsp;';
       if (p.discountActive && p.discount_ends_at) {
         const diff = Math.ceil((new Date(p.discount_ends_at) - new Date()) / 86400000);
         countdownHtml = diff > 0 ? `Offer ends in <b>${diff} day${diff !== 1 ? 's' : ''}</b>` : '&nbsp;';
       }
 
-      // Price display — show local currency if geo price available, else fallback INR
+      // Price display — always prefer INR for IN region
       let priceHtml = '';
       if (isFree) {
-        priceHtml = `<div class="card-price"><sup>&#8377;</sup>0</div>`;
+        priceHtml = `<div class="p-card-price"><sup>&#8377;</sup>0</div>`;
       } else if (geo) {
+        // For India show ₹ directly; for others show local + mention INR
         const sym = geo.symbol;
         const amt = geo.amount % 1 === 0 ? geo.amount.toLocaleString() : geo.amount.toFixed(2);
-        priceHtml = `<div class="card-price"><sup style="font-size:16px">${sym}</sup>${amt}</div>`;
+        priceHtml = `<div class="p-card-price"><sup style="font-size:16px">${sym}</sup>${amt}</div>`;
         if (geoRegion !== 'IN') {
-          priceHtml += `<div style="font-size:11px;color:var(--ink4);margin-top:2px">₹${(p.discountActive ? p.effectivePriceInr : p.price_inr).toLocaleString('en-IN')} for India</div>`;
+          const inrPrice = p.discountActive ? p.effectivePriceInr : p.price_inr;
+          if (inrPrice > 0)
+            priceHtml += `<div style="font-size:11px;color:var(--ink4);margin-top:2px">&#8377;${inrPrice.toLocaleString('en-IN')} for India</div>`;
         }
       } else if (p.discountActive) {
-        const origInr = p.price_inr;
-        const discInr = p.effectivePriceInr;
         priceHtml = `
-          <div class="card-price-wrap">
-            <span class="card-price"><sup>&#8377;</sup>${discInr.toLocaleString('en-IN')}</span>
-            <span class="card-price-original">&#8377;${origInr.toLocaleString('en-IN')}</span>
+          <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:6px">
+            <div class="p-card-price"><sup>&#8377;</sup>${p.effectivePriceInr.toLocaleString('en-IN')}</div>
+            <span class="p-card-price-orig">&#8377;${p.price_inr.toLocaleString('en-IN')}</span>
           </div>`;
       } else {
-        priceHtml = `<div class="card-price"><sup>&#8377;</sup>${(p.price_inr||0).toLocaleString('en-IN')}</div>`;
+        priceHtml = `<div class="p-card-price"><sup>&#8377;</sup>${(p.price_inr||0).toLocaleString('en-IN')}</div>`;
       }
 
       const periodMap = { monthly:'per month', yearly:'per year', lifetime:'one-time payment', free:'forever' };
-      const discountBadge = (p.discountActive && p.discount_label) ? `<span class="card-discount-badge">${p.discount_label} — ${p.discount_pct}% off</span><br>` : '';
+      const discountBadge = (p.discountActive && p.discount_label)
+        ? `<span class="p-card-discount">${p.discount_label} — ${p.discount_pct}% off</span><br>` : '';
 
       const featureItems = features.map(f => {
-        if (Array.isArray(f)) return `<li class="dim"><span class="cross">\u2717</span>${f[0]}</li>`;
-        return `<li><span class="check">\u2713</span>${f}</li>`;
+        if (Array.isArray(f)) return `<li class="dim"><span class="feat-cross">\u2717</span>${f[0]}</li>`;
+        return `<li><span class="feat-check">\u2713</span>${f}</li>`;
       }).join('');
 
-      const btnLabel = isFree ? 'Start for free' : `Get ${p.name}`;
-      const btnClass = isPopular ? 'btn btn-full popular' : 'btn btn-outline btn-full';
+      const ctaLabel = isFree ? 'Start writing for free →' : `Get ${p.name} →`;
+      const ctaClass = isPopular ? 'p-card-cta-link featured-cta' : 'p-card-cta-link';
 
       const card = document.createElement('div');
-      card.className = 'pricing-card' + (isPopular ? ' popular' : '');
+      card.className = 'p-card' + (isPopular ? ' featured' : '');
       card.innerHTML = `
-        ${isPopular ? '<div class="popular-badge">Most Popular</div>' : ''}
-        <div class="card-plan">${p.name}</div>
+        ${isPopular ? '<div class="p-featured-badge">Most Popular</div>' : ''}
+        <div class="p-card-plan">${p.name}</div>
         ${priceHtml}
-        <div class="card-period">${periodMap[p.id] || ''}</div>
+        <div class="p-card-period">${periodMap[p.id] || ''}</div>
         ${discountBadge}
-        <div class="card-discount-countdown">${countdownHtml}</div>
-        <div class="card-divider"></div>
-        <ul class="card-features">${featureItems}</ul>
-        <button class="${btnClass}" id="btn-${p.id}">${btnLabel}</button>
-        <p id="btn-status-${p.id}" style="font-size:11px;color:var(--ink3);text-align:center;margin-top:8px;min-height:14px"></p>
+        <div class="p-card-countdown">${countdownHtml}</div>
+        <div class="p-card-divider"></div>
+        <ul class="p-card-features">${featureItems}</ul>
+        <div class="p-card-cta">
+          <span class="${ctaClass}" id="btn-${p.id}">${ctaLabel}</span>
+          <div class="p-card-cta-status" id="btn-status-${p.id}"></div>
+        </div>
       `;
       grid.appendChild(card);
 
-      const btn = card.querySelector('#btn-' + p.id);
-      btn.addEventListener('click', () => handlePlanClick(p, keyId, btn));
+      card.querySelector('#btn-' + p.id).addEventListener('click', () => handlePlanClick(p, keyId, card.querySelector('#btn-' + p.id)));
     });
   } catch(e) {
-    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--ink4)">Could not load plans — please refresh.</div>';
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--ink4);font-family:var(--script);font-size:17px">Could not load plans — please refresh.</div>`;
   }
 }
 
-// ── Handle plan button click ──────────────────────────────────────────────────
 async function handlePlanClick(plan, keyId, btn) {
   if (plan.id === 'free') { window.location.href = '/'; return; }
-
   const token = getToken();
   if (!token) {
     toast('Please sign in first to upgrade.', 4000);
     setTimeout(() => { window.location.href = '/'; }, 1500);
     return;
   }
-
   if (!keyId) {
     toast('Payments are not configured yet. Please contact the admin.', 4000);
     return;
   }
-
   const statusEl = document.getElementById('btn-status-' + plan.id);
-  btn.disabled = true;
-  btn.textContent = 'Creating order…';
-  statusEl.textContent = '';
-
+  btn.style.opacity = '.5'; btn.style.pointerEvents = 'none';
+  statusEl.textContent = 'Creating order…';
   try {
     const res = await fetch('/api/payments/create-order', {
       method: 'POST',
@@ -261,17 +440,14 @@ async function handlePlanClick(plan, keyId, btn) {
     });
     const order = await res.json();
     if (!res.ok) throw new Error(order.error || 'Order failed');
-
     launchRazorpay(order, plan, token, btn, statusEl);
   } catch(e) {
-    btn.disabled = false;
-    btn.textContent = 'Get ' + plan.name;
+    btn.style.opacity = ''; btn.style.pointerEvents = '';
     statusEl.textContent = e.message;
     toast('Error: ' + e.message, 4000);
   }
 }
 
-// ── Launch Razorpay checkout ──────────────────────────────────────────────────
 function launchRazorpay(order, plan, token, btn, statusEl) {
   const options = {
     key:         order.keyId,
@@ -281,8 +457,7 @@ function launchRazorpay(order, plan, token, btn, statusEl) {
     description: plan.name + ' Subscription',
     order_id:    order.orderId,
     handler: async function(response) {
-      btn.textContent = 'Verifying…';
-      statusEl.textContent = '';
+      statusEl.textContent = 'Verifying…';
       try {
         const vRes = await fetch('/api/payments/verify', {
           method: 'POST',
@@ -296,41 +471,38 @@ function launchRazorpay(order, plan, token, btn, statusEl) {
         });
         const vData = await vRes.json();
         if (!vRes.ok) throw new Error(vData.error || 'Verification failed');
-        btn.textContent = '\u2705 Subscribed!';
-        btn.disabled = false;
-        toast('\ud83c\udf89 Welcome to ' + plan.name + '! Your plan is now active.', 5000);
+        btn.textContent = '\u2713 Subscribed';
+        btn.style.opacity = ''; btn.style.pointerEvents = '';
+        toast('\uD83C\uDF89 Welcome to ' + plan.name + '! Your plan is now active.', 5000);
         statusEl.textContent = 'Plan activated — go back to start writing!';
       } catch(e) {
-        btn.disabled = false;
-        btn.textContent = 'Get ' + plan.name;
+        btn.style.opacity = ''; btn.style.pointerEvents = '';
         toast('Payment verification failed: ' + e.message, 5000);
+        statusEl.textContent = '';
       }
     },
     prefill: {},
-    theme: { color: '#4f6ef7' },
+    theme: { color: '#2f5a6e' },
     modal: {
       ondismiss: () => {
-        btn.disabled = false;
-        btn.textContent = 'Get ' + plan.name;
+        btn.style.opacity = ''; btn.style.pointerEvents = '';
         statusEl.textContent = 'Payment cancelled.';
       },
     },
   };
-
-  // Load Razorpay script dynamically
   if (window.Razorpay) {
     new window.Razorpay(options).open();
   } else {
     const s = document.createElement('script');
     s.src = 'https://checkout.razorpay.com/v1/checkout.js';
     s.onload = () => new window.Razorpay(options).open();
-    s.onerror = () => { btn.disabled = false; btn.textContent = 'Get ' + plan.name; toast('Could not load payment gateway', 4000); };
+    s.onerror = () => { btn.style.opacity = ''; btn.style.pointerEvents = ''; toast('Could not load payment gateway', 4000); };
     document.head.appendChild(s);
   }
 }
 
-document.querySelectorAll('.faq-q').forEach(q => {
-  q.addEventListener('click', () => q.closest('.faq-item').classList.toggle('open'));
+document.querySelectorAll('.p-faq-q').forEach(q => {
+  q.addEventListener('click', () => q.closest('.p-faq-item').classList.toggle('open'));
 });
 
 loadPlans();

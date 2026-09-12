@@ -267,9 +267,24 @@ router.put('/admin/plans/:id', verifyAdminToken, (req, res) => {
 router.get('/geo-price', async (req, res) => {
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
   const region = await getRegionFromIp(ip);
-  const prices = getGeoPrices(region);
-  const finalPrices = Object.keys(prices).length ? prices : getGeoPrices('ROW');
-  res.json({ region, prices: finalPrices });
+  let prices = getGeoPrices(region);
+
+  // If no geo rows for this region, fall back to ROW
+  if (!Object.keys(prices).length) prices = getGeoPrices('ROW');
+
+  // Final fallback: if still empty (geo_pricing table has no data at all),
+  // build INR prices from subscription_plans so India users always see ₹
+  if (!Object.keys(prices).length) {
+    const plans = db.prepare(`SELECT id, price_inr, discount_pct, discount_ends_at FROM subscription_plans WHERE id != 'free'`).all();
+    const now = new Date();
+    plans.forEach(p => {
+      const discountActive = p.discount_pct > 0 && (!p.discount_ends_at || new Date(p.discount_ends_at) > now);
+      const amount = discountActive ? Math.round(p.price_inr * (1 - p.discount_pct / 100)) : p.price_inr;
+      prices[p.id] = { currency: 'INR', symbol: '₹', amount };
+    });
+  }
+
+  res.json({ region, prices });
 });
 
 // ── GET /api/payments/admin/geo-pricing  — list all geo prices ───────────────
