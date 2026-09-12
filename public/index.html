@@ -419,23 +419,51 @@
     <!-- ── Music ── -->
     <div class="field" id="musicField">
       <label>Background Music</label>
-      <div class="music-picker-row" id="musicPickerRow">
-        <button type="button" class="music-pick-none active" id="musicNoneBtn">🔇 None</button>
-        <!-- library tracks populated by JS -->
+      <!-- 3-column music picker -->
+      <div class="music-3col">
+        <!-- Col 1: My Library -->
+        <div class="music-col">
+          <div class="music-col-head">My Library</div>
+          <div class="music-col-tracks" id="musicUserTracks">
+            <div class="music-col-empty">Loading…</div>
+          </div>
+          <div class="music-col-foot">
+            <label class="btn btn-outline btn-xs music-audio-upload-btn" style="cursor:pointer;gap:5px;padding:4px 9px;display:inline-flex;align-items:center;font-size:11px">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Add to My Library
+              <input type="file" id="fUserMusicUpload" accept="audio/*,.mp3,.ogg,.wav,.aac,.flac,.m4a" style="display:none">
+            </label>
+            <span id="fUserMusicStatus" style="font-size:10px;color:var(--accent)"></span>
+          </div>
+        </div>
+        <!-- Col 2: Global Library -->
+        <div class="music-col">
+          <div class="music-col-head">Global Library</div>
+          <div class="music-col-tracks" id="musicGlobalTracks">
+            <div class="music-col-empty">Loading…</div>
+          </div>
+        </div>
+        <!-- Col 3: Upload for This Note -->
+        <div class="music-col">
+          <div class="music-col-head">Upload for This Note</div>
+          <div class="music-col-tracks" id="musicUploadCol">
+            <div class="music-upload-area">
+              <label class="btn btn-outline btn-xs music-audio-upload-btn" style="cursor:pointer;gap:5px;padding:5px 10px;display:inline-flex;align-items:center">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                Choose Audio File
+                <input type="file" id="fAudioFile" accept="audio/*,.mp3,.ogg,.wav,.aac,.flac,.m4a" style="display:none">
+              </label>
+              <span id="fAudioFileLabel" style="font-size:11px;color:var(--ink4);font-family:var(--sans);display:block;margin-top:5px;word-break:break-all"></span>
+              <button type="button" id="fAudioClearBtn" class="btn btn-ghost btn-xs" style="display:none;margin-top:4px">✕ Clear</button>
+              <div style="margin-top:6px">
+                <input type="text" id="fMusic" placeholder="…or paste URL (.mp3/.ogg)" style="font-size:11px;width:100%">
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <!-- Audio upload + URL row -->
-      <div class="music-upload-row" style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <label class="btn btn-outline btn-xs music-audio-upload-btn" style="cursor:pointer;gap:5px;padding:5px 10px;display:inline-flex;align-items:center">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-          Upload Audio
-          <input type="file" id="fAudioFile" accept="audio/*,.mp3,.ogg,.wav,.aac,.flac,.m4a" style="display:none">
-        </label>
-        <span id="fAudioFileLabel" style="font-size:11px;color:var(--ink4);font-family:var(--sans);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
-        <button type="button" id="fAudioClearBtn" class="btn btn-ghost btn-xs" style="display:none">✕</button>
-      </div>
-      <div style="margin-top:6px">
-        <input type="text" id="fMusic" placeholder="or paste custom .mp3 / .ogg URL…" style="font-size:12px">
-      </div>
+      <!-- Default music notice -->
+      <div id="defaultMusicNotice" style="display:none;margin-top:7px;font-size:11px;color:var(--accent);font-style:italic"></div>
     </div>
     <div class="field" id="mediaField">
       <label>Photos &amp; Videos</label>
@@ -444,7 +472,7 @@
         <input type="file" id="fFiles" accept="video/*,image/*" multiple>
         <div class="uz-icon">↑</div>
         <div>Drop files or <b>tap to choose</b></div>
-        <small>JPG · PNG · MP4 · MOV · up to 200 MB</small>
+        <small>Images up to 4 MB · Videos up to 50 MB · MP4 · MOV · JPG · PNG</small>
       </div>
       <div class="upload-previews" id="uploadPreviews"></div>
     </div>

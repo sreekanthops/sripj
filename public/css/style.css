@@ -1909,37 +1909,114 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 }
 
 /* ══════════════════════════════════════════════════════
-   MUSIC LIBRARY PICKER (in form)
+   MUSIC 3-COLUMN PICKER (in form)
 ══════════════════════════════════════════════════════ */
-.music-picker-row {
+/* 3-col grid */
+.music-3col {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 6px;
+}
+@media (max-width: 520px) {
+  .music-3col { grid-template-columns: 1fr; }
+}
+.music-col {
   display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 4px;
-}
-.music-pick-btn,
-.music-pick-none {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 5px 10px;
+  flex-direction: column;
   border: 1.5px solid var(--border2);
-  border-radius: 20px;
+  border-radius: var(--r2);
+  overflow: hidden;
   background: var(--surface2);
-  color: var(--ink3);
-  font-family: var(--sans);
-  font-size: 11px; font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background .12s, border-color .12s, color .12s;
+  min-height: 140px;
 }
-.music-pick-btn:hover, .music-pick-none:hover {
-  background: var(--bg3); border-color: var(--border3); color: var(--ink);
+.music-col-head {
+  font-family: var(--sans);
+  font-size: 11px; font-weight: 700; letter-spacing: .4px;
+  text-transform: uppercase;
+  color: var(--ink3);
+  padding: 7px 10px 6px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+}
+.music-col-tracks {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 168px;
+  padding: 4px 4px;
+}
+.music-col-foot {
+  padding: 6px 8px;
+  border-top: 1px solid var(--border);
+  background: var(--bg3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.music-col-empty {
+  font-size: 11px; color: var(--ink5);
+  padding: 16px 8px;
+  text-align: center;
+  font-style: italic;
+}
+/* individual track button */
+.mpc-track-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 7px;
+  border: none;
+  border-radius: var(--r4);
+  background: transparent;
+  color: var(--ink2);
+  font-family: var(--sans);
+  font-size: 11px;
+  cursor: pointer;
+  text-align: left;
+  transition: background .1s;
+  position: relative;
+}
+.mpc-track-btn:hover { background: var(--bg); }
+.mpc-track-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+.mpc-note { flex-shrink: 0; opacity: .6; }
+.mpc-info { flex: 1; min-width: 0; overflow: hidden; }
+.mpc-title { display: block; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mpc-artist { font-size: 10px; opacity: .7; }
+.mpc-del-btn {
+  flex-shrink: 0;
+  display: none;
+  border: none;
+  background: none;
+  color: var(--red);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  border-radius: 3px;
+}
+.mpc-track-btn:hover .mpc-del-btn { display: block; }
+.mpc-track-btn.active .mpc-del-btn { color: rgba(255,255,255,.75); display: block; }
+/* Upload-for-this-note column inner */
+.music-upload-area {
+  padding: 8px;
+}
+/* Legacy pill styles kept for any remaining references */
+.music-pick-btn, .music-pick-none {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 10px; border: 1.5px solid var(--border2); border-radius: 20px;
+  background: var(--surface2); color: var(--ink3); font-family: var(--sans);
+  font-size: 11px; font-weight: 500; cursor: pointer; white-space: nowrap;
+  transition: background .12s, border-color .12s, color .12s;
 }
 .music-pick-btn.active, .music-pick-none.active {
   background: var(--accent); border-color: var(--accent); color: #fff;
 }
-.music-pick-btn .mp-artist {
-  opacity: .7; font-size: 10px;
-}
+.music-pick-btn .mp-artist { opacity: .7; font-size: 10px; }
 
 /* ══════════════════════════════════════════════════════
    NOTE CARD — background image support

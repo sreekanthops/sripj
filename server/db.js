@@ -231,6 +231,20 @@ if (!hasTable('music_library')) {
   `);
 }
 
+// user_music_library — per-user personal music uploads
+if (!hasTable('user_music_library')) {
+  db.exec(`
+    CREATE TABLE user_music_library (
+      id         TEXT PRIMARY KEY,
+      user_id    TEXT NOT NULL,
+      filename   TEXT NOT NULL,
+      title      TEXT NOT NULL DEFAULT '',
+      artist     TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL
+    )
+  `);
+}
+
 // replies.user_id
 if (!hasColumn('replies', 'user_id')) db.exec(`ALTER TABLE replies ADD COLUMN user_id TEXT`);
 

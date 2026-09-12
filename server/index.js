@@ -23,6 +23,7 @@ app.use('/api/global-images',     require('./routes/global-images'));
 app.use('/api/payments',          require('./routes/payments'));
 app.use('/api/note-backgrounds',  require('./routes/note-backgrounds'));
 app.use('/api/music-library',     require('./routes/music-library'));
+app.use('/api/user-music',        require('./routes/user-music-library'));
 
 // Admin portal — explicit route before SPA fallback
 app.get('/admin', (req, res) => {

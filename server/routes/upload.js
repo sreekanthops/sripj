@@ -18,20 +18,33 @@ const storage = multer.diskStorage({
   },
 });
 
-const ALLOWED = ['video/mp4','video/webm','video/ogg','video/quicktime',
-                 'image/jpeg','image/png','image/gif','image/webp'];
+const VIDEO_ALLOWED = ['video/mp4','video/webm','video/ogg','video/quicktime'];
+const IMAGE_ALLOWED = ['image/jpeg','image/png','image/gif','image/webp'];
+const ALLOWED = [...VIDEO_ALLOWED, ...IMAGE_ALLOWED];
 
 const AUDIO_ALLOWED = [
   'audio/mpeg','audio/mp3','audio/mp4','audio/ogg','audio/wav',
   'audio/webm','audio/aac','audio/flac','audio/x-m4a',
 ];
 
+// Per-type size limits
+const VIDEO_MAX = 50  * 1024 * 1024;  // 50 MB
+const IMAGE_MAX =  4  * 1024 * 1024;  //  4 MB
+
 const upload = multer({
   storage,
-  limits: { fileSize: 200 * 1024 * 1024 },
+  limits: { fileSize: VIDEO_MAX },   // outer cap; per-type enforced in fileFilter
   fileFilter: (req, file, cb) => {
-    if (ALLOWED.includes(file.mimetype)) cb(null, true);
-    else cb(new Error('File type not allowed.'));
+    if (VIDEO_ALLOWED.includes(file.mimetype)) {
+      cb(null, true);
+    } else if (IMAGE_ALLOWED.includes(file.mimetype)) {
+      // multer has already started the stream; check size via fieldSize trick isn't reliable here.
+      // We attach the limit so we can re-check after upload via a custom middleware (see below).
+      file._imageLimit = IMAGE_MAX;
+      cb(null, true);
+    } else {
+      cb(new Error('File type not allowed.'));
+    }
   },
 });
 
@@ -102,6 +115,18 @@ router.post('/:noteId', verifyToken, (req, res, next) => {
         limitReached: true,
         plan: plan.planId,
       });
+    }
+
+    // Enforce per-type size limits after multer writes the file
+    const oversized = (req.files || []).filter(f => {
+      if (IMAGE_ALLOWED.includes(f.mimetype) && f.size > IMAGE_MAX) return true;
+      if (VIDEO_ALLOWED.includes(f.mimetype) && f.size > VIDEO_MAX) return true;
+      return false;
+    });
+    if (oversized.length) {
+      req.files?.forEach(f => fs.unlink(f.path, () => {}));
+      const isImg = IMAGE_ALLOWED.includes(oversized[0].mimetype);
+      return res.status(400).json({ error: `${isImg ? 'Images' : 'Videos'} must be under ${isImg ? '4 MB' : '50 MB'}. File too large: ${oversized[0].originalname}` });
     }
 
     const note = db.prepare('SELECT id, user_id FROM notes WHERE id = ?').get(req.params.noteId);

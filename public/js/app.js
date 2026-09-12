@@ -1106,12 +1106,13 @@ document.getElementById('fTags').addEventListener('blur', e => {
 // ── FORMS ──────────────────────────────────────────────────────────────────
 // ── Note background + music picker state ──────────────────────────────────
 let _selectedBgUrl     = '';   // final URL to save (library or uploaded)
-let _selectedMusicId   = '';   // music_library id, or '' for none
+let _selectedMusicId   = '';   // music_library or user_music_library id, or '' for none
 let _pendingBgFile     = null; // File object if user uploaded custom bg
-let _pendingAudioFile  = null; // File object if user uploaded audio for this note
+let _pendingAudioFile  = null; // File object if user uploaded audio for this note only
 let _uploadedAudioUrl  = '';   // set after successful audio upload
 let _noteBgLibrary     = null; // cached [{id,url,label}]
-let _musicLibrary      = null; // cached [{id,url,title,artist}]
+let _globalMusicLib    = null; // cached global tracks [{id,url,title,artist,source:'global'}]
+let _userMusicLib      = null; // cached user tracks [{id,url,title,artist,source:'user'}]
 
 // ── Audio upload helpers ───────────────────────────────────────────────────
 function updateAudioLabel() {
@@ -1136,9 +1137,11 @@ document.getElementById('fAudioFile')?.addEventListener('change', e => {
   if (!file) return;
   _pendingAudioFile = file;
   _uploadedAudioUrl = '';
-  // Clear library/URL music selection — audio file takes precedence
+  _selectedMusicId  = '';       // clear library selection
   document.getElementById('fMusic').value = '';
+  clearMusicTrackSelection();
   updateAudioLabel();
+  updateDefaultMusicNotice();
 });
 
 document.getElementById('fAudioClearBtn')?.addEventListener('click', () => {
@@ -1147,6 +1150,37 @@ document.getElementById('fAudioClearBtn')?.addEventListener('click', () => {
   const inp = document.getElementById('fAudioFile');
   if (inp) inp.value = '';
   updateAudioLabel();
+  updateDefaultMusicNotice();
+});
+
+// ── User library upload ────────────────────────────────────────────────────
+document.getElementById('fUserMusicUpload')?.addEventListener('change', async e => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const statusEl = document.getElementById('fUserMusicStatus');
+  if (statusEl) statusEl.textContent = 'Uploading…';
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('title', file.name.replace(/\.[^.]+$/, ''));
+    const res  = await fetch('/api/user-music', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: fd,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    if (statusEl) statusEl.textContent = '✅ Added!';
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2500);
+    // Refresh user lib cache and re-render
+    _userMusicLib = null;
+    e.target.value = '';
+    await renderMusicPicker(_selectedMusicId, '');
+    toast('🎵 Track added to your library!');
+  } catch (err) {
+    if (statusEl) statusEl.textContent = '❌ ' + err.message;
+    toast('Upload failed: ' + err.message);
+  }
 });
 
 async function loadNoteBgLibrary() {
@@ -1157,20 +1191,86 @@ async function loadNoteBgLibrary() {
   } catch { _noteBgLibrary = []; }
   return _noteBgLibrary;
 }
-async function loadMusicLibrary() {
-  if (_musicLibrary) return _musicLibrary;
+
+async function loadGlobalMusicLibrary() {
+  if (_globalMusicLib) return _globalMusicLib;
   try {
     const d = await fetch('/api/music-library').then(r => r.json());
-    _musicLibrary = d.tracks || [];
-  } catch { _musicLibrary = []; }
-  return _musicLibrary;
+    _globalMusicLib = (d.tracks || []).map(t => ({ ...t, source: 'global' }));
+  } catch { _globalMusicLib = []; }
+  return _globalMusicLib;
+}
+
+async function loadUserMusicLibrary() {
+  if (_userMusicLib) return _userMusicLib;
+  if (!token) { _userMusicLib = []; return _userMusicLib; }
+  try {
+    const d = await fetch('/api/user-music', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+    _userMusicLib = (d.tracks || []).map(t => ({ ...t, source: 'user' }));
+  } catch { _userMusicLib = []; }
+  return _userMusicLib;
+}
+
+// Clear active highlight from all track buttons in both columns
+function clearMusicTrackSelection() {
+  document.querySelectorAll('.mpc-track-btn.active').forEach(b => b.classList.remove('active'));
+}
+
+// Build a list of track buttons into a container element
+function buildTrackList(container, tracks, activeMusicId) {
+  container.innerHTML = '';
+  if (!tracks.length) {
+    container.innerHTML = '<div class="music-col-empty">No tracks</div>';
+    return;
+  }
+  tracks.forEach(t => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'mpc-track-btn' + (activeMusicId === t.id ? ' active' : '');
+    btn.dataset.musicId  = t.id;
+    btn.dataset.musicUrl = t.url;
+    btn.dataset.source   = t.source || '';
+    btn.title = `${t.title}${t.artist ? ' — ' + t.artist : ''}`;
+
+    const del = t.source === 'user' ? `<button type="button" class="mpc-del-btn" data-del-id="${t.id}" title="Remove from my library">×</button>` : '';
+    btn.innerHTML = `<span class="mpc-note">♪</span><span class="mpc-info"><span class="mpc-title">${esc(t.title)}</span>${t.artist ? `<span class="mpc-artist"> · ${esc(t.artist)}</span>` : ''}</span>${del}`;
+
+    btn.addEventListener('click', ev => {
+      if (ev.target.closest('.mpc-del-btn')) return;  // handled below
+      clearMusicTrackSelection();
+      btn.classList.add('active');
+      _selectedMusicId = t.id;
+      _pendingAudioFile = null;
+      _uploadedAudioUrl = '';
+      document.getElementById('fMusic').value = '';
+      updateAudioLabel();
+      updateDefaultMusicNotice();
+    });
+
+    // delete button (user tracks only)
+    const delBtn = btn.querySelector('.mpc-del-btn');
+    if (delBtn) {
+      delBtn.addEventListener('click', async ev => {
+        ev.stopPropagation();
+        if (!confirm('Remove "' + t.title + '" from your library?')) return;
+        try {
+          const r = await fetch('/api/user-music/' + t.id, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+          if (!r.ok) throw new Error((await r.json().catch(()=>({}))).error || 'Delete failed');
+          if (_selectedMusicId === t.id) { _selectedMusicId = ''; }
+          _userMusicLib = null;
+          await renderMusicPicker(_selectedMusicId, '');
+          toast('Track removed');
+        } catch (err) { toast('Error: ' + err.message); }
+      });
+    }
+    container.appendChild(btn);
+  });
 }
 
 async function renderNoteBgPicker(activeBgUrl) {
   const picker = document.getElementById('noteBgPicker');
   if (!picker) return;
   const lib = await loadNoteBgLibrary();
-  // Keep the Default button, rebuild thumbnails
   picker.innerHTML = `
     <button type="button" class="note-bg-opt note-bg-none${!activeBgUrl ? ' active' : ''}" id="noteBgNoneBtn" title="No background">
       <span class="note-bg-none-label">Default</span>
@@ -1211,35 +1311,39 @@ function updateBgSelectedLabel() {
   }
 }
 
-async function renderMusicPicker(activeMusicId, activeCustomUrl) {
-  const row = document.getElementById('musicPickerRow');
-  if (!row) return;
-  const lib = await loadMusicLibrary();
-  const noneActive = !activeMusicId && !activeCustomUrl;
-  row.innerHTML = `
-    <button type="button" class="music-pick-none${noneActive ? ' active' : ''}" id="musicNoneBtn">🔇 None</button>
-    ${lib.map(t => `
-      <button type="button" class="music-pick-btn${activeMusicId === t.id ? ' active' : ''}"
-        data-music-id="${t.id}" data-music-url="${t.url}" title="${esc(t.title)}${t.artist ? ' — ' + esc(t.artist) : ''}">
-        ♪ ${esc(t.title)}${t.artist ? `<span class="mp-artist"> · ${esc(t.artist)}</span>` : ''}
-      </button>`).join('')}
-  `;
-  _selectedMusicId = activeMusicId || '';
+// Show "default music will be set to …" notice when nothing is selected
+function updateDefaultMusicNotice() {
+  const el = document.getElementById('defaultMusicNotice');
+  if (!el) return;
+  const hasSelection = _selectedMusicId || _pendingAudioFile || _uploadedAudioUrl ||
+                       document.getElementById('fMusic')?.value?.trim();
+  if (hasSelection) { el.style.display = 'none'; return; }
 
-  document.getElementById('musicNoneBtn').addEventListener('click', () => {
-    row.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-    document.getElementById('musicNoneBtn').classList.add('active');
-    _selectedMusicId = '';
-    document.getElementById('fMusic').value = '';
-  });
-  row.querySelectorAll('.music-pick-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      row.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      _selectedMusicId = btn.dataset.musicId;
-      document.getElementById('fMusic').value = ''; // clear custom URL when library track chosen
-    });
-  });
+  // Pick a random from combined pool
+  const pool = [...(_userMusicLib || []), ...(_globalMusicLib || [])];
+  if (!pool.length) { el.style.display = 'none'; return; }
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  el.style.display = '';
+  el.textContent = `♪ No music selected — a random track will be set on save: "${pick.title}"`;
+  el._defaultTrack = pick;
+}
+
+async function renderMusicPicker(activeMusicId, activeCustomUrl) {
+  const userContainer   = document.getElementById('musicUserTracks');
+  const globalContainer = document.getElementById('musicGlobalTracks');
+  if (!userContainer || !globalContainer) return;
+
+  // Load both libraries
+  const [userTracks, globalTracks] = await Promise.all([
+    loadUserMusicLibrary(),
+    loadGlobalMusicLibrary(),
+  ]);
+
+  buildTrackList(userContainer, userTracks, activeMusicId);
+  buildTrackList(globalContainer, globalTracks, activeMusicId);
+
+  _selectedMusicId = activeMusicId || '';
+  updateDefaultMusicNotice();
 }
 
 // Wire the "Upload custom bg" file input
@@ -1247,8 +1351,7 @@ document.getElementById('fBgFile')?.addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
   _pendingBgFile = file;
-  _selectedBgUrl = ''; // will be uploaded on save
-  // deselect library thumbs
+  _selectedBgUrl = '';
   document.querySelectorAll('#noteBgPicker .note-bg-opt').forEach(b => b.classList.remove('active'));
   updateBgSelectedLabel();
 });
@@ -1350,19 +1453,33 @@ document.getElementById('fSave').onclick = async () => {
     } catch { bgUrl = ''; }
   }
 
-  // Determine final musicUrl — priority: uploaded file > URL text > library (handled via noteMusicId)
-  let finalMusicUrl = _selectedMusicId ? '' : (musicUrl || _uploadedAudioUrl);
+  // Determine final music — priority: uploaded file > URL text > library selection > random default
+  let finalMusicUrl    = _selectedMusicId ? '' : (musicUrl || _uploadedAudioUrl);
+  let finalNoteMusicId = _selectedMusicId;
+  let defaultMusicLabel = '';
+
+  if (!finalMusicUrl && !finalNoteMusicId && !_pendingAudioFile) {
+    // No music selected — pick a random one from user lib then global lib
+    const pool = [...(_userMusicLib || []), ...(_globalMusicLib || [])];
+    if (pool.length) {
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      finalNoteMusicId = pick.id;
+      defaultMusicLabel = `♪ Default music set to: "${pick.title}"`;
+    }
+  }
 
   const payload = { title: title||'Untitled', body, font, titleFont, fontSize, fontWeight, colorIdx,
                     musicUrl: finalMusicUrl,
-                    noteMusicId: _selectedMusicId,
+                    noteMusicId: finalNoteMusicId,
                     bgUrl, tags };
   try {
     let saved;
     if (editId) {
-      saved = await api('PUT', `/notes/${editId}`, payload); toast('Entry updated ✅');
+      saved = await api('PUT', `/notes/${editId}`, payload);
+      toast(defaultMusicLabel ? `Entry updated ✅  ${defaultMusicLabel}` : 'Entry updated ✅', defaultMusicLabel ? 4000 : 2600);
     } else {
-      saved = await api('POST', '/notes', payload); toast('Entry saved 💾');
+      saved = await api('POST', '/notes', payload);
+      toast(defaultMusicLabel ? `Entry saved 💾  ${defaultMusicLabel}` : 'Entry saved 💾', defaultMusicLabel ? 4000 : 2600);
     }
     // Upload audio file if one was selected (replaces the placeholder musicUrl)
     if (_pendingAudioFile) {

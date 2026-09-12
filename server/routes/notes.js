@@ -76,11 +76,16 @@ function buildNote(row, req, authorUser) {
   let tags = [];
   try { tags = JSON.parse(row.tags || '[]'); } catch { tags = []; }
 
-  // Resolve music URL: note_music_id → music_library row → url
+  // Resolve music URL: note_music_id → music_library (global) OR user_music_library
   let resolvedMusicUrl = row.music_url || '';
   if (!resolvedMusicUrl && row.note_music_id) {
-    const track = db.prepare('SELECT filename FROM music_library WHERE id = ?').get(row.note_music_id);
-    if (track) resolvedMusicUrl = '/music-library/' + track.filename;
+    const globalTrack = db.prepare('SELECT filename FROM music_library WHERE id = ?').get(row.note_music_id);
+    if (globalTrack) {
+      resolvedMusicUrl = '/music-library/' + globalTrack.filename;
+    } else {
+      const userTrack = db.prepare('SELECT filename FROM user_music_library WHERE id = ?').get(row.note_music_id);
+      if (userTrack) resolvedMusicUrl = '/user-music/' + userTrack.filename;
+    }
   }
 
   const noteObj = {
