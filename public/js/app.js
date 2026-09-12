@@ -2478,7 +2478,10 @@ function renderDetail(note) {
         ${note.editedAt ? `<span>✏️ Edited&nbsp;${fmtDate(note.editedAt)}</span>` : ''}
         <span>💬 ${(note.replies||[]).length} ${(note.replies||[]).length===1?'reply':'replies'}</span>
       </div>
-      ${note.musicUrl ? `<div style="font-size:12px;color:var(--accent);margin-bottom:12px;font-style:italic;font-family:var(--sans)">♫ Background music is playing</div>` : ''}
+      ${note.musicUrl ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <span style="font-size:12px;color:var(--accent);font-style:italic;font-family:var(--sans)">♫ Background music is playing</span>
+        <button id="detailMuteBtn" onclick="window.fmpToggleMute&&window.fmpToggleMute()" style="font-size:11px;padding:2px 10px;border-radius:20px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;font-family:var(--sans);flex-shrink:0">🔊 Mute</button>
+      </div>` : ''}
       <div class="detail-body" style="font-family:${esc(note.font)};font-size:${note.fontSize||14}px;${fsCss};border-left-color:${p.accent}">${esc(note.body)}</div>
       <hr class="sep">
       <div class="section-label">React</div>
@@ -2735,7 +2738,7 @@ fmpPP?.addEventListener('click', () => {
 });
 
 // Mute toggle
-fmpMute?.addEventListener('click', () => {
+function fmpToggleMute() {
   if (audio.muted || audio.volume === 0) {
     audio.muted = false;
     if (audio.volume === 0) { audio.volume = 0.6; if (fmpVol) fmpVol.value = 0.6; }
@@ -2743,7 +2746,12 @@ fmpMute?.addEventListener('click', () => {
     audio.muted = true;
   }
   fmpSyncMute();
-});
+  // sync inline detail mute button label if visible
+  const btn = document.getElementById('detailMuteBtn');
+  if (btn) btn.textContent = audio.muted ? '🔇 Unmute' : '🔊 Mute';
+}
+window.fmpToggleMute = fmpToggleMute;
+fmpMute?.addEventListener('click', fmpToggleMute);
 
 // Volume slider
 fmpVol?.addEventListener('input', () => {
