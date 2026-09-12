@@ -1726,6 +1726,8 @@ async function openNewForm() {
   document.getElementById('fMusic').value  = '';
   document.getElementById('fTags').value   = '';
   document.getElementById('existMediaRow').innerHTML = '';
+  const isPublicCheckbox = document.getElementById('fIsPublic');
+  if (isPublicCheckbox) isPublicCheckbox.checked = false;
   // Use user's saved defaults, fallback to app defaults
   const defTitleFont = localStorage.getItem(LS_TITLE_FONT) ?? '';
   const defBodyFont  = localStorage.getItem(LS_BODY_FONT)  ?? "'Kalam',cursive";
@@ -1753,6 +1755,9 @@ async function openEditForm(note) {
   document.getElementById('fWeight').value = note.fontWeight || 'normal';
   document.getElementById('fMusic').value  = (note.musicUrl && !note.noteMusicId && !note.musicUrl.startsWith('/uploads/')) ? note.musicUrl : '';
   document.getElementById('fTags').value   = '';
+  // ── pre-populate the Make Public checkbox with the note's current state ──
+  const isPublicCheckbox = document.getElementById('fIsPublic');
+  if (isPublicCheckbox) isPublicCheckbox.checked = !!note.isPublic;
   syncFontPicker('titleFontPicker', 'fTitleFont', note.titleFont || '');
   syncFontPicker('bodyFontPicker',  'fFont',      note.font || "'Kalam',cursive");
   renderTagsChips();
