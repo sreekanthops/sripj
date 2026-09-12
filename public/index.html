@@ -6,7 +6,7 @@
   <title>Unsent Stories</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/css/style.css?v=15">
+  <link rel="stylesheet" href="/css/style.css?v=16">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -324,10 +324,8 @@
     </div>
     <div class="field">
       <label>Title Font</label>
-      <!-- hidden input keeps the value; buttons are the visual picker -->
       <input type="hidden" id="fTitleFont" value="">
       <div class="font-picker-grid" id="titleFontPicker">
-        <button type="button" class="fpick-btn active" data-font="" style="font-family:'Caveat',cursive;font-style:italic">Aa Default</button>
         <button type="button" class="fpick-btn" data-font="'Satisfy',cursive" style="font-family:'Satisfy',cursive">Satisfy</button>
         <button type="button" class="fpick-btn" data-font="'Kalam',cursive" style="font-family:'Kalam',cursive">Kalam</button>
         <button type="button" class="fpick-btn" data-font="'Caveat',cursive" style="font-family:'Caveat',cursive">Caveat</button>
@@ -336,15 +334,17 @@
         <button type="button" class="fpick-btn" data-font="'Palatino Linotype',serif" style="font-family:'Palatino Linotype',serif">Palatino</button>
         <button type="button" class="fpick-btn" data-font="Arial,sans-serif" style="font-family:Arial,sans-serif">Arial</button>
       </div>
+      <div class="fpick-default-row">
+        <button type="button" class="fpick-set-default-btn" id="titleFontSetDefault">★ Set as Default</button>
+        <span class="fpick-default-label" id="titleFontDefaultLabel"></span>
+      </div>
       <!-- live title preview -->
       <div class="title-font-preview" id="titleFontPreview">Your title here…</div>
     </div>
     <div class="field">
       <label>Body Style</label>
-      <!-- hidden input keeps the value; buttons are the visual picker -->
       <input type="hidden" id="fFont" value="'Kalam',cursive">
       <div class="font-picker-grid" id="bodyFontPicker">
-        <button type="button" class="fpick-btn" data-font="" style="font-family:'Kalam',cursive;font-style:italic">Aa Default</button>
         <button type="button" class="fpick-btn active" data-font="'Kalam',cursive" style="font-family:'Kalam',cursive">Kalam</button>
         <button type="button" class="fpick-btn" data-font="Georgia,serif" style="font-family:Georgia,serif">Georgia</button>
         <button type="button" class="fpick-btn" data-font="'Palatino Linotype',serif" style="font-family:'Palatino Linotype',serif">Palatino</button>
@@ -353,6 +353,10 @@
         <button type="button" class="fpick-btn" data-font="Verdana,sans-serif" style="font-family:Verdana,sans-serif">Verdana</button>
         <button type="button" class="fpick-btn" data-font="'Caveat',cursive" style="font-family:'Caveat',cursive">Caveat</button>
         <button type="button" class="fpick-btn" data-font="'Comic Sans MS',cursive" style="font-family:'Comic Sans MS',cursive">Comic Sans</button>
+      </div>
+      <div class="fpick-default-row">
+        <button type="button" class="fpick-set-default-btn" id="bodyFontSetDefault">★ Set as Default</button>
+        <span class="fpick-default-label" id="bodyFontDefaultLabel"></span>
       </div>
       <div class="style-row" style="margin-top:8px;margin-bottom:0">
         <input type="number" id="fSize" value="14" min="10" max="28" title="Font size">

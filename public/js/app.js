@@ -1001,6 +1001,43 @@ function activeCI() {
 }
 
 // ── FONT PICKERS ──────────────────────────────────────────────────────────
+// localStorage keys for user-saved font defaults
+const LS_TITLE_FONT = 'diary_default_title_font';
+const LS_BODY_FONT  = 'diary_default_body_font';
+
+function getFontLabel(fontValue) {
+  const map = {
+    '': 'Caveat (app default)',
+    "'Satisfy',cursive":           'Satisfy',
+    "'Kalam',cursive":             'Kalam',
+    "'Caveat',cursive":            'Caveat',
+    "'Playfair Display',serif":    'Playfair',
+    'Georgia,serif':               'Georgia',
+    "'Palatino Linotype',serif":   'Palatino',
+    'Arial,sans-serif':            'Arial',
+    'Verdana,sans-serif':          'Verdana',
+    "'Courier New',monospace":     'Courier',
+    "'Comic Sans MS',cursive":     'Comic Sans',
+  };
+  return map[fontValue] || fontValue || 'App Default';
+}
+
+// Update ★ badges on buttons to reflect the saved default
+function refreshDefaultBadge(gridId, defaultFont) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  grid.querySelectorAll('.fpick-btn').forEach(btn => {
+    btn.classList.toggle('is-default', (btn.dataset.font || '') === (defaultFont || ''));
+  });
+}
+
+// Update the label text showing current default
+function refreshDefaultLabel(labelId, defaultFont) {
+  const el = document.getElementById(labelId);
+  if (!el) return;
+  el.textContent = defaultFont !== null ? `Current default: ${getFontLabel(defaultFont)}` : '';
+}
+
 // Wire a font-picker-grid: clicking a button updates hidden input + active state
 function wireFontPicker(gridId, hiddenId, onPick) {
   const grid = document.getElementById(gridId);
@@ -1027,11 +1064,32 @@ function syncFontPicker(gridId, hiddenId, fontValue) {
     btn.classList.toggle('active', match);
     if (match) matched = true;
   });
-  // If no exact match, mark Default (first button) active
   if (!matched) {
-    grid.querySelector('.fpick-btn')?.classList.add('active');
-    document.getElementById(hiddenId).value = grid.querySelector('.fpick-btn')?.dataset.font || '';
+    // fall back to first button
+    const first = grid.querySelector('.fpick-btn');
+    if (first) {
+      first.classList.add('active');
+      document.getElementById(hiddenId).value = first.dataset.font || '';
+    }
   }
+}
+
+// Wire "Set as Default" buttons
+function wireSetDefaultBtn(btnId, gridId, lsKey, labelId) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const grid = document.getElementById(gridId);
+    const activeBtn = grid?.querySelector('.fpick-btn.active');
+    const val = activeBtn ? (activeBtn.dataset.font || '') : '';
+    localStorage.setItem(lsKey, val);
+    btn.textContent = '✓ Saved!';
+    btn.classList.add('saved');
+    setTimeout(() => { btn.textContent = '★ Set as Default'; btn.classList.remove('saved'); }, 1800);
+    refreshDefaultBadge(gridId, val);
+    refreshDefaultLabel(labelId, val);
+    toast(`Default font set to ${getFontLabel(val)}`);
+  });
 }
 
 // Update the title font preview strip
@@ -1066,12 +1124,18 @@ function applyBodyPreview() {
 ;(function wirePreviewControls() {
   wireFontPicker('titleFontPicker', 'fTitleFont', () => applyTitleFontPreview());
   wireFontPicker('bodyFontPicker',  'fFont',      () => applyBodyPreview());
+  wireSetDefaultBtn('titleFontSetDefault', 'titleFontPicker', LS_TITLE_FONT, 'titleFontDefaultLabel');
+  wireSetDefaultBtn('bodyFontSetDefault',  'bodyFontPicker',  LS_BODY_FONT,  'bodyFontDefaultLabel');
   ['fSize', 'fWeight'].forEach(id => {
     document.getElementById(id).addEventListener('input',  applyBodyPreview);
     document.getElementById(id).addEventListener('change', applyBodyPreview);
   });
-  // Also update title preview when user types in title input
   document.getElementById('fTitle')?.addEventListener('input', applyTitleFontPreview);
+  // Show current saved defaults on page load
+  const savedTitle = localStorage.getItem(LS_TITLE_FONT);
+  const savedBody  = localStorage.getItem(LS_BODY_FONT);
+  if (savedTitle !== null) { refreshDefaultBadge('titleFontPicker', savedTitle); refreshDefaultLabel('titleFontDefaultLabel', savedTitle); }
+  if (savedBody  !== null) { refreshDefaultBadge('bodyFontPicker',  savedBody);  refreshDefaultLabel('bodyFontDefaultLabel',  savedBody);  }
 })();
 
 // ── UPLOAD ZONE ────────────────────────────────────────────────────────────
@@ -1447,8 +1511,11 @@ async function openNewForm() {
   document.getElementById('fMusic').value  = '';
   document.getElementById('fTags').value   = '';
   document.getElementById('existMediaRow').innerHTML = '';
-  syncFontPicker('titleFontPicker', 'fTitleFont', '');
-  syncFontPicker('bodyFontPicker',  'fFont',      "'Kalam',cursive");
+  // Use user's saved defaults, fallback to app defaults
+  const defTitleFont = localStorage.getItem(LS_TITLE_FONT) ?? '';
+  const defBodyFont  = localStorage.getItem(LS_BODY_FONT)  ?? "'Kalam',cursive";
+  syncFontPicker('titleFontPicker', 'fTitleFont', defTitleFont);
+  syncFontPicker('bodyFontPicker',  'fFont',      defBodyFont);
   renderTagsChips();
   buildSwatches(0); setupUploadZone();
   applyBodyPreview();
