@@ -2475,7 +2475,6 @@ function renderDetail(note) {
       <div class="detail-meta">
         <span class="detail-date">✦ ${fmtDiaryDate(note.createdAt, true)} · ${fmtTime(note.createdAt)}</span>
         ${isOwner ? `<span>👁 ${note.views} views</span>` : ''}
-        ${note.editedAt ? `<span>✏️ Edited&nbsp;${fmtDate(note.editedAt)}</span>` : ''}
         <span>💬 ${(note.replies||[]).length} ${(note.replies||[]).length===1?'reply':'replies'}</span>
       </div>
       ${note.musicUrl ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
