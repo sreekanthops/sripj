@@ -539,13 +539,13 @@ async function openProfileModal() {
   // Fetch latest user details
   try {
     const data = await api('GET', '/auth/verify');
-    currentUser.email = data.email || '';
-    currentUser.avatarUrl = data.avatarUrl || '';
-    currentUser.displayName = data.displayName || '';
-    currentUser.bio = data.bio || '';
-    document.getElementById('profEmail').value = currentUser.email;
-    document.getElementById('profName').value  = currentUser.displayName;
-    document.getElementById('profBio').value   = currentUser.bio;
+    if (data.email    !== undefined) currentUser.email       = data.email;
+    if (data.avatarUrl !== undefined) currentUser.avatarUrl  = data.avatarUrl;
+    if (data.displayName) currentUser.displayName = data.displayName;
+    if (data.bio      !== undefined) currentUser.bio         = data.bio;
+    document.getElementById('profEmail').value = currentUser.email || '';
+    document.getElementById('profName').value  = currentUser.displayName || '';
+    document.getElementById('profBio').value   = currentUser.bio || '';
     renderProfileAvatar(currentUser.avatarUrl);
     renderTopbarUserChip();
   } catch {}
@@ -566,8 +566,8 @@ document.getElementById('profAvatarInput')?.addEventListener('change', async e =
       headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}) },
       body: fd
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Upload failed (${res.status})`);
     currentUser.avatarUrl = data.avatarUrl;
     renderProfileAvatar(currentUser.avatarUrl);
     renderTopbarUserChip();
