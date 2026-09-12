@@ -6,16 +6,78 @@
   <title>Unsent Stories</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/css/style.css?v=3">
+  <link rel="stylesheet" href="/css/style.css?v=4">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
-<!-- ══ AUTH SCREEN ═══════════════════════════════════════════ -->
-<div id="authScreen" class="auth-screen">
-  <div class="auth-bg-art"></div>
+<!-- ══ LANDING PAGE ═══════════════════════════════════════════ -->
+<div id="authScreen" class="landing-screen">
+
+  <!-- Landing topbar -->
+  <nav class="landing-nav">
+    <div class="landing-nav-inner">
+      <div class="landing-brand">
+        <span class="landing-brand-icon">✦</span>
+        <span class="brand-unsent">Unsent</span>
+        <span class="brand-stories" style="font-size:14px;letter-spacing:2px">Stories</span>
+      </div>
+      <button class="btn btn-primary landing-signin-btn" id="landingSignInBtn">Sign In</button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <div class="landing-hero">
+    <div class="landing-hero-inner">
+      <div class="landing-hero-eyebrow">your private diary</div>
+      <h1 class="landing-hero-title">
+        <span class="brand-unsent" style="font-size:inherit">Unsent</span><br>
+        <span class="brand-stories" style="font-size:inherit;letter-spacing:5px">Stories</span>
+      </h1>
+      <p class="landing-hero-sub">A quiet space to write the words you never sent.<br>Reflect, remember, and share — on your terms.</p>
+      <div class="landing-hero-actions">
+        <button class="btn btn-primary landing-cta-btn" id="landingStartBtn">Start Writing</button>
+        <button class="btn btn-outline landing-cta-btn" id="landingLearnBtn">Learn More</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <div class="landing-features" id="landingLearnSection">
+    <div class="landing-features-inner">
+      <div class="landing-feat">
+        <div class="landing-feat-icon">✍️</div>
+        <div class="landing-feat-title">Write freely</div>
+        <div class="landing-feat-desc">Rich text entries with moods, tags, and media. Your thoughts, beautifully kept.</div>
+      </div>
+      <div class="landing-feat">
+        <div class="landing-feat-icon">🔒</div>
+        <div class="landing-feat-title">Private by default</div>
+        <div class="landing-feat-desc">Your diary is yours alone. Share only what you want, with a private link — no username exposed.</div>
+      </div>
+      <div class="landing-feat">
+        <div class="landing-feat-icon">🔗</div>
+        <div class="landing-feat-title">Share your stories</div>
+        <div class="landing-feat-desc">Send a secret link to let friends read your stories — no sign-in required for them.</div>
+      </div>
+      <div class="landing-feat">
+        <div class="landing-feat-icon">✨</div>
+        <div class="landing-feat-title">AI-powered writing</div>
+        <div class="landing-feat-desc">Rephrase, expand or condense your entries with built-in AI writing tools.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="landing-footer">
+    &copy; 2025 Unsent Stories &nbsp;·&nbsp; <a href="/pricing">Pricing</a>
+  </footer>
+</div>
+
+<!-- ══ AUTH MODAL ════════════════════════════════════════════ -->
+<div id="authModal" class="auth-modal-overlay hidden">
   <div class="auth-card">
+    <button class="auth-modal-close" id="authModalClose" aria-label="Close">&times;</button>
     <div class="auth-logo">
       <div class="auth-logo-icon">✦</div>
       <div class="auth-logo-name">
@@ -706,6 +768,6 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=4"></script>
+<script src="/js/app.js?v=5"></script>
 </body>
 </html>

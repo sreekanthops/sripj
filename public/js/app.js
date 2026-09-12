@@ -148,15 +148,39 @@ async function apiUpload(noteId, files) {
 }
 
 // ── SCREEN SWITCHING ───────────────────────────────────────────────────────
-function showAuth() {
+function showLanding() {
   document.getElementById('authScreen').classList.remove('hidden');
   document.getElementById('appScreen').classList.add('hidden');
+  document.getElementById('authModal').classList.add('hidden');
+}
+function showAuth() {
+  // Show landing page + open the sign-in modal
+  document.getElementById('authScreen').classList.remove('hidden');
+  document.getElementById('appScreen').classList.add('hidden');
+  document.getElementById('authModal').classList.remove('hidden');
 }
 function showApp() {
   document.getElementById('authScreen').classList.add('hidden');
   document.getElementById('appScreen').classList.remove('hidden');
+  document.getElementById('authModal').classList.add('hidden');
   renderTopbarUserChip();
 }
+
+// ── LANDING PAGE BUTTONS ────────────────────────────────────────────────────
+document.getElementById('landingSignInBtn')?.addEventListener('click', () => showAuth());
+document.getElementById('landingStartBtn')?.addEventListener('click', () => showAuth());
+document.getElementById('landingLearnBtn')?.addEventListener('click', () => {
+  document.getElementById('landingLearnSection')?.scrollIntoView({ behavior: 'smooth' });
+});
+document.getElementById('authModalClose')?.addEventListener('click', () => {
+  document.getElementById('authModal').classList.add('hidden');
+});
+// Close modal on backdrop click
+document.getElementById('authModal')?.addEventListener('click', e => {
+  if (e.target === document.getElementById('authModal')) {
+    document.getElementById('authModal').classList.add('hidden');
+  }
+});
 
 // ── AUTH ───────────────────────────────────────────────────────────────────
 document.querySelectorAll('.auth-tab').forEach(tab => {
@@ -487,7 +511,7 @@ document.getElementById('headerActions').addEventListener('click', e => {
     window._chatbotSetOwner?.(false);
     renderTopbarUserChip();
     history.replaceState({}, '', '/');
-    showAuth();
+    showLanding();
   } else if (action === 'go-home') {
     enterOwnDiary();
   } else if (action === 'go-login') {
@@ -2572,16 +2596,17 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
     await enterSingleNote(entryId);
 
   } else if (shareToken) {
-    // /s/:token — load diary directly by token (username never needed or exposed)
+    // /s/:token — open diary by token, NO sign-in required for visitors
     try {
       if (currentUser && currentUser.shareToken === shareToken) {
         await enterOwnDiary();
       } else {
-        await enterPublicDiary(shareToken, '', true); // byToken=true → uses /api/notes/s/:token
+        // Works for both logged-in visitors and anonymous visitors
+        await enterPublicDiary(shareToken, '', true);
       }
     } catch {
       if (currentUser) await enterOwnDiary();
-      else showAuth();
+      else showLanding(); // show landing, not sign-in modal
     }
 
   } else if (urlUsername) {
@@ -2589,15 +2614,13 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
     if (currentUser && currentUser.username === urlUsername) {
       await enterOwnDiary(); // will rewrite URL to /s/<token>
     } else {
-      // visiting someone else's /u/ link — load by username but URL gets rewritten
-      // to /s/<token> inside enterPublicDiary once we have the shareToken from API
       await enterPublicDiary(urlUsername);
     }
 
   } else if (currentUser) {
     await enterOwnDiary();
   } else {
-    showAuth();
+    showLanding(); // show landing page, not sign-in modal
   }
 
   initGoogleOAuth();
