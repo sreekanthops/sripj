@@ -89,6 +89,7 @@ function buildNote(row, req, authorUser) {
     title:         row.title,
     body:          row.body,
     font:          row.font,
+    titleFont:     row.title_font || '',
     fontSize:      row.font_size,
     fontWeight:    row.font_weight,
     colorIdx:      row.color_idx,
@@ -225,7 +226,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
 // POST /api/notes  (owner only)
 router.post('/', verifyToken, (req, res) => {
-  const { title, body, font, fontSize, fontWeight, colorIdx, musicUrl, tags, bgUrl, noteMusicId, ttsVoice, ttsTone } = req.body;
+  const { title, body, font, titleFont, fontSize, fontWeight, colorIdx, musicUrl, tags, bgUrl, noteMusicId, ttsVoice, ttsTone } = req.body;
   if (!title && !body) return res.status(400).json({ error: 'Title or body required' });
 
   const plan = getUserPlan(req.user.userId);
@@ -241,11 +242,11 @@ router.post('/', verifyToken, (req, res) => {
   const id = uuidv4();
   const tagsJson = JSON.stringify(Array.isArray(tags) ? tags : []);
   db.prepare(`
-    INSERT INTO notes (id, user_id, title, body, font, font_size, font_weight, color_idx, music_url, tags, bg_url, note_music_id, tts_voice, tts_tone, views, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
-  `).run(id, req.user.userId, title || '', body || '', font || 'Georgia,serif', fontSize || 14, fontWeight || 'normal',
-         colorIdx ?? 0, musicUrl || '', tagsJson, bgUrl || '', noteMusicId || '',
-         ttsVoice || 'female', ttsTone || 'auto', new Date().toISOString());
+    INSERT INTO notes (id, user_id, title, body, font, title_font, font_size, font_weight, color_idx, music_url, tags, bg_url, note_music_id, tts_voice, tts_tone, views, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+  `).run(id, req.user.userId, title || '', body || '', font || "'Kalam',cursive", titleFont || '',
+         fontSize || 14, fontWeight || 'normal', colorIdx ?? 0, musicUrl || '', tagsJson,
+         bgUrl || '', noteMusicId || '', ttsVoice || 'female', ttsTone || 'auto', new Date().toISOString());
   res.status(201).json(buildNote(db.prepare('SELECT * FROM notes WHERE id = ?').get(id), req));
 });
 
@@ -254,12 +255,13 @@ router.put('/:id', verifyToken, (req, res) => {
   const row = db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Not found' });
   if (row.user_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
-  const { title, body, font, fontSize, fontWeight, colorIdx, musicUrl, tags, bgUrl, noteMusicId, ttsVoice, ttsTone } = req.body;
+  const { title, body, font, titleFont, fontSize, fontWeight, colorIdx, musicUrl, tags, bgUrl, noteMusicId, ttsVoice, ttsTone } = req.body;
   const tagsJson = tags !== undefined ? JSON.stringify(Array.isArray(tags) ? tags : []) : row.tags;
   db.prepare(`
-    UPDATE notes SET title=?, body=?, font=?, font_size=?, font_weight=?, color_idx=?, music_url=?, tags=?, bg_url=?, note_music_id=?, tts_voice=?, tts_tone=?, edited_at=?
+    UPDATE notes SET title=?, body=?, font=?, title_font=?, font_size=?, font_weight=?, color_idx=?, music_url=?, tags=?, bg_url=?, note_music_id=?, tts_voice=?, tts_tone=?, edited_at=?
     WHERE id=?
   `).run(title ?? row.title, body ?? row.body, font ?? row.font,
+         titleFont !== undefined ? titleFont : (row.title_font ?? ''),
          fontSize ?? row.font_size, fontWeight ?? row.font_weight,
          colorIdx ?? row.color_idx, musicUrl ?? row.music_url,
          tagsJson, bgUrl ?? row.bg_url ?? '', noteMusicId ?? row.note_music_id ?? '',

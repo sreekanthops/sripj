@@ -202,6 +202,7 @@ if (!hasColumn('notes', 'note_music_id')) db.exec(`ALTER TABLE notes ADD COLUMN 
 // notes TTS voice & tone settings
 if (!hasColumn('notes', 'tts_voice'))     db.exec(`ALTER TABLE notes ADD COLUMN tts_voice     TEXT NOT NULL DEFAULT 'female'`);
 if (!hasColumn('notes', 'tts_tone'))      db.exec(`ALTER TABLE notes ADD COLUMN tts_tone      TEXT NOT NULL DEFAULT 'auto'`);
+if (!hasColumn('notes', 'title_font'))    db.exec(`ALTER TABLE notes ADD COLUMN title_font    TEXT NOT NULL DEFAULT ''`);
 
 // note_backgrounds — admin-managed library of note background images
 if (!hasTable('note_backgrounds')) {

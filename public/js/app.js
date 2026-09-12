@@ -1273,9 +1273,10 @@ function openNewForm() {
   _selectedBgUrl = ''; _selectedMusicId = ''; _pendingBgFile = null;
   resetAudioState();
   document.getElementById('formTitle').textContent = '✒ New Entry';
-  document.getElementById('fTitle').value  = '';
-  document.getElementById('fBody').value   = '';
-  document.getElementById('fFont').value   = "'Kalam',cursive";
+  document.getElementById('fTitle').value      = '';
+  document.getElementById('fBody').value       = '';
+  document.getElementById('fTitleFont').value  = '';
+  document.getElementById('fFont').value       = "'Kalam',cursive";
   document.getElementById('fSize').value   = 14;
   document.getElementById('fWeight').value = 'normal';
   document.getElementById('fMusic').value  = '';
@@ -1297,9 +1298,10 @@ function openEditForm(note) {
   _uploadedAudioUrl = (note.musicUrl && !note.noteMusicId && note.musicUrl.startsWith('/uploads/')) ? note.musicUrl : '';
   updateAudioLabel();
   document.getElementById('formTitle').textContent = '✒ Edit Entry';
-  document.getElementById('fTitle').value  = note.title;
-  document.getElementById('fBody').value   = note.body;
-  document.getElementById('fFont').value   = note.font || 'Georgia,serif';
+  document.getElementById('fTitle').value      = note.title;
+  document.getElementById('fBody').value       = note.body;
+  document.getElementById('fTitleFont').value  = note.titleFont || '';
+  document.getElementById('fFont').value       = note.font || "'Kalam',cursive";
   document.getElementById('fSize').value   = note.fontSize || 14;
   document.getElementById('fWeight').value = note.fontWeight || 'normal';
   // show custom URL only if it's not an uploaded file (uploaded shown in audio label)
@@ -1318,6 +1320,7 @@ document.getElementById('fSave').onclick = async () => {
   if (document.getElementById('fTags').value.trim()) addPendingTag(document.getElementById('fTags').value);
   const title      = document.getElementById('fTitle').value.trim();
   const body       = document.getElementById('fBody').value.trim();
+  const titleFont  = document.getElementById('fTitleFont').value;
   const font       = document.getElementById('fFont').value;
   const fontSize   = parseInt(document.getElementById('fSize').value) || 14;
   const fontWeight = document.getElementById('fWeight').value;
@@ -1350,7 +1353,7 @@ document.getElementById('fSave').onclick = async () => {
   // Determine final musicUrl — priority: uploaded file > URL text > library (handled via noteMusicId)
   let finalMusicUrl = _selectedMusicId ? '' : (musicUrl || _uploadedAudioUrl);
 
-  const payload = { title: title||'Untitled', body, font, fontSize, fontWeight, colorIdx,
+  const payload = { title: title||'Untitled', body, font, titleFont, fontSize, fontWeight, colorIdx,
                     musicUrl: finalMusicUrl,
                     noteMusicId: _selectedMusicId,
                     bgUrl, tags };
@@ -1837,9 +1840,9 @@ function buildNoteCard(n, index, total) {
       <span class="card-date">📅 ${fmtDate(n.createdAt)}</span>
       <span class="card-num">${n.pinned ? '<span class="pin-badge">📌 Pinned</span>' : numStr}</span>
     </div>
-    <div class="card-title">${esc(n.title)}</div>
+    <div class="card-title" ${n.titleFont ? `style="font-family:${esc(n.titleFont)}"` : ''}>${esc(n.title)}</div>
     ${!n.media?.length && n.body
-      ? `<div class="card-excerpt" style="font-family:${esc(n.font||'Georgia,serif')}">${esc(n.body)}</div>`
+      ? `<div class="card-excerpt" style="font-family:${esc(n.font||"'Kalam',cursive")}">${esc(n.body)}</div>`
       : ''}`;
   card.appendChild(body);
 
@@ -2115,7 +2118,7 @@ function renderDetail(note) {
     coverHtml = `<div id="tdMediaMount" class="td-cover-media"></div>`;
   } else {
     coverHtml = `<div class="td-cover-textbg" style="background:${p.bg}">
-      <div class="td-cover-title" style="color:${p.accent};font-family:${esc(note.font)}">${esc(note.title)}</div>
+      <div class="td-cover-title" style="color:${p.accent};font-family:${esc(note.titleFont||note.font)}">${esc(note.title)}</div>
     </div>`;
   }
 
@@ -2131,7 +2134,7 @@ function renderDetail(note) {
     ${coverHtml}
     <div class="${tdBodyClass}" style="${tdBodyStyle}">
       <div class="detail-header">
-        <h2 class="detail-title" style="font-family:${esc(note.font)};color:${p.accent}">${esc(note.title)}</h2>
+        <h2 class="detail-title" style="font-family:${esc(note.titleFont||note.font)};color:${p.accent}">${esc(note.title)}</h2>
       </div>
       <div class="detail-meta">
         <span>📅 ${fmtDate(note.createdAt)} · ${fmtTime(note.createdAt)}</span>
