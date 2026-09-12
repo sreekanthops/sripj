@@ -5,6 +5,9 @@ const morgan  = require('morgan');
 const path    = require('path');
 
 const app = express();
+// Trust reverse proxy (Nginx, Cloudflare, etc.) so req.ip and
+// x-forwarded-for contain the real visitor IP, not the proxy's IP
+app.set('trust proxy', true);
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ limit: '20mb', extended: true }));

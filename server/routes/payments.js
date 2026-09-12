@@ -265,15 +265,26 @@ router.put('/admin/plans/:id', verifyAdminToken, (req, res) => {
 
 // ── GET /api/payments/geo-price  — detect visitor region, return local prices ──
 router.get('/geo-price', async (req, res) => {
-  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
-  const region = await getRegionFromIp(ip);
+  // 1. Cloudflare sets cf-ipcountry header — free, instant, no API call needed
+  const cfCountry = (req.headers['cf-ipcountry'] || '').trim().toUpperCase();
+  // 2. Real visitor IP — works correctly now that trust proxy is enabled
+  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+    || req.ip || req.socket.remoteAddress || '';
+
+  let region;
+  if (cfCountry && cfCountry !== 'XX' && cfCountry !== 'T1') {
+    // Cloudflare header available — use it directly, no ip-api call needed
+    region = COUNTRY_TO_REGION[cfCountry] || 'ROW';
+  } else {
+    region = await getRegionFromIp(ip);
+  }
+
   let prices = getGeoPrices(region);
 
   // If no geo rows for this region, fall back to ROW
   if (!Object.keys(prices).length) prices = getGeoPrices('ROW');
 
-  // Final fallback: if still empty (geo_pricing table has no data at all),
-  // build INR prices from subscription_plans so India users always see ₹
+  // Final fallback: if geo_pricing table is empty, build INR prices from subscription_plans
   if (!Object.keys(prices).length) {
     const plans = db.prepare(`SELECT id, price_inr, discount_pct, discount_ends_at FROM subscription_plans WHERE id != 'free'`).all();
     const now = new Date();

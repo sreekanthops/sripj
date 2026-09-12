@@ -356,16 +356,19 @@ async function loadPlans() {
         countdownHtml = diff > 0 ? `Offer ends in <b>${diff} day${diff !== 1 ? 's' : ''}</b>` : '&nbsp;';
       }
 
-      // Price display — always prefer INR for IN region
+      // Price display — show ₹ when region is IN or geo currency is INR
+      // If the geo price itself is INR (e.g. server detected India via Cloudflare header),
+      // always treat as India regardless of geoRegion string
+      const isIndia = geoRegion === 'IN' || (geo && geo.currency === 'INR');
       let priceHtml = '';
       if (isFree) {
         priceHtml = `<div class="p-card-price"><sup>&#8377;</sup>0</div>`;
       } else if (geo) {
-        // For India show ₹ directly; for others show local + mention INR
         const sym = geo.symbol;
-        const amt = geo.amount % 1 === 0 ? geo.amount.toLocaleString() : geo.amount.toFixed(2);
+        const amt = geo.amount % 1 === 0 ? geo.amount.toLocaleString('en-IN') : geo.amount.toFixed(2);
         priceHtml = `<div class="p-card-price"><sup style="font-size:16px">${sym}</sup>${amt}</div>`;
-        if (geoRegion !== 'IN') {
+        // Only show the "₹X for India" sub-note for genuinely non-India visitors
+        if (!isIndia) {
           const inrPrice = p.discountActive ? p.effectivePriceInr : p.price_inr;
           if (inrPrice > 0)
             priceHtml += `<div style="font-size:11px;color:var(--ink4);margin-top:2px">&#8377;${inrPrice.toLocaleString('en-IN')} for India</div>`;
