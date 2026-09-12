@@ -3,7 +3,7 @@
    Beige parchment · Handwriting titles · Torn-paper cards
 ══════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Caveat:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=Satisfy&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Caveat:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=Satisfy&family=Kalam:wght@300;400;700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 15px; scroll-behavior: smooth; }
@@ -51,6 +51,7 @@ html { font-size: 15px; scroll-behavior: smooth; }
   --topbar-h:   64px;
   --serif:      'Playfair Display', Georgia, serif;
   --script:     'Caveat', cursive;
+  --handwriting:'Kalam', cursive;
   --sans:       'DM Sans', system-ui, sans-serif;
   --brand-unsent-font: 'Satisfy', cursive;
   --brand-stories-font: 'Playfair Display', Georgia, serif;
@@ -632,8 +633,8 @@ footer {
 }
 
 .card-excerpt {
-  font-family: var(--sans);
-  font-size: 13px; color: #3d3220; line-height: 1.75;
+  font-family: var(--handwriting);
+  font-size: 14.5px; color: #3d3220; line-height: 1.8;
   overflow: hidden; display: -webkit-box;
   -webkit-line-clamp: 4; -webkit-box-orient: vertical;
   padding-bottom: 6px;
@@ -1013,6 +1014,11 @@ body.is-owner .slide-del { display: block; }
   word-break: break-word; margin-bottom: 12px;
   color: var(--ink);
 }
+/* detail body text — overridden inline by note.font, but default to handwriting */
+.detail-body-text {
+  font-family: var(--handwriting);
+  font-size: 16px; line-height: 1.85; color: var(--ink2);
+}
 .detail-meta {
   display: flex; flex-wrap: wrap; gap: 14px;
   font-size: 11px; color: var(--ink4);
@@ -1020,7 +1026,7 @@ body.is-owner .slide-del { display: block; }
   margin-bottom: 18px;
 }
 .detail-body {
-  font-family: var(--serif); font-size: 16px; line-height: 1.95;
+  font-family: var(--handwriting); font-size: 17px; line-height: 1.95;
   white-space: pre-wrap; word-break: break-word;
   padding: 20px 22px; border-radius: 12px;
   background: var(--surface); color: var(--ink2);

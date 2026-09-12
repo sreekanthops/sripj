@@ -1275,7 +1275,7 @@ function openNewForm() {
   document.getElementById('formTitle').textContent = '✒ New Entry';
   document.getElementById('fTitle').value  = '';
   document.getElementById('fBody').value   = '';
-  document.getElementById('fFont').value   = 'Georgia,serif';
+  document.getElementById('fFont').value   = "'Kalam',cursive";
   document.getElementById('fSize').value   = 14;
   document.getElementById('fWeight').value = 'normal';
   document.getElementById('fMusic').value  = '';
