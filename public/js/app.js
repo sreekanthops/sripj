@@ -2959,14 +2959,16 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
       currentUser = {
         userId: data.userId, username: data.username,
         displayName: data.displayName, email: data.email || '',
+        phone: data.phone || '',
         bio: data.bio || '', avatarUrl: data.avatarUrl || '',
         shareToken: sToken
       };
     } catch {
+      // Token invalid/expired — clear JWT but keep shareToken so we can
+      // still recognise the user on /s/:token reload
       token = null;
-      _storedShareToken = '';
       localStorage.removeItem('diary_token');
-      localStorage.removeItem('diary_share_token');
+      // Do NOT clear diary_share_token here — used for /s/ URL recognition
     }
   }
 
@@ -2975,15 +2977,30 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
 
   } else if (shareToken) {
     // /s/:token — open diary by token
-    try {
-      if (currentUser && currentUser.shareToken === shareToken) {
+    if (currentUser) {
+      // Logged-in user — check if this is their own diary
+      // Match by shareToken OR by the stored shareToken (handles case where
+      // currentUser.shareToken was freshly set vs stale _storedShareToken)
+      const isOwnToken = currentUser.shareToken === shareToken
+                      || _storedShareToken === shareToken;
+      if (isOwnToken) {
+        // It's their own diary — rewrite URL to /@username and enter
+        history.replaceState({}, '', '/@' + encodeURIComponent(currentUser.username));
         await enterOwnDiary();
       } else {
-        await enterPublicDiary(shareToken, '', true);
+        // Different user's diary
+        try { await enterPublicDiary(shareToken, '', true); }
+        catch { await enterOwnDiary(); }
       }
-    } catch {
-      if (currentUser) await enterOwnDiary();
-      else showLanding();
+    } else if (_storedShareToken === shareToken) {
+      // Share token matches stored one but JWT is gone (expired/cleared)
+      // — show landing so they can re-authenticate; don't show as visitor
+      showLanding();
+      toast('Your session expired — please sign in again', 4000);
+    } else {
+      // Visitor viewing someone else's diary
+      try { await enterPublicDiary(shareToken, '', true); }
+      catch { showLanding(); }
     }
 
   } else if (urlUsername) {
