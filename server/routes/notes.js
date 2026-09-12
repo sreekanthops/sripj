@@ -122,11 +122,8 @@ function buildNote(row, req, authorUser) {
   return noteObj;
 }
 
-// GET /api/notes/user/:username  — public diary page for a user
-router.get('/user/:username', optionalAuth, async (req, res) => {
-  const user = db.prepare('SELECT id, username, display_name, bio, avatar_url, share_protected, share_password_hash FROM users WHERE username = ?').get(req.params.username.toLowerCase());
-  if (!user) return res.status(404).json({ error: 'User not found' });
-
+// ── shared helper: load diary notes for a resolved user row ─────────────────
+async function loadPublicDiary(req, res, user) {
   const isOwner = req.user && req.user.userId === user.id;
 
   // Check password protection if enabled and visitor is not the owner
@@ -140,7 +137,7 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
       return res.status(403).json({
         isProtected: true,
         error: 'Password required to access this diary',
-        user: { id: user.id, username: user.username, displayName: user.display_name, bio: user.bio, avatarUrl: user.avatar_url || '' }
+        user: { id: user.id, username: user.username, displayName: user.display_name, bio: user.bio, avatarUrl: user.avatar_url || '', shareToken: user.share_token || '' }
       });
     }
   }
@@ -160,9 +157,24 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
       bio: user.bio,
       avatarUrl: user.avatar_url || '',
       isProtected: !!user.share_protected,
+      shareToken: user.share_token || '',
     },
     notes: rows.map(r => buildNote(r, req))
   });
+}
+
+// GET /api/notes/user/:username  — public diary page for a user (legacy)
+router.get('/user/:username', optionalAuth, async (req, res) => {
+  const user = db.prepare('SELECT id, username, display_name, bio, avatar_url, share_protected, share_password_hash, share_token FROM users WHERE username = ?').get(req.params.username.toLowerCase());
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  return loadPublicDiary(req, res, user);
+});
+
+// GET /api/notes/s/:token  — public diary page by opaque share token (no username in URL)
+router.get('/s/:token', optionalAuth, async (req, res) => {
+  const user = db.prepare('SELECT id, username, display_name, bio, avatar_url, share_protected, share_password_hash, share_token FROM users WHERE share_token = ?').get(req.params.token);
+  if (!user) return res.status(404).json({ error: 'Diary not found' });
+  return loadPublicDiary(req, res, user);
 });
 
 // GET /api/notes  — get current user's notes (must be logged in)

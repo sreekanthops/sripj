@@ -286,12 +286,11 @@ document.getElementById('detailClose')?.addEventListener('click', () => {
   if (audio) { audio.pause(); audio.currentTime = 0; }
   const match = location.pathname.match(/^\/entry\/([^/]+)/);
   if (match) {
-    if (isOwner && currentUser?.shareToken) {
-      history.pushState({}, '', '/s/' + currentUser.shareToken);
+    const sToken = isOwner ? currentUser?.shareToken : viewingUser?.shareToken;
+    if (sToken) {
+      history.pushState({}, '', '/s/' + sToken);
     } else if (isOwner && currentUser?.username) {
       history.pushState({}, '', '/u/' + currentUser.username);
-    } else if (viewingUser?.username) {
-      history.pushState({}, '', '/u/' + viewingUser.username);
     } else {
       history.pushState({}, '', '/');
     }
@@ -674,9 +673,10 @@ async function openShareModal(targetNoteId = null) {
         if (sToken) currentUser.shareToken = sToken;
       } catch {}
     }
+    // Always use token URL — never expose username in share link
     const url = sToken
       ? `${location.origin}/s/${sToken}`
-      : `${location.origin}/u/${targetUser?.username || ''}`;
+      : `${location.origin}/s/${currentUser?.userId || ''}`;
     if (urlInput) urlInput.value = url;
   }
 
@@ -813,18 +813,32 @@ async function enterOwnDiary() {
 
 let currentEnteredPassword = '';
 
-async function enterPublicDiary(username, password = '') {
+// enterPublicDiary can be called with a username OR a share token.
+// Prefer token-based API to avoid exposing username in the URL.
+async function enterPublicDiary(usernameOrToken, password = '', byToken = false) {
   try {
     const headers = {};
     const passToUse = password || currentEnteredPassword;
-    if (passToUse) {
-      headers['x-share-password'] = passToUse;
-    }
-    const data = await api('GET', `/notes/user/${username}`, null, headers);
+    if (passToUse) headers['x-share-password'] = passToUse;
+
+    const endpoint = byToken
+      ? `/notes/s/${usernameOrToken}`
+      : `/notes/user/${usernameOrToken}`;
+    const data = await api('GET', endpoint, null, headers);
     if (passToUse) currentEnteredPassword = passToUse;
     closeOv('passOverlay');
     viewingUser = data.user;
     isOwner = currentUser?.userId === viewingUser.id;
+
+    // Rewrite URL to token-based link (hides username from address bar)
+    const sToken = viewingUser.shareToken || '';
+    if (isOwner) {
+      history.replaceState({}, '', sToken ? '/s/' + sToken : '/u/' + viewingUser.username);
+      if (sToken && currentUser) currentUser.shareToken = sToken;
+    } else if (sToken) {
+      history.replaceState({}, '', '/s/' + sToken);
+    }
+
     if (isOwner) document.body.classList.add('is-owner');
     else         document.body.classList.remove('is-owner');
     notes = data.notes;
@@ -845,8 +859,8 @@ async function enterPublicDiary(username, password = '') {
     renderGrid();
   } catch (err) {
     if (err.isProtected) {
-      showApp(); // Show container
-      promptDiaryPassword(username, err.user);
+      showApp();
+      promptDiaryPassword(usernameOrToken, err.user);
       return;
     }
     if (!currentUser) { showAuth(); } else { toast('Stories not found'); await enterOwnDiary(); }
@@ -2568,15 +2582,12 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
     await enterSingleNote(entryId);
 
   } else if (shareToken) {
-    // /s/:token — resolve token → username, then enter that diary
+    // /s/:token — load diary directly by token (username never needed or exposed)
     try {
-      const res = await fetch(`/api/auth/resolve/${encodeURIComponent(shareToken)}`);
-      if (!res.ok) throw new Error('not found');
-      const { username } = await res.json();
-      if (currentUser && currentUser.username === username) {
+      if (currentUser && currentUser.shareToken === shareToken) {
         await enterOwnDiary();
       } else {
-        await enterPublicDiary(username);
+        await enterPublicDiary(shareToken, '', true); // byToken=true → uses /api/notes/s/:token
       }
     } catch {
       if (currentUser) await enterOwnDiary();
@@ -2584,15 +2595,12 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
     }
 
   } else if (urlUsername) {
-    // /u/:username — if this is the logged-in owner, treat as own diary
-    // (owner should always be redirected to /s/token by enterOwnDiary)
+    // /u/:username — rewrite to token URL immediately to hide username
     if (currentUser && currentUser.username === urlUsername) {
       await enterOwnDiary(); // will rewrite URL to /s/<token>
-    } else if (currentUser) {
-      // logged in but viewing someone else's /u/ link
-      await enterPublicDiary(urlUsername);
     } else {
-      // not logged in — show as public visitor
+      // visiting someone else's /u/ link — load by username but URL gets rewritten
+      // to /s/<token> inside enterPublicDiary once we have the shareToken from API
       await enterPublicDiary(urlUsername);
     }
 
