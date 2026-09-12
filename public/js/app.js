@@ -428,7 +428,6 @@ function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarBackdrop').classList.remove('active');
 }
-document.getElementById('hamburgerBtn').onclick    = openSidebar;
 document.getElementById('sidebarCloseBtn').onclick = closeSidebar;
 document.getElementById('sidebarBackdrop').onclick = closeSidebar;
 
@@ -467,26 +466,24 @@ function renderTopbarUserChip() {
 }
 
 function renderHeader() {
-  const el  = document.getElementById('headerActions');
-  const fab = document.getElementById('quickNewBtn');
+  const el      = document.getElementById('headerActions');
+  const fab     = document.getElementById('quickNewBtn');
+  const shareBtn = document.getElementById('topbarShareBtn');
   if (isOwner) {
-    el.innerHTML = `
-      <button class="btn btn-ghost btn-sm btn-nav-share" data-action="share">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="share-icon-svg"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-        <span>Share</span>
-      </button>
-      <button class="btn btn-ghost btn-sm" data-action="logout">Sign out</button>`;
-    if (fab) { fab.style.display = 'flex'; fab.onclick = () => { closeSidebar(); openNewForm(); }; }
+    el.innerHTML = '';
+    if (shareBtn) shareBtn.classList.remove('hidden');
+    if (fab) { fab.style.display = 'flex'; fab.onclick = () => openNewForm(); }
   } else if (currentUser && viewingUser) {
-    el.innerHTML = `
-      <button class="btn btn-ghost btn-sm" data-action="go-home">My Stories</button>`;
+    el.innerHTML = `<button class="btn btn-ghost btn-sm" data-action="go-home">My Stories</button>`;
+    if (shareBtn) shareBtn.classList.add('hidden');
     if (fab) fab.style.display = 'none';
   } else if (!currentUser && viewingUser) {
-    el.innerHTML = `
-      <button class="btn btn-ghost btn-sm" data-action="go-login">Sign In / Sign Up</button>`;
+    el.innerHTML = `<button class="btn btn-ghost btn-sm" data-action="go-login">Sign In</button>`;
+    if (shareBtn) shareBtn.classList.add('hidden');
     if (fab) fab.style.display = 'none';
   } else {
     el.innerHTML = '';
+    if (shareBtn) shareBtn.classList.add('hidden');
     if (fab) fab.style.display = 'none';
   }
   renderTopbarUserChip();
@@ -494,6 +491,23 @@ function renderHeader() {
 
 document.getElementById('topbarUserChip')?.addEventListener('click', () => {
   if (currentUser) openProfileModal();
+});
+
+// Topbar share button
+document.getElementById('topbarShareBtn')?.addEventListener('click', () => openShareModal());
+
+// Profile modal — Sign Out button
+document.getElementById('profSignOutBtn')?.addEventListener('click', () => {
+  closeOv('profileOverlay');
+  token = null; currentUser = null; isOwner = false; viewingUser = null;
+  _storedShareToken = '';
+  localStorage.removeItem('diary_token');
+  localStorage.removeItem('diary_share_token');
+  document.body.classList.remove('is-owner');
+  window._chatbotSetOwner?.(false);
+  renderTopbarUserChip();
+  history.replaceState({}, '', '/');
+  showLanding();
 });
 
 document.getElementById('headerActions').addEventListener('click', e => {
