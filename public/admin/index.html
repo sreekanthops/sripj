@@ -494,28 +494,28 @@ select.field-select:focus{border-color:var(--accent)}
       <div class="plan-grid" id="subPlanGrid">
         <div class="plan-card highlight">
           <div class="plan-name">Free</div>
-          <div class="plan-price">$0 <span>/ forever</span></div>
+          <div class="plan-price" id="sp-price-free">$0 <span>/ forever</span></div>
           <div class="plan-stat" id="pc-free">—</div>
           <div class="plan-stat-label">users</div>
           <div class="plan-desc" style="margin-top:8px">Up to 5 entries · no uploads · no canvas</div>
         </div>
         <div class="plan-card">
           <div class="plan-name">Pro Monthly</div>
-          <div class="plan-price">$4.99 <span>/ month</span></div>
+          <div class="plan-price" id="sp-price-monthly">— <span>/ month</span></div>
           <div class="plan-stat" id="pc-monthly">—</div>
           <div class="plan-stat-label">users</div>
           <div class="plan-desc" style="margin-top:8px">Unlimited entries · uploads · canvas</div>
         </div>
         <div class="plan-card">
           <div class="plan-name">Pro Yearly</div>
-          <div class="plan-price">$39.99 <span>/ year</span></div>
+          <div class="plan-price" id="sp-price-yearly">— <span>/ year</span></div>
           <div class="plan-stat" id="pc-yearly">—</div>
           <div class="plan-stat-label">users</div>
           <div class="plan-desc" style="margin-top:8px">Unlimited entries · uploads · canvas · save 33%</div>
         </div>
         <div class="plan-card">
           <div class="plan-name">Lifetime</div>
-          <div class="plan-price">$99 <span>one-time</span></div>
+          <div class="plan-price" id="sp-price-lifetime">— <span>one-time</span></div>
           <div class="plan-stat" id="pc-lifetime">—</div>
           <div class="plan-stat-label">users</div>
           <div class="plan-desc" style="margin-top:8px">Unlimited everything · never expires</div>
@@ -1194,6 +1194,18 @@ function renderSubStats(planCounts) {
     const el = document.getElementById('pc-' + id);
     if (el) el.textContent = map[id] ?? 0;
   });
+  // Sync prices from Payments API so they always match
+  fetch('/api/payments/plans').then(r => r.json()).then(({ plans }) => {
+    const suffix = { free: '/ forever', monthly: '/ month', yearly: '/ year', lifetime: 'one-time' };
+    plans.forEach(p => {
+      const el = document.getElementById('sp-price-' + p.id);
+      if (!el) return;
+      const price = p.discountActive ? p.effectivePriceInr : p.price_inr;
+      const inrStr = price > 0 ? '₹' + price.toLocaleString('en-IN') : (p.id === 'free' ? 'Free' : '—');
+      el.innerHTML = `${inrStr} <span>${suffix[p.id] || ''}</span>`;
+      if (p.discountActive) el.title = p.discount_label + ' — ' + p.discount_pct + '% off';
+    });
+  }).catch(() => {});
 }
 
 function daysLeft(isoDate) {
@@ -1733,6 +1745,8 @@ async function loadPlanEditor() {
           setTimeout(() => { status.textContent = ''; }, 3000);
           toast(p.name + ' updated');
           await loadPlanEditor(); // refresh to show updated discount badge
+          // Also refresh subscription plan cards if already loaded
+          if (typeof loadSubData === 'function' && subTabLoaded) loadSubData();
         } catch(e) { status.textContent = e.message; toast('Error: ' + e.message); }
         finally { btn.disabled = false; }
       };
