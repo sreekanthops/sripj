@@ -111,7 +111,7 @@ router.post('/:noteId', verifyToken, (req, res, next) => {
     if (!plan.uploads) {
       req.files?.forEach(f => fs.unlink(f.path, () => {}));
       return res.status(403).json({
-        error: 'Media uploads require a Pro plan. Upgrade to upload photos and videos.',
+        error: 'Your current plan does not allow media uploads.',
         limitReached: true,
         plan: plan.planId,
       });

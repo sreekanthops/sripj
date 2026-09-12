@@ -328,18 +328,22 @@ db.pragma('foreign_keys = ON');
 // ── SEED SUBSCRIPTION PLANS (idempotent) ─────────────────────────────────────
 //
 //  Pricing strategy:
-//   Free      — $0/mo   · up to 5 diary entries, no uploads, no canvas
-//   Pro Monthly — $4.99/mo · unlimited entries, uploads, canvas
-//   Pro Yearly  — $39.99/yr · same as monthly (save ~33 %)
-//   Lifetime    — $99 once  · unlimited everything, forever
+//   Free        — ₹0     · up to 5 diary entries, uploads allowed, no canvas stickers
+//   Pro Monthly — ₹419   · unlimited entries, uploads, canvas stickers. Billed monthly.
+//   Pro Yearly  — ₹3329  · same as monthly (save ~33%). Billed yearly.
+//   Lifetime    — ₹8249  · unlimited everything, forever. One-time payment.
 //
 const seedPlan = db.prepare(`
   INSERT OR IGNORE INTO subscription_plans (id, name, price_usd, price_inr, notes_limit, uploads, canvas, description)
   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 `);
-seedPlan.run('free',     'Free',          0,      0,      5,  0, 0, 'Up to 5 diary entries. No media uploads. No canvas stickers.');
+seedPlan.run('free',     'Free',          0,      0,      5,  1, 0, 'Up to 5 diary entries. Photos & videos allowed. No canvas stickers.');
 seedPlan.run('monthly',  'Pro Monthly',   4.99,   419,   -1,  1, 1, 'Unlimited entries, media uploads & canvas stickers. Billed monthly.');
 seedPlan.run('yearly',   'Pro Yearly',   39.99,  3329,   -1,  1, 1, 'Unlimited entries, media uploads & canvas stickers. Billed yearly (save 33%).');
 seedPlan.run('lifetime', 'Lifetime',     99.00,  8249,   -1,  1, 1, 'Unlimited everything. One-time payment, never expires.');
+
+// ── Live migration: update the free plan's uploads flag to 1 if it was 0 ─────
+// (INSERT OR IGNORE above won't update existing rows, so we patch it here)
+db.prepare(`UPDATE subscription_plans SET uploads = 1, description = 'Up to 5 diary entries. Photos & videos allowed. No canvas stickers.' WHERE id = 'free' AND uploads = 0`).run();
 
 module.exports = db;

@@ -2,10 +2,10 @@
  * Subscription helpers — shared by all routes that need plan enforcement.
  *
  * Plans:
- *   free      — up to 5 entries, no uploads, no canvas
- *   monthly   — $4.99/mo  · unlimited, uploads, canvas
- *   yearly    — $39.99/yr · same as monthly
- *   lifetime  — $99 once  · unlimited, never expires
+ *   free      — up to 5 entries, uploads allowed, no canvas stickers
+ *   monthly   — unlimited entries, uploads, canvas stickers. Billed monthly.
+ *   yearly    — unlimited entries, uploads, canvas stickers. Billed yearly (save 33%).
+ *   lifetime  — unlimited everything, forever. One-time payment.
  */
 const db = require('./db');
 
@@ -49,11 +49,11 @@ function getFreePlan() {
   return {
     planId:      'free',
     name:        p?.name || 'Free',
-    description: p?.description || 'Up to 5 diary entries.',
+    description: p?.description || 'Up to 5 diary entries. Photos & videos allowed.',
     priceUsd:    0,
     notesLimit:  p?.notes_limit ?? 5,
-    uploads:     false,
-    canvas:      false,
+    uploads:     p ? !!p.uploads : true,   // free plan allows uploads
+    canvas:      false,                    // canvas stickers require Pro
     expiresAt:   null,
     startsAt:    null,
     grantedBy:   null,
