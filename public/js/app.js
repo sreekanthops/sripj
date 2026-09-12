@@ -287,13 +287,7 @@ document.getElementById('detailClose')?.addEventListener('click', () => {
   const match = location.pathname.match(/^\/entry\/([^/]+)/);
   if (match) {
     const sToken = isOwner ? currentUser?.shareToken : viewingUser?.shareToken;
-    if (sToken) {
-      history.pushState({}, '', '/s/' + sToken);
-    } else if (isOwner && currentUser?.username) {
-      history.pushState({}, '', '/u/' + currentUser.username);
-    } else {
-      history.pushState({}, '', '/');
-    }
+    history.pushState({}, '', sToken ? '/s/' + sToken : '/');
   }
 });
 document.getElementById('formClose')?.addEventListener('click', () => closeOv('formOverlay'));
@@ -783,16 +777,14 @@ document.getElementById('btnSaveShareSettings')?.addEventListener('click', async
 // ── ENTERING DIARIES ────────────────────────────────────────────────────────
 async function enterOwnDiary() {
   isOwner = true;
-  // If shareToken is missing, fetch fresh from server (ensures back-fill is picked up)
-  if (!currentUser.shareToken) {
-    try {
-      const fresh = await api('GET', '/auth/verify');
-      currentUser.shareToken   = fresh.shareToken || '';
-      currentUser.displayName  = fresh.displayName || currentUser.displayName;
-      currentUser.avatarUrl    = fresh.avatarUrl   || currentUser.avatarUrl;
-      currentUser.email        = fresh.email        || currentUser.email;
-    } catch {}
-  }
+  // Always fetch fresh verify to ensure shareToken is current
+  try {
+    const fresh = await api('GET', '/auth/verify');
+    currentUser.shareToken   = fresh.shareToken   || currentUser.shareToken;
+    currentUser.displayName  = fresh.displayName  || currentUser.displayName;
+    currentUser.avatarUrl    = fresh.avatarUrl     || currentUser.avatarUrl;
+    currentUser.email        = fresh.email         || currentUser.email;
+  } catch {}
   viewingUser = { id: currentUser.userId, username: currentUser.username, displayName: currentUser.displayName };
   document.body.classList.add('is-owner');
   document.getElementById('sidebarTitle').textContent = currentUser.displayName || currentUser.username;
@@ -800,7 +792,7 @@ async function enterOwnDiary() {
   document.getElementById('pageTitle').innerHTML       = '<span class="brand-unsent">Unsent</span> <span class="brand-stories">Stories</span>';
   document.getElementById('pageTitleCaption').textContent = 'write · reflect · remember';
   const sToken = currentUser.shareToken;
-  history.replaceState({}, '', sToken ? '/s/' + sToken : '/u/' + currentUser.username);
+  history.replaceState({}, '', sToken ? '/s/' + sToken : '/');
   renderHeader();
   buildSwatches(0);
   setupUploadZone();
@@ -832,11 +824,9 @@ async function enterPublicDiary(usernameOrToken, password = '', byToken = false)
 
     // Rewrite URL to token-based link (hides username from address bar)
     const sToken = viewingUser.shareToken || '';
-    if (isOwner) {
-      history.replaceState({}, '', sToken ? '/s/' + sToken : '/u/' + viewingUser.username);
-      if (sToken && currentUser) currentUser.shareToken = sToken;
-    } else if (sToken) {
+    if (sToken) {
       history.replaceState({}, '', '/s/' + sToken);
+      if (isOwner && currentUser) currentUser.shareToken = sToken;
     }
 
     if (isOwner) document.body.classList.add('is-owner');
