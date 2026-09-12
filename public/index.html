@@ -6,7 +6,7 @@
   <title>Unsent Stories</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/css/style.css?v=16">
+  <link rel="stylesheet" href="/css/style.css?v=17">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -23,114 +23,70 @@
         <span class="brand-unsent">Unsent</span>
         <span class="brand-stories" style="font-size:14px;letter-spacing:2px">Stories</span>
       </div>
-      <button class="btn btn-primary landing-signin-btn" id="landingSignInBtn">Sign In</button>
+      <button class="landing-signin-btn" id="landingSignInBtn">Sign In</button>
     </div>
   </nav>
 
-  <!-- ── HERO ── -->
-  <section class="ls-hero">
-    <div class="ls-hero-inner">
-      <p class="ls-eyebrow">A place for the feelings you don't know how to say</p>
+  <!-- ── MAIN ── -->
+  <main class="ls-main">
+
+    <!-- Title block -->
+    <div class="ls-brand">
       <h1 class="ls-title">
         <span class="brand-unsent">Unsent</span>
-        <span class="brand-stories ls-title-stories">Stories</span>
+        <span class="ls-title-stories">Stories</span>
       </h1>
-      <p class="ls-tagline">Turn your feelings into a story.</p>
-      <p class="ls-sub">There are things you want someone to know…<br>but you don't know how to say them.</p>
-      <div class="ls-hero-actions">
-        <button class="btn btn-primary ls-cta-primary" id="landingStartBtn">Start Your Story</button>
-        <button class="btn btn-outline ls-cta-outline" id="landingLearnBtn">See How It Works</button>
-      </div>
+      <p class="ls-subtitle">A place for the feelings you don't know how to say.</p>
     </div>
-    <div class="ls-hero-ink">✦</div>
-  </section>
 
-  <!-- ── HOW IT WORKS ── -->
-  <section class="ls-section ls-how" id="landingLearnSection">
-    <div class="ls-section-inner">
-      <p class="ls-section-label">How it works</p>
-      <div class="ls-steps">
-        <div class="ls-step">
-          <div class="ls-step-num">01</div>
-          <div class="ls-step-title">Create a story</div>
-          <div class="ls-step-desc">Open your diary and write what you've been holding inside. No judgement, no audience.</div>
-        </div>
-        <div class="ls-step-divider"></div>
-        <div class="ls-step">
-          <div class="ls-step-num">02</div>
-          <div class="ls-step-title">Keep adding to it</div>
-          <div class="ls-step-desc">Come back whenever you need to. Your story grows as you do.</div>
-        </div>
-        <div class="ls-step-divider"></div>
-        <div class="ls-step">
-          <div class="ls-step-num">03</div>
-          <div class="ls-step-title">Share when you're ready</div>
-          <div class="ls-step-desc">Send a private link to let someone read it — no sign-up needed for them.</div>
-        </div>
-      </div>
-    </div>
-  </section>
+    <hr class="ls-rule">
 
-  <!-- ── WHY ── -->
-  <section class="ls-section ls-why">
-    <div class="ls-section-inner ls-why-inner">
-      <p class="ls-section-label">Why Unsent Stories?</p>
-      <div class="ls-why-lines">
-        <p>Sometimes we're afraid they'll misunderstand.</p>
-        <p>Sometimes we don't want to make things awkward.</p>
-        <p>Sometimes we simply don't know how to say it.</p>
-      </div>
-      <p class="ls-why-cta">So write it first.</p>
-    </div>
-  </section>
+    <!-- Emotional copy -->
+    <div class="ls-body">
+      <p class="ls-line ls-line-lead">Turn your feelings into a story.</p>
 
-  <!-- ── ABOUT ── -->
-  <section class="ls-section ls-about">
-    <div class="ls-section-inner">
-      <p class="ls-section-label">Your story can be about</p>
-      <div class="ls-tags">
-        <span class="ls-tag">Someone you love</span>
-        <span class="ls-tag">Someone you miss</span>
-        <span class="ls-tag">Something you never said</span>
-        <span class="ls-tag">A relationship that changed you</span>
-        <span class="ls-tag">Someone who doesn't know how you feel</span>
-        <span class="ls-tag">A moment you can't forget</span>
-      </div>
-    </div>
-  </section>
+      <p class="ls-line">There are things you want someone to know —<br>
+      but you don't know how to say them.</p>
 
-  <!-- ── NOT ANOTHER CHAT ── -->
-  <section class="ls-section ls-compare">
-    <div class="ls-section-inner">
-      <h2 class="ls-compare-title">It's not another chat.<br>It's your story.</h2>
-      <div class="ls-compare-grid">
-        <div class="ls-compare-item ls-compare-other">
-          <div class="ls-compare-app">WhatsApp</div>
-          <div class="ls-compare-use">is for conversations.</div>
-        </div>
-        <div class="ls-compare-item ls-compare-other">
-          <div class="ls-compare-app">Instagram</div>
-          <div class="ls-compare-use">is for moments.</div>
-        </div>
-        <div class="ls-compare-item ls-compare-other">
-          <div class="ls-compare-app">Notes</div>
-          <div class="ls-compare-use">are for yourself.</div>
-        </div>
-        <div class="ls-compare-item ls-compare-us">
-          <div class="ls-compare-app">Unsent Stories</div>
-          <div class="ls-compare-use">is for the things you wish someone could know.</div>
-        </div>
-      </div>
-    </div>
-  </section>
+      <p class="ls-line ls-line-quiet">
+        Sometimes we're afraid they'll misunderstand.<br>
+        Sometimes we don't want to make things awkward.<br>
+        Sometimes we simply don't know how to begin.
+      </p>
 
-  <!-- ── FINAL CTA ── -->
-  <section class="ls-final-cta">
-    <div class="ls-section-inner" style="text-align:center">
-      <p class="ls-final-script">You have something to say.</p>
-      <button class="btn btn-primary ls-cta-primary" id="landingStartBtn2">Create Your Story</button>
+      <p class="ls-line ls-line-serif">So write it first.</p>
     </div>
-  </section>
+
+    <hr class="ls-rule">
+
+    <!-- What it's for -->
+    <div class="ls-body">
+      <p class="ls-line ls-line-label">Your story can be about</p>
+      <p class="ls-line ls-line-about">
+        Someone you love &nbsp;·&nbsp; Someone you miss &nbsp;·&nbsp; Something you never said<br>
+        A relationship that changed you &nbsp;·&nbsp; Someone who doesn't know how you feel
+      </p>
+    </div>
+
+    <hr class="ls-rule">
+
+    <!-- It's not a chat -->
+    <div class="ls-body">
+      <p class="ls-line ls-line-serif">It's not another chat. It's your story.</p>
+      <p class="ls-line ls-line-quiet">
+        WhatsApp is for conversations.<br>
+        Instagram is for moments.<br>
+        Notes are for yourself.<br>
+        <em>Unsent Stories is for the things you wish someone could know.</em>
+      </p>
+    </div>
+
+    <!-- Sign-in nudge — no button, just a gentle line -->
+    <p class="ls-signin-nudge">
+      You have something to say. <span class="ls-signin-link" id="landingStartBtn">Sign in to begin →</span>
+    </p>
+
+  </main>
 
   <footer class="landing-footer">
     &copy; 2025 Unsent Stories &nbsp;·&nbsp; <a href="/pricing">Pricing</a>
