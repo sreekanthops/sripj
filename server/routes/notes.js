@@ -171,8 +171,10 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
 });
 
 // GET /api/notes/s/:token  — public diary page by opaque share token (no username in URL)
+// Also accepts userId as fallback (old links that used userId instead of share_token)
 router.get('/s/:token', optionalAuth, async (req, res) => {
-  const user = db.prepare('SELECT id, username, display_name, bio, avatar_url, share_protected, share_password_hash, share_token FROM users WHERE share_token = ?').get(req.params.token);
+  const t = req.params.token;
+  const user = db.prepare('SELECT id, username, display_name, bio, avatar_url, share_protected, share_password_hash, share_token FROM users WHERE share_token = ? OR id = ?').get(t, t);
   if (!user) return res.status(404).json({ error: 'Diary not found' });
   return loadPublicDiary(req, res, user);
 });

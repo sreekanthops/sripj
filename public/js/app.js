@@ -699,16 +699,20 @@ async function openShareModal(targetNoteId = null) {
     if (descEl)  descEl.textContent = 'Share this link — it works even if you change your username.';
     const urlInput = document.getElementById('shareUrlInput');
 
-    // Fetch fresh share token from server (handles first-time + stale cache)
+    // Always fetch fresh token — ensures we never show a stale/wrong token in the share link
+    // A valid share_token is 14 chars; a UUID (36 chars) means verify hasn't run yet
     let sToken = currentUser?.shareToken || '';
-    if (!sToken && currentUser) {
+    const looksLikeUuid = sToken.length > 20; // UUIDs are 36 chars, real tokens are 14
+    if (!sToken || looksLikeUuid) {
       try {
         const fresh = await api('GET', '/auth/verify');
         sToken = fresh.shareToken || '';
-        if (sToken) currentUser.shareToken = sToken;
+        if (sToken) {
+          currentUser.shareToken = sToken;
+          localStorage.setItem('diary_share_token', sToken);
+        }
       } catch {}
     }
-    // Always use token URL — never expose username in share link
     const url = sToken
       ? `${location.origin}/s/${sToken}`
       : `${location.origin}/s/${currentUser?.userId || ''}`;
