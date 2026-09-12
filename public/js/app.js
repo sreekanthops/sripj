@@ -954,11 +954,13 @@ async function enterPublicDiary(usernameOrToken, password = '', byToken = false)
     viewingUser = data.user;
     isOwner = currentUser?.userId === viewingUser.id;
 
-    // Rewrite URL to token-based link (hides username from address bar)
+    // Rewrite URL — owner keeps /@username, visitors get /s/<token>
     const sToken = viewingUser.shareToken || '';
-    if (sToken) {
+    if (isOwner && currentUser) {
+      history.replaceState({}, '', '/@' + currentUser.username);
+      if (sToken) currentUser.shareToken = sToken;
+    } else if (sToken) {
       history.replaceState({}, '', '/s/' + sToken);
-      if (isOwner && currentUser) currentUser.shareToken = sToken;
     }
 
     if (isOwner) document.body.classList.add('is-owner');
