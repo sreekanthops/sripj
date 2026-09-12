@@ -145,8 +145,25 @@ router.post('/google', async (req, res) => {
   }
 });
 
+// ── inline migration: ensure all user columns exist (safe on any DB version) ─
+function ensureUserColumns() {
+  const cols = db.prepare('PRAGMA table_info(users)').all().map(r => r.name);
+  const add = (col, def) => { if (!cols.includes(col)) db.exec(`ALTER TABLE users ADD COLUMN ${col} ${def}`); };
+  add('display_name',        'TEXT NOT NULL DEFAULT ""');
+  add('bio',                 'TEXT NOT NULL DEFAULT ""');
+  add('email',               'TEXT NOT NULL DEFAULT ""');
+  add('avatar_url',          'TEXT NOT NULL DEFAULT ""');
+  add('share_protected',     'INTEGER NOT NULL DEFAULT 0');
+  add('share_password_hash', 'TEXT NOT NULL DEFAULT ""');
+  add('share_token',         'TEXT NOT NULL DEFAULT ""');
+  add('google_id',           'TEXT');
+}
+let _migrated = false;
+function runMigrationOnce() { if (!_migrated) { ensureUserColumns(); _migrated = true; } }
+
 // GET /api/auth/verify  — validate token
 router.get('/verify', verifyToken, (req, res) => {
+  runMigrationOnce();
   const user = db.prepare('SELECT id, username, display_name, email, bio, avatar_url, share_protected, share_token, (password_hash != "") as has_password FROM users WHERE id = ?').get(req.user.userId);
   if (!user) return res.status(401).json({ error: 'User not found' });
   // ensure every user has a share_token (back-fill if missing)
@@ -161,7 +178,7 @@ router.get('/verify', verifyToken, (req, res) => {
     username: user.username,
     displayName: user.display_name,
     email: user.email || '',
-    bio: user.bio,
+    bio: user.bio || '',
     avatarUrl: user.avatar_url || '',
     shareProtected: !!user.share_protected,
     hasPassword: !!user.has_password,
@@ -178,6 +195,7 @@ router.get('/resolve/:token', (req, res) => {
 
 // PUT /api/auth/profile  — update display name, bio, email, avatar_url
 router.put('/profile', verifyToken, (req, res) => {
+  runMigrationOnce();
   const { displayName, bio, email, avatarUrl } = req.body;
   db.prepare('UPDATE users SET display_name=?, bio=?, email=?, avatar_url=? WHERE id=?')
     .run(displayName?.trim() || '', bio?.trim() || '', email?.trim().toLowerCase() || '', avatarUrl || '', req.user.userId);
@@ -212,6 +230,7 @@ router.post('/change-password', verifyToken, async (req, res) => {
 
 // GET /api/auth/share-settings — get current user's share settings
 router.get('/share-settings', verifyToken, (req, res) => {
+  runMigrationOnce();
   const user = db.prepare('SELECT share_protected, (share_password_hash != "") as has_password FROM users WHERE id = ?').get(req.user.userId);
   if (!user) return res.status(404).json({ error: 'User not found' });
   res.json({
@@ -222,6 +241,7 @@ router.get('/share-settings', verifyToken, (req, res) => {
 
 // PUT /api/auth/share-settings — configure share protection & password
 router.put('/share-settings', verifyToken, async (req, res) => {
+  runMigrationOnce();
   const { isProtected, password } = req.body;
   const user = db.prepare('SELECT id, share_password_hash FROM users WHERE id = ?').get(req.user.userId);
   if (!user) return res.status(404).json({ error: 'User not found' });
