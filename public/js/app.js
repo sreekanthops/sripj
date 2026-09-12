@@ -358,8 +358,13 @@ document.getElementById('detailClose')?.addEventListener('click', () => {
   if (audio) { audio.pause(); audio.currentTime = 0; }
   const match = location.pathname.match(/^\/entry\/([^/]+)/);
   if (match) {
-    const sToken = isOwner ? currentUser?.shareToken : viewingUser?.shareToken;
-    history.pushState({}, '', sToken ? '/s/' + sToken : '/');
+    if (isOwner && currentUser) {
+      history.pushState({}, '', '/@' + currentUser.username);
+    } else if (viewingUser?.shareToken) {
+      history.pushState({}, '', '/s/' + viewingUser.shareToken);
+    } else {
+      history.pushState({}, '', '/');
+    }
   }
 });
 document.getElementById('formClose')?.addEventListener('click', () => closeOv('formOverlay'));
@@ -904,8 +909,7 @@ async function enterOwnDiary() {
   document.getElementById('sidebarSub').textContent   = '@' + currentUser.username;
   document.getElementById('pageTitle').innerHTML       = '<span class="brand-unsent">Unsent</span> <span class="brand-stories">Stories</span>';
   document.getElementById('pageTitleCaption').textContent = 'write · reflect · remember';
-  const sToken = currentUser.shareToken;
-  history.replaceState({}, '', sToken ? '/s/' + sToken : '/');
+  history.replaceState({}, '', '/@' + currentUser.username);
   renderHeader();
   buildSwatches(0);
   setupUploadZone();
@@ -2908,15 +2912,18 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
 
 // ── INIT ───────────────────────────────────────────────────────────────────
 (async () => {
-  const userMatch   = location.pathname.match(/^\/u\/([^/]+)/);
-  const urlUsername = userMatch ? userMatch[1].toLowerCase() : null;
-
+  // URL patterns
+  const atMatch    = location.pathname.match(/^\/@([^/]+)/);   // /@username (own diary)
+  const userMatch  = location.pathname.match(/^\/u\/([^/]+)/); // /u/username (legacy)
   const entryMatch = location.pathname.match(/^\/entry\/([^/]+)/);
   const shareMatch = location.pathname.match(/^\/s\/([^/]+)/);
   const urlParams  = new URLSearchParams(location.search);
-  const entryId    = entryMatch ? entryMatch[1] : urlParams.get('entry');
-  const shareToken = shareMatch ? shareMatch[1] : null;
 
+  const urlUsername = (atMatch?.[1] || userMatch?.[1] || '').toLowerCase() || null;
+  const entryId     = entryMatch ? entryMatch[1] : urlParams.get('entry');
+  const shareToken  = shareMatch ? shareMatch[1] : null;
+
+  // Restore session from localStorage token
   if (token) {
     try {
       const data = await api('GET', '/auth/verify');
@@ -2943,31 +2950,31 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
     await enterSingleNote(entryId);
 
   } else if (shareToken) {
-    // /s/:token — open diary by token, NO sign-in required for visitors
+    // /s/:token — open diary by token
     try {
       if (currentUser && currentUser.shareToken === shareToken) {
         await enterOwnDiary();
       } else {
-        // Works for both logged-in visitors and anonymous visitors
         await enterPublicDiary(shareToken, '', true);
       }
     } catch {
       if (currentUser) await enterOwnDiary();
-      else showLanding(); // show landing, not sign-in modal
+      else showLanding();
     }
 
   } else if (urlUsername) {
-    // /u/:username — rewrite to token URL immediately to hide username
+    // /@username or /u/username
     if (currentUser && currentUser.username === urlUsername) {
-      await enterOwnDiary(); // will rewrite URL to /s/<token>
+      await enterOwnDiary(); // it's their own diary — restore session
     } else {
       await enterPublicDiary(urlUsername);
     }
 
   } else if (currentUser) {
+    // Logged-in user landing on / — go straight to their diary
     await enterOwnDiary();
   } else {
-    showLanding(); // show landing page, not sign-in modal
+    showLanding();
   }
 
   initGoogleOAuth();
