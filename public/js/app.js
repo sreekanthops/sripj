@@ -221,6 +221,33 @@ document.getElementById('loginPwd').onkeydown = e => {
   if (e.key === 'Enter') document.getElementById('loginBtn').click();
 };
 
+// ── Live username availability check ──────────────────────────────────────
+let _userCheckTimer = null;
+document.getElementById('signupUser')?.addEventListener('input', () => {
+  const val     = document.getElementById('signupUser').value.trim();
+  const checkEl = document.getElementById('signupUserCheck');
+  clearTimeout(_userCheckTimer);
+  if (!val) { checkEl.textContent = ''; return; }
+  // Client-side rule feedback instantly
+  if (val.length < 6) {
+    checkEl.style.color = '#c0392b'; checkEl.textContent = 'Min 6 characters'; return;
+  }
+  if (!/[@_.!#-]/.test(val)) {
+    checkEl.style.color = '#c0392b'; checkEl.textContent = 'Must include a special char (@ _ . - ! #)'; return;
+  }
+  checkEl.style.color = '#888'; checkEl.textContent = 'Checking…';
+  _userCheckTimer = setTimeout(async () => {
+    try {
+      const data = await api('GET', '/auth/check-username?username=' + encodeURIComponent(val));
+      if (data.available) {
+        checkEl.style.color = '#27ae60'; checkEl.textContent = '✓ Available';
+      } else {
+        checkEl.style.color = '#c0392b'; checkEl.textContent = data.error || '✗ Already taken';
+      }
+    } catch { checkEl.style.color = '#888'; checkEl.textContent = ''; }
+  }, 500);
+});
+
 document.getElementById('signupBtn').onclick = async () => {
   const username    = document.getElementById('signupUser').value.trim();
   const displayName = document.getElementById('signupName').value.trim();
@@ -228,11 +255,14 @@ document.getElementById('signupBtn').onclick = async () => {
   const password    = document.getElementById('signupPwd').value;
   const errEl       = document.getElementById('signupErr');
   errEl.textContent = '';
+  // Client-side pre-validation
+  if (username.length < 6)       { errEl.textContent = 'Username must be at least 6 characters.'; return; }
+  if (!/[@_.!#-]/.test(username)) { errEl.textContent = 'Username must include a special character (@ _ . - ! #).'; return; }
   try {
     const data = await api('POST', '/auth/signup', { username, password, displayName, email });
     token = data.token;
     localStorage.setItem('diary_token', token);
-    currentUser = { userId: data.userId, username: data.username, displayName: data.displayName || username, email: '', bio: '', avatarUrl: '', shareToken: data.shareToken || '' };
+    currentUser = { userId: data.userId, username: data.username, displayName: data.displayName || username, email: data.email || '', bio: '', avatarUrl: '', shareToken: data.shareToken || '' };
     await enterOwnDiary();
   } catch (e) { errEl.textContent = e.message; }
 };

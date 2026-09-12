@@ -48,6 +48,28 @@ function genShareToken() {
   return uuidv4().replace(/-/g, '').slice(0, 14);
 }
 
+// Shared username validator (used by signup + check-username)
+function validateUsername(raw) {
+  const uname = raw.trim().toLowerCase();
+  if (!/^[a-z0-9@_.!#-]+$/.test(uname))
+    return { error: 'Username may only contain letters, numbers and @ _ . - ! #' };
+  if (uname.length < 6)
+    return { error: 'Username must be at least 6 characters' };
+  if (!/[@_.!#-]/.test(uname))
+    return { error: 'Username must contain at least one special character (@ _ . - ! #)' };
+  return { uname };
+}
+
+// GET /api/auth/check-username?username=... — live availability check
+router.get('/check-username', (req, res) => {
+  const { username } = req.query;
+  if (!username?.trim()) return res.status(400).json({ error: 'Username required' });
+  const result = validateUsername(username);
+  if (result.error) return res.json({ available: false, error: result.error });
+  const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(result.uname);
+  res.json({ available: !exists, username: result.uname });
+});
+
 // POST /api/auth/signup
 router.post('/signup', async (req, res) => {
   const { username, password, displayName, email } = req.body;
@@ -55,8 +77,8 @@ router.post('/signup', async (req, res) => {
   if (!email?.trim()) return res.status(400).json({ error: 'Email address is required' });
   const emailClean = email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailClean)) return res.status(400).json({ error: 'Please enter a valid email address' });
-  const uname = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
-  if (uname.length < 3) return res.status(400).json({ error: 'Username must be at least 3 characters (a-z, 0-9, _)' });
+  const { uname, error: unameErr } = validateUsername(username);
+  if (unameErr) return res.status(400).json({ error: unameErr });
   if (password.length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters' });
   const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(uname);
   if (exists) return res.status(409).json({ error: 'Username already taken' });

@@ -108,8 +108,9 @@
     </div>
     <div class="auth-panel hidden" id="panelSignup">
       <div class="field">
-        <label>Username <span class="auth-hint">letters, numbers, _ — min 3</span></label>
-        <input type="text" id="signupUser" placeholder="yourusername" autocomplete="username">
+        <label>Username <span class="auth-hint">min 6 chars, must include a special char e.g. sri@123</span></label>
+        <input type="text" id="signupUser" placeholder="e.g. sri@123" autocomplete="username">
+        <p id="signupUserCheck" style="font-size:12px;margin:3px 0 0;min-height:16px"></p>
       </div>
       <div class="field">
         <label>Display Name</label>
@@ -876,6 +877,6 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=19"></script>
+<script src="/js/app.js?v=20"></script>
 </body>
 </html>
