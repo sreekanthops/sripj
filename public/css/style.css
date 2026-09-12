@@ -118,16 +118,26 @@ body {
 .brand-caption { display: none; }
 
 /* ── Brand two-tone: "Unsent" in Satisfy brush script + "Stories" in Playfair serif ── */
+/* visitor prefix: floats left, vertically centred against the stacked title */
+#pageTitle:has(.brand-visitor-prefix) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
 .brand-visitor-prefix {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 8.5px;
+  font-size: 8px;
   font-weight: 700;
-  letter-spacing: 1.6px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   color: var(--accent);
-  display: block;
   line-height: 1;
-  margin: 0 0 1px 10px;   /* aligns under "Unsent", above "STORIES" */
+  flex-shrink: 0;
+}
+.brand-title-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 .brand-unsent {
   font-family: 'Satisfy', cursive;
