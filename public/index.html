@@ -102,6 +102,9 @@
       </div>
       <button class="btn btn-primary btn-lg" id="loginBtn">Sign In</button>
       <p id="loginErr" class="auth-err"></p>
+      <p style="text-align:center;margin-top:10px">
+        <button type="button" class="auth-link-btn" id="forgotPwdLink">Forgot password?</button>
+      </p>
     </div>
     <div class="auth-panel hidden" id="panelSignup">
       <div class="field">
@@ -111,6 +114,10 @@
       <div class="field">
         <label>Display Name</label>
         <input type="text" id="signupName" placeholder="Your Name">
+      </div>
+      <div class="field">
+        <label>Email <span class="auth-hint">required — for password recovery</span></label>
+        <input type="email" id="signupEmail" placeholder="you@example.com" autocomplete="email" required>
       </div>
       <div class="field">
         <label>Password <span class="auth-hint">min 4 characters</span></label>
@@ -828,6 +835,47 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=17"></script>
+<!-- ══ FORGOT PASSWORD MODAL ═══════════════════════════════════ -->
+<div id="forgotPwdModal" class="auth-modal-overlay hidden">
+  <div class="auth-card" style="max-width:400px">
+    <button class="auth-modal-close" id="forgotPwdClose">&times;</button>
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🔑</div>
+      <div class="auth-logo-name" style="font-size:17px">Forgot Password?</div>
+      <div class="auth-logo-sub">Enter your email and we'll send a reset link</div>
+    </div>
+    <div class="field">
+      <label>Email address</label>
+      <input type="email" id="forgotEmail" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <button class="btn btn-primary btn-lg" id="forgotSubmitBtn">Send Reset Link</button>
+    <p id="forgotErr"  class="auth-err"></p>
+    <p id="forgotOk"  style="color:#2f5a6e;font-size:13px;margin-top:8px;text-align:center;display:none"></p>
+  </div>
+</div>
+
+<!-- ══ RESET PASSWORD MODAL ════════════════════════════════════ -->
+<div id="resetPwdModal" class="auth-modal-overlay hidden">
+  <div class="auth-card" style="max-width:400px">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🔐</div>
+      <div class="auth-logo-name" style="font-size:17px">Set New Password</div>
+      <div class="auth-logo-sub">Choose a new password for your account</div>
+    </div>
+    <div class="field">
+      <label>New Password <span class="auth-hint">min 4 characters</span></label>
+      <input type="password" id="resetNewPwd" placeholder="••••••••" autocomplete="new-password">
+    </div>
+    <div class="field">
+      <label>Confirm Password</label>
+      <input type="password" id="resetConfPwd" placeholder="••••••••" autocomplete="new-password">
+    </div>
+    <button class="btn btn-primary btn-lg" id="resetSubmitBtn">Reset Password</button>
+    <p id="resetErr" class="auth-err"></p>
+    <p id="resetOk"  style="color:#2f5a6e;font-size:13px;margin-top:8px;text-align:center;display:none"></p>
+  </div>
+</div>
+
+<script src="/js/app.js?v=18"></script>
 </body>
 </html>

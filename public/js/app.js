@@ -224,11 +224,12 @@ document.getElementById('loginPwd').onkeydown = e => {
 document.getElementById('signupBtn').onclick = async () => {
   const username    = document.getElementById('signupUser').value.trim();
   const displayName = document.getElementById('signupName').value.trim();
+  const email       = document.getElementById('signupEmail').value.trim();
   const password    = document.getElementById('signupPwd').value;
   const errEl       = document.getElementById('signupErr');
   errEl.textContent = '';
   try {
-    const data = await api('POST', '/auth/signup', { username, password, displayName });
+    const data = await api('POST', '/auth/signup', { username, password, displayName, email });
     token = data.token;
     localStorage.setItem('diary_token', token);
     currentUser = { userId: data.userId, username: data.username, displayName: data.displayName || username, email: '', bio: '', avatarUrl: '', shareToken: data.shareToken || '' };
@@ -3627,4 +3628,133 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
 
   // Expose save so the drawing canvas can trigger a server-save after each stroke
   window._canvasSave = save;
+})();
+
+// ── FORGOT / RESET PASSWORD ────────────────────────────────────────────────
+
+// Helpers to open/close the modals
+function openForgotModal() {
+  document.getElementById('forgotPwdModal').classList.remove('hidden');
+  document.getElementById('forgotEmail').value = '';
+  document.getElementById('forgotErr').textContent = '';
+  const okEl = document.getElementById('forgotOk');
+  okEl.textContent = ''; okEl.style.display = 'none';
+  document.getElementById('forgotSubmitBtn').disabled = false;
+  setTimeout(() => document.getElementById('forgotEmail').focus(), 50);
+}
+function closeForgotModal() {
+  document.getElementById('forgotPwdModal').classList.add('hidden');
+}
+
+// "Forgot password?" link in login panel
+document.getElementById('forgotPwdLink')?.addEventListener('click', openForgotModal);
+
+// Close button on forgot modal
+document.getElementById('forgotPwdClose')?.addEventListener('click', closeForgotModal);
+
+// Close on backdrop click
+document.getElementById('forgotPwdModal')?.addEventListener('click', e => {
+  if (e.target === document.getElementById('forgotPwdModal')) closeForgotModal();
+});
+
+// Submit forgot-password form
+document.getElementById('forgotSubmitBtn')?.addEventListener('click', async () => {
+  const email  = document.getElementById('forgotEmail').value.trim();
+  const errEl  = document.getElementById('forgotErr');
+  const okEl   = document.getElementById('forgotOk');
+  const btn    = document.getElementById('forgotSubmitBtn');
+  errEl.textContent = ''; okEl.style.display = 'none';
+  if (!email) { errEl.textContent = 'Please enter your email address.'; return; }
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  try {
+    const data = await api('POST', '/auth/forgot-password', { email });
+    okEl.textContent = data.message || 'Reset link sent! Check your inbox.';
+    okEl.style.display = 'block';
+    btn.textContent = 'Sent ✓';
+  } catch (e) {
+    errEl.textContent = e.message;
+    btn.disabled = false;
+    btn.textContent = 'Send Reset Link';
+  }
+});
+
+// Enter key on forgot email field
+document.getElementById('forgotEmail')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('forgotSubmitBtn')?.click();
+});
+
+// ── RESET PASSWORD (token from URL) ───────────────────────────────────────
+
+function openResetModal() {
+  document.getElementById('resetPwdModal').classList.remove('hidden');
+  document.getElementById('resetNewPwd').value  = '';
+  document.getElementById('resetConfPwd').value = '';
+  document.getElementById('resetErr').textContent = '';
+  const okEl = document.getElementById('resetOk');
+  okEl.textContent = ''; okEl.style.display = 'none';
+  setTimeout(() => document.getElementById('resetNewPwd').focus(), 50);
+}
+function closeResetModal() {
+  document.getElementById('resetPwdModal').classList.add('hidden');
+}
+
+// Close reset modal on backdrop click
+document.getElementById('resetPwdModal')?.addEventListener('click', e => {
+  if (e.target === document.getElementById('resetPwdModal')) closeResetModal();
+});
+
+// Submit reset-password form
+document.getElementById('resetSubmitBtn')?.addEventListener('click', async () => {
+  const urlToken = new URLSearchParams(location.search).get('token');
+  const newPwd   = document.getElementById('resetNewPwd').value;
+  const confPwd  = document.getElementById('resetConfPwd').value;
+  const errEl    = document.getElementById('resetErr');
+  const okEl     = document.getElementById('resetOk');
+  const btn      = document.getElementById('resetSubmitBtn');
+  errEl.textContent = ''; okEl.style.display = 'none';
+  if (!newPwd || newPwd.length < 4) { errEl.textContent = 'Password must be at least 4 characters.'; return; }
+  if (newPwd !== confPwd)           { errEl.textContent = 'Passwords do not match.'; return; }
+  btn.disabled = true;
+  btn.textContent = 'Resetting…';
+  try {
+    const data = await api('POST', '/auth/reset-password', { token: urlToken, password: newPwd });
+    okEl.textContent = data.message || 'Password reset! You can now sign in.';
+    okEl.style.display = 'block';
+    btn.textContent = 'Done ✓';
+    // Strip the token from the URL and redirect to sign-in after a moment
+    setTimeout(() => {
+      history.replaceState({}, '', '/');
+      closeResetModal();
+      showAuth();
+    }, 2200);
+  } catch (e) {
+    errEl.textContent = e.message;
+    btn.disabled = false;
+    btn.textContent = 'Reset Password';
+  }
+});
+
+// Enter key on reset password fields
+['resetNewPwd','resetConfPwd'].forEach(id => {
+  document.getElementById(id)?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('resetSubmitBtn')?.click();
+  });
+});
+
+// On page load: if URL has ?token=... verify it and open reset modal
+;(async function checkResetToken() {
+  const urlToken = new URLSearchParams(location.search).get('token');
+  if (!urlToken) return;
+  try {
+    await api('GET', '/auth/verify-reset-token?token=' + encodeURIComponent(urlToken));
+    // Token is valid — show reset modal
+    openResetModal();
+  } catch {
+    // Invalid/expired — show a friendly message in the forgot modal
+    openForgotModal();
+    document.getElementById('forgotErr').textContent =
+      'This reset link is invalid or has expired. Request a new one below.';
+    history.replaceState({}, '', '/');
+  }
 })();
