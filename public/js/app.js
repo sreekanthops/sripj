@@ -1220,7 +1220,7 @@ function clearMusicTrackSelection() {
 function buildTrackList(container, tracks, activeMusicId) {
   container.innerHTML = '';
   if (!tracks.length) {
-    container.innerHTML = '<div class="music-col-empty">No tracks</div>';
+    container.innerHTML = '<div class="music-col-empty">No tracks yet</div>';
     return;
   }
   tracks.forEach(t => {
@@ -1333,7 +1333,14 @@ async function renderMusicPicker(activeMusicId, activeCustomUrl) {
   const globalContainer = document.getElementById('musicGlobalTracks');
   if (!userContainer || !globalContainer) return;
 
-  // Load both libraries
+  // Show loading state while fetching
+  userContainer.innerHTML   = '<div class="music-col-empty mpc-loading">Loading…</div>';
+  globalContainer.innerHTML = '<div class="music-col-empty mpc-loading">Loading…</div>';
+
+  // Always fetch fresh (don't rely on stale cache)
+  _userMusicLib   = null;
+  _globalMusicLib = null;
+
   const [userTracks, globalTracks] = await Promise.all([
     loadUserMusicLibrary(),
     loadGlobalMusicLibrary(),
@@ -1371,7 +1378,7 @@ function resetAudioState() {
   updateAudioLabel();
 }
 
-function openNewForm() {
+async function openNewForm() {
   editId = null; pendingTags = [];
   _selectedBgUrl = ''; _selectedMusicId = ''; _pendingBgFile = null;
   resetAudioState();
@@ -1388,12 +1395,12 @@ function openNewForm() {
   renderTagsChips();
   buildSwatches(0); setupUploadZone();
   applyBodyPreview();
-  renderNoteBgPicker('');
-  renderMusicPicker('', '');
   openOv('formOverlay');
   setTimeout(() => document.getElementById('fTitle').focus(), 120);
+  await renderNoteBgPicker('');
+  await renderMusicPicker('', '');
 }
-function openEditForm(note) {
+async function openEditForm(note) {
   editId = note.id; pendingTags = Array.isArray(note.tags) ? [...note.tags] : [];
   _selectedBgUrl = note.bgUrl || ''; _selectedMusicId = note.noteMusicId || ''; _pendingBgFile = null;
   // Restore any previously uploaded audio (shows filename in label)
@@ -1414,9 +1421,9 @@ function openEditForm(note) {
   buildSwatches(note.colorIdx || 0);
   renderExistMedia(note); setupUploadZone();
   applyBodyPreview();
-  renderNoteBgPicker(note.bgUrl || '');
-  renderMusicPicker(note.noteMusicId || '', note.musicUrl || '');
   openOv('formOverlay');
+  await renderNoteBgPicker(note.bgUrl || '');
+  await renderMusicPicker(note.noteMusicId || '', note.musicUrl || '');
 }
 
 document.getElementById('fSave').onclick = async () => {

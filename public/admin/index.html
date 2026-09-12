@@ -1830,7 +1830,10 @@ function setupUploadSection({ zoneId, inputId, previewsWrapId, previewsId, uploa
       const fd = new FormData();
       pending.forEach(f => fd.append('files', f));
       const res = await fetch(apiPath, { method: 'POST', headers: { Authorization: 'Bearer ' + adminToken }, body: fd });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${res.status}`);
+      }
       statusEl.textContent = '✅ Uploaded!';
       pending = []; input.value = ''; wrap.style.display = 'none';
       gridLoader();
