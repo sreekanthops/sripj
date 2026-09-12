@@ -118,6 +118,17 @@ body {
 .brand-caption { display: none; }
 
 /* ── Brand two-tone: "Unsent" in Satisfy brush script + "Stories" in Playfair serif ── */
+.brand-visitor-prefix {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: block;
+  margin-bottom: 1px;
+  line-height: 1;
+}
 .brand-unsent {
   font-family: 'Satisfy', cursive;
   font-style: normal;
