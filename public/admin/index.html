@@ -300,7 +300,8 @@ select.field-select:focus{border-color:var(--accent)}
 
 <!-- ── LOGIN ────────────────────────────────────────────────── -->
 <div id="loginScreen">
-  <div class="login-card">
+  <!-- Sign-in form -->
+  <div class="login-card" id="loginForm">
     <div class="login-logo">
       <div class="login-logo-icon">✦</div>
       <div class="login-logo-name" style="display:flex;align-items:baseline;gap:5px;justify-content:center"><em style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-weight:700">Unsent</em><span style="font-family:'Caveat',cursive;font-weight:700;color:var(--amber);font-size:1.18em;letter-spacing:.4px">Stories</span></div>
@@ -316,6 +317,36 @@ select.field-select:focus{border-color:var(--accent)}
     </div>
     <button class="btn btn-primary btn-full" id="loginBtn">Sign In</button>
     <p class="err" id="loginErr"></p>
+    <p style="text-align:center;margin-top:14px">
+      <a href="#" id="showForgotBtn" style="font-size:12px;color:var(--accent)">Forgot password?</a>
+    </p>
+  </div>
+
+  <!-- Forgot-password form -->
+  <div class="login-card hidden" id="forgotForm">
+    <div class="login-logo">
+      <div class="login-logo-icon" style="font-size:26px">🔑</div>
+      <div class="login-logo-name" style="font-size:16px">Reset Admin Password</div>
+      <div class="login-logo-sub">Enter your username + registered phone</div>
+    </div>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="forgotUser" placeholder="admin" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Registered Phone Number</label>
+      <input type="tel" id="forgotPhone" placeholder="+91 87900 07228" autocomplete="tel">
+    </div>
+    <button class="btn btn-primary btn-full" id="forgotSubmitBtn">Get Temporary Password</button>
+    <p class="err" id="forgotErr"></p>
+    <div id="forgotResult" class="hidden" style="margin-top:14px;padding:14px 16px;background:var(--green-bg);border:1px solid var(--green);border-radius:var(--r2)">
+      <p style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px">Temporary password generated:</p>
+      <p id="forgotTempPass" style="font-size:15px;font-weight:700;color:var(--ink);letter-spacing:1px;font-family:monospace;word-break:break-all"></p>
+      <p style="font-size:11px;color:var(--ink3);margin-top:8px">Copy this, sign in, then change your password immediately.</p>
+    </div>
+    <p style="text-align:center;margin-top:14px">
+      <a href="#" id="backToLoginBtn" style="font-size:12px;color:var(--accent)">← Back to sign in</a>
+    </p>
   </div>
 </div>
 
@@ -344,6 +375,7 @@ select.field-select:focus{border-color:var(--accent)}
     <button class="nav-tab" data-page="music-library">Music Library</button>
     <button class="nav-tab" data-page="payments">Payments</button>
     <button class="nav-tab" data-page="settings">Settings</button>
+    <button class="nav-tab" data-page="profile">My Profile</button>
   </nav>
 
   <!-- OVERVIEW -->
@@ -787,6 +819,32 @@ select.field-select:focus{border-color:var(--accent)}
           Session duration: <b style="color:var(--ink)">8 hours</b><br>
           Portal URL: <b style="color:var(--ink)">/admin</b>
         </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MY PROFILE -->
+  <div class="page" id="page-profile">
+    <div class="section">
+      <div class="section-title">Admin Profile</div>
+      <div class="settings-card" style="max-width:480px">
+        <div class="field">
+          <label>Username</label>
+          <input type="text" id="adminProfileUsername" readonly disabled style="opacity:.7;background:var(--bg)">
+        </div>
+        <div class="field">
+          <label>Email Address <span style="color:var(--red);font-weight:400;font-size:11px">*required</span></label>
+          <input type="email" id="adminProfileEmail" placeholder="admin@example.com">
+        </div>
+        <div class="field">
+          <label>Phone Number <span style="color:var(--red);font-weight:400;font-size:11px">*required</span></label>
+          <input type="tel" id="adminProfilePhone" placeholder="+91 87900 07228">
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
+          <button class="btn btn-primary" id="adminProfileSaveBtn">Save Profile</button>
+          <span id="adminProfileStatus" style="font-size:12px;color:var(--green);font-weight:600"></span>
+        </div>
+        <p class="err" id="adminProfileErr"></p>
       </div>
     </div>
   </div>
@@ -1515,6 +1573,77 @@ document.getElementById('navTabs').addEventListener('click', e => {
     }
   }
 })();
+
+// ── FORGOT PASSWORD (admin login page) ───────────────────────────────────────
+document.getElementById('showForgotBtn').onclick = e => {
+  e.preventDefault();
+  document.getElementById('loginForm').classList.add('hidden');
+  document.getElementById('forgotForm').classList.remove('hidden');
+  document.getElementById('forgotErr').textContent = '';
+  document.getElementById('forgotResult').classList.add('hidden');
+};
+document.getElementById('backToLoginBtn').onclick = e => {
+  e.preventDefault();
+  document.getElementById('forgotForm').classList.add('hidden');
+  document.getElementById('loginForm').classList.remove('hidden');
+};
+document.getElementById('forgotSubmitBtn').onclick = async () => {
+  const username = document.getElementById('forgotUser').value.trim();
+  const phone    = document.getElementById('forgotPhone').value.trim();
+  const errEl    = document.getElementById('forgotErr');
+  const resultEl = document.getElementById('forgotResult');
+  errEl.textContent = '';
+  resultEl.classList.add('hidden');
+  if (!username || !phone) { errEl.textContent = 'Both fields are required'; return; }
+  try {
+    const res  = await fetch('/api/admin/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, phone }),
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Failed'; return; }
+    document.getElementById('forgotTempPass').textContent = data.tempPassword;
+    resultEl.classList.remove('hidden');
+  } catch (e) { errEl.textContent = 'Network error: ' + e.message; }
+};
+
+// ── ADMIN PROFILE tab ─────────────────────────────────────────────────────────
+let profileTabLoaded = false;
+
+async function loadAdminProfile() {
+  try {
+    const data = await api('GET', '/profile');
+    document.getElementById('adminProfileUsername').value = data.username || '';
+    document.getElementById('adminProfileEmail').value    = data.email    || '';
+    document.getElementById('adminProfilePhone').value    = data.phone    || '';
+  } catch (e) { toast('Could not load profile: ' + e.message); }
+}
+
+document.getElementById('adminProfileSaveBtn').onclick = async () => {
+  const email    = document.getElementById('adminProfileEmail').value.trim();
+  const phone    = document.getElementById('adminProfilePhone').value.trim();
+  const statusEl = document.getElementById('adminProfileStatus');
+  const errEl    = document.getElementById('adminProfileErr');
+  statusEl.textContent = ''; errEl.textContent = '';
+  if (!email) { errEl.textContent = 'Email is required'; return; }
+  if (!phone) { errEl.textContent = 'Phone number is required'; return; }
+  try {
+    await api('PUT', '/profile', { email, phone });
+    statusEl.textContent = '✅ Saved!';
+    setTimeout(() => { statusEl.textContent = ''; }, 3000);
+    toast('Admin profile saved');
+  } catch (e) { errEl.textContent = e.message; }
+};
+
+// Lazy-load profile tab on first open
+document.getElementById('navTabs').addEventListener('click', e => {
+  const tab = e.target.closest('.nav-tab');
+  if (tab && tab.dataset.page === 'profile' && !profileTabLoaded) {
+    profileTabLoaded = true;
+    loadAdminProfile();
+  }
+});
 
 // ── GLOBAL IMAGES ─────────────────────────────────────────────────────────────
 const GI_API = '/api/global-images';

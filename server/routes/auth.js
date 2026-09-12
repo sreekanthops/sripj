@@ -300,6 +300,7 @@ function ensureUserColumns() {
   add('share_password_hash', 'TEXT NOT NULL DEFAULT ""');
   add('share_token',         'TEXT NOT NULL DEFAULT ""');
   add('google_id',           'TEXT');
+  add('phone',               'TEXT NOT NULL DEFAULT ""');
 }
 let _migrated = false;
 function runMigrationOnce() { if (!_migrated) { ensureUserColumns(); _migrated = true; } }
@@ -307,7 +308,7 @@ function runMigrationOnce() { if (!_migrated) { ensureUserColumns(); _migrated =
 // GET /api/auth/verify  — validate token
 router.get('/verify', verifyToken, (req, res) => {
   runMigrationOnce();
-  const user = db.prepare('SELECT id, username, display_name, email, bio, avatar_url, share_protected, share_token, (password_hash != "") as has_password FROM users WHERE id = ?').get(req.user.userId);
+  const user = db.prepare('SELECT id, username, display_name, email, bio, avatar_url, phone, share_protected, share_token, (password_hash != "") as has_password FROM users WHERE id = ?').get(req.user.userId);
   if (!user) return res.status(401).json({ error: 'User not found' });
   // ensure every user has a share_token (back-fill if missing)
   let shareToken = user.share_token || '';
@@ -321,6 +322,7 @@ router.get('/verify', verifyToken, (req, res) => {
     username: user.username,
     displayName: user.display_name,
     email: user.email || '',
+    phone: user.phone || '',
     bio: user.bio || '',
     avatarUrl: user.avatar_url || '',
     shareProtected: !!user.share_protected,
@@ -336,12 +338,16 @@ router.get('/resolve/:token', (req, res) => {
   res.json({ username: user.username });
 });
 
-// PUT /api/auth/profile  — update display name, bio, email, avatar_url
+// PUT /api/auth/profile  — update display name, bio, email, phone, avatar_url
 router.put('/profile', verifyToken, (req, res) => {
   runMigrationOnce();
-  const { displayName, bio, email, avatarUrl } = req.body;
-  db.prepare('UPDATE users SET display_name=?, bio=?, email=?, avatar_url=? WHERE id=?')
-    .run(displayName?.trim() || '', bio?.trim() || '', email?.trim().toLowerCase() || '', avatarUrl || '', req.user.userId);
+  const { displayName, bio, email, phone, avatarUrl } = req.body;
+  if (!phone?.trim()) return res.status(400).json({ error: 'Phone number is required' });
+  const phoneClean = phone.trim().replace(/\s+/g, '');
+  if (!/^\+?[0-9]{7,15}$/.test(phoneClean))
+    return res.status(400).json({ error: 'Enter a valid phone number (7–15 digits, optional + prefix)' });
+  db.prepare('UPDATE users SET display_name=?, bio=?, email=?, phone=?, avatar_url=? WHERE id=?')
+    .run(displayName?.trim() || '', bio?.trim() || '', email?.trim().toLowerCase() || '', phoneClean, avatarUrl || '', req.user.userId);
   res.json({ ok: true });
 });
 

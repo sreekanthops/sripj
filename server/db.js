@@ -81,6 +81,7 @@ db.exec(`
     username      TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     email         TEXT NOT NULL DEFAULT '',
+    phone         TEXT NOT NULL DEFAULT '',
     created_at    TEXT NOT NULL
   );
 
@@ -300,6 +301,10 @@ if (!hasTable('geo_pricing')) {
 
 // replies.user_id
 if (!hasColumn('replies', 'user_id')) db.exec(`ALTER TABLE replies ADD COLUMN user_id TEXT`);
+
+// users & admins: phone number
+if (!hasColumn('users',  'phone')) db.exec(`ALTER TABLE users  ADD COLUMN phone TEXT NOT NULL DEFAULT ''`);
+if (!hasColumn('admins', 'phone')) db.exec(`ALTER TABLE admins ADD COLUMN phone TEXT NOT NULL DEFAULT ''`);
 
 // subscription_plans: discount columns
 if (!hasColumn('subscription_plans', 'discount_pct'))      db.exec(`ALTER TABLE subscription_plans ADD COLUMN discount_pct     REAL    NOT NULL DEFAULT 0`);

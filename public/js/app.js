@@ -634,6 +634,7 @@ async function openProfileModal() {
   if (!currentUser) return;
   document.getElementById('profUsername').value = '@' + (currentUser.username || '');
   document.getElementById('profEmail').value    = currentUser.email || '';
+  document.getElementById('profPhone').value    = currentUser.phone || '';
   document.getElementById('profName').value     = currentUser.displayName || '';
   document.getElementById('profBio').value      = currentUser.bio || '';
   document.getElementById('profCurPwd').value   = '';
@@ -646,11 +647,13 @@ async function openProfileModal() {
   // Fetch latest user details
   try {
     const data = await api('GET', '/auth/verify');
-    if (data.email    !== undefined) currentUser.email       = data.email;
-    if (data.avatarUrl !== undefined) currentUser.avatarUrl  = data.avatarUrl;
-    if (data.displayName) currentUser.displayName = data.displayName;
-    if (data.bio      !== undefined) currentUser.bio         = data.bio;
+    if (data.email       !== undefined) currentUser.email       = data.email;
+    if (data.phone       !== undefined) currentUser.phone       = data.phone;
+    if (data.avatarUrl   !== undefined) currentUser.avatarUrl   = data.avatarUrl;
+    if (data.displayName)               currentUser.displayName = data.displayName;
+    if (data.bio         !== undefined) currentUser.bio         = data.bio;
     document.getElementById('profEmail').value = currentUser.email || '';
+    document.getElementById('profPhone').value = currentUser.phone || '';
     document.getElementById('profName').value  = currentUser.displayName || '';
     document.getElementById('profBio').value   = currentUser.bio || '';
     renderProfileAvatar(currentUser.avatarUrl);
@@ -691,6 +694,7 @@ document.getElementById('profAvatarRemoveBtn')?.addEventListener('click', async 
       displayName: currentUser.displayName,
       bio: currentUser.bio,
       email: currentUser.email,
+      phone: currentUser.phone || '',
       avatarUrl: ''
     });
     currentUser.avatarUrl = '';
@@ -706,11 +710,14 @@ document.getElementById('profAvatarRemoveBtn')?.addEventListener('click', async 
 document.getElementById('profSave').onclick = async () => {
   const displayName = document.getElementById('profName').value.trim();
   const email       = document.getElementById('profEmail').value.trim();
+  const phone       = document.getElementById('profPhone').value.trim();
   const bio         = document.getElementById('profBio').value.trim();
+  if (!phone) { toast('Phone number is required'); document.getElementById('profPhone').focus(); return; }
   try {
-    await api('PUT', '/auth/profile', { displayName, email, bio, avatarUrl: currentUser.avatarUrl || '' });
+    await api('PUT', '/auth/profile', { displayName, email, phone, bio, avatarUrl: currentUser.avatarUrl || '' });
     currentUser.displayName = displayName;
     currentUser.email = email;
+    currentUser.phone = phone;
     currentUser.bio = bio;
     document.getElementById('sidebarTitle').textContent = displayName || currentUser.username;
     renderHeader();

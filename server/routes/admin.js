@@ -26,6 +26,44 @@ router.post('/login', async (req, res) => {
   res.json({ token, username: admin.username, email: admin.email });
 });
 
+// ── GET /api/admin/profile ────────────────────────────────────────────────────
+router.get('/profile', verifyAdminToken, (req, res) => {
+  const admin = db.prepare('SELECT id, username, email, phone FROM admins WHERE id = ?').get(req.admin.adminId);
+  if (!admin) return res.status(404).json({ error: 'Admin not found' });
+  res.json({ username: admin.username, email: admin.email || '', phone: admin.phone || '' });
+});
+
+// ── PUT /api/admin/profile ────────────────────────────────────────────────────
+router.put('/profile', verifyAdminToken, (req, res) => {
+  const { email, phone } = req.body;
+  if (!email?.trim()) return res.status(400).json({ error: 'Email is required' });
+  if (!phone?.trim()) return res.status(400).json({ error: 'Phone number is required' });
+  const phoneClean = phone.trim().replace(/\s+/g, '');
+  if (!/^\+?[0-9]{7,15}$/.test(phoneClean))
+    return res.status(400).json({ error: 'Enter a valid phone number' });
+  db.prepare('UPDATE admins SET email=?, phone=? WHERE id=?')
+    .run(email.trim().toLowerCase(), phoneClean, req.admin.adminId);
+  res.json({ ok: true });
+});
+
+// ── POST /api/admin/forgot-password ──────────────────────────────────────────
+// Admin can reset via phone (OTP-less: just returns the current phone on record for manual verification)
+// Since there's no email server set up for admin, we simply allow reset if they know their username + phone
+router.post('/forgot-password', async (req, res) => {
+  const { username, phone } = req.body;
+  if (!username?.trim() || !phone?.trim()) return res.status(400).json({ error: 'Username and phone required' });
+  const admin = db.prepare('SELECT * FROM admins WHERE username = ?').get(username.trim().toLowerCase());
+  if (!admin) return res.status(404).json({ error: 'Admin not found' });
+  const phoneClean = phone.trim().replace(/\s+/g, '');
+  if (!admin.phone || admin.phone !== phoneClean)
+    return res.status(401).json({ error: 'Phone number does not match our records' });
+  // Generate a temporary password
+  const tempPass = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
+  const hash = await hashPassword(tempPass);
+  db.prepare('UPDATE admins SET password_hash = ? WHERE id = ?').run(hash, admin.id);
+  res.json({ ok: true, tempPassword: tempPass, message: 'Temporary password set. Log in and change it immediately.' });
+});
+
 // ── POST /api/admin/change-password ──────────────────────────────────────────
 router.post('/change-password', verifyAdminToken, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
