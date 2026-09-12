@@ -96,7 +96,7 @@ body {
 .topbar-filters {
   flex: 1;
   display: flex; align-items: center;
-  padding-left: 24px;   /* gap from brand */
+  padding-left: 24px;
 }
 
 .nav-icon-btn {
@@ -1817,10 +1817,9 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 @media (max-width: 680px) {
   #notesGrid {
     grid-template-columns: 1fr;
-    gap: 28px;        /* extra breathing room between stacked cards */
+    gap: 28px;
     align-items: stretch;
   }
-  /* kill rotation on mobile — tilted cards overlap when stacked vertically */
   .note-card,
   .note-card.rot-0,
   .note-card.rot-1,
@@ -1830,13 +1829,28 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   .note-card.rot-5 {
     transform: none !important;
   }
-  .note-card:hover {
-    transform: translateY(-4px) !important;
+  .note-card:hover { transform: translateY(-4px) !important; }
+
+  /* ── Topbar full-width on mobile ── */
+  .topbar-inner {
+    padding: 0 12px;
+    justify-content: space-between;
+    gap: 8px;
   }
-  #notesSection { padding: 16px 14px 80px; }
-  .topbar-inner { padding: 0 14px; }
-  .brand-name { font-size: 18px; }
+  /* collapse the filters spacer — no room for it on mobile */
+  .topbar-filters { flex: 0; padding: 0; min-width: 0; }
   .ctrl-group { display: none; }
+  /* left: brand + share stretch naturally */
+  .topbar-left { flex: 1; gap: 8px; }
+  /* share button: no label on very small screens, just icon */
+  .topbar-share-btn { margin-left: 0; }
+  /* right: buttons compact but visible */
+  .topbar-right { gap: 6px; margin-left: 0; }
+  /* shrink New button label on tiny screens */
+  .btn-sm { padding: 6px 10px; font-size: 12px; }
+
+  #notesSection { padding: 16px 14px 80px; }
+  .brand-name { font-size: 18px; }
   #mainContent { padding: 0 14px; }
   .tag-strip { padding: 6px 14px 8px; }
   .tf-bar { padding: 20px 0 14px; }
