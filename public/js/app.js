@@ -59,20 +59,15 @@ function fmtTime(iso) {
   return new Date(iso).toLocaleTimeString('en-GB',
     { hour:'2-digit', minute:'2-digit' });
 }
-// Diary-style date widget: torn-page calendar look
-// size: 'sm' (card) | 'lg' (detail)
-function fmtDateWidget(iso, size = 'sm') {
+// Diary-style text date
+// card:   "Mon, 12 Jan 2025"
+// detail: "Monday, 12 January 2025"
+function fmtDiaryDate(iso, long = false) {
   const d = new Date(iso);
-  const day   = d.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase(); // MON
-  const num   = d.getDate();                                                         // 14
-  const month = d.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase();   // JAN
-  const year  = d.getFullYear();                                                    // 2025
-  const cls   = size === 'lg' ? 'cal-widget cal-widget-lg' : 'cal-widget';
-  return `<span class="${cls}" title="${fmtDate(iso)}">
-    <span class="cal-day">${day}</span>
-    <span class="cal-num">${num}</span>
-    <span class="cal-mon">${month} ${year}</span>
-  </span>`;
+  if (long) {
+    return d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  }
+  return d.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
 }
 function fmtDur(s) {
   if (!isFinite(s)) return '0:00';
@@ -2168,7 +2163,7 @@ function buildNoteCard(n, index, total) {
   body.className = 'card-body-section';
   body.innerHTML = `
     <div class="card-meta-row">
-      <span class="card-date">${fmtDateWidget(n.createdAt, 'sm')}</span>
+      <span class="card-date">✦ ${fmtDiaryDate(n.createdAt)}</span>
       <span class="card-num">${n.pinned ? '<span class="pin-badge">📌 Pinned</span>' : numStr}</span>
     </div>
     <div class="card-title" ${n.titleFont ? `style="font-family:${esc(n.titleFont)}"` : ''}>${esc(n.title)}</div>
@@ -2468,7 +2463,7 @@ function renderDetail(note) {
         <h2 class="detail-title" style="font-family:${esc(note.titleFont||note.font)};color:${p.accent}">${esc(note.title)}</h2>
       </div>
       <div class="detail-meta">
-        ${fmtDateWidget(note.createdAt, 'lg')} <span class="cal-time">🕐 ${fmtTime(note.createdAt)}</span>
+        <span class="detail-date">✦ ${fmtDiaryDate(note.createdAt, true)} · ${fmtTime(note.createdAt)}</span>
         ${isOwner ? `<span>👁 ${note.views} views</span>` : ''}
         ${note.editedAt ? `<span>✏️ Edited&nbsp;${fmtDate(note.editedAt)}</span>` : ''}
         <span>💬 ${(note.replies||[]).length} ${(note.replies||[]).length===1?'reply':'replies'}</span>
