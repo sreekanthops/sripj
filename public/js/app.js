@@ -1893,11 +1893,14 @@ function updateClearBtn() {
   const has = document.getElementById('filterFrom').value || document.getElementById('filterTo').value;
   if (btn) btn.style.display = has ? 'inline-flex' : 'none';
 }
-document.getElementById('filterFrom').onchange = () => { updateClearBtn(); loadAndRender(); };
-document.getElementById('filterTo').onchange   = () => { updateClearBtn(); loadAndRender(); };
+function syncDateAttr(el) { el.setAttribute('value', el.value); }
+document.getElementById('filterFrom').onchange = () => { syncDateAttr(document.getElementById('filterFrom')); updateClearBtn(); loadAndRender(); };
+document.getElementById('filterTo').onchange   = () => { syncDateAttr(document.getElementById('filterTo'));   updateClearBtn(); loadAndRender(); };
 document.getElementById('btnClearFilter').onclick = () => {
-  document.getElementById('filterFrom').value = '';
-  document.getElementById('filterTo').value   = '';
+  const ff = document.getElementById('filterFrom');
+  const ft = document.getElementById('filterTo');
+  ff.value = ''; ff.removeAttribute('value');
+  ft.value = ''; ft.removeAttribute('value');
   updateClearBtn(); loadAndRender();
 };
 

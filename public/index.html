@@ -204,9 +204,15 @@
             <option value="most-views">👁 Views</option>
           </select>
           <span class="ctrl-divider"></span>
-          <input type="date" class="ctrl-date" id="filterFrom" title="From">
+          <div class="ctrl-date-wrap">
+            <span class="ctrl-date-label">From</span>
+            <input type="date" class="ctrl-date" id="filterFrom" title="From date">
+          </div>
           <span class="ctrl-dash">—</span>
-          <input type="date" class="ctrl-date" id="filterTo" title="To">
+          <div class="ctrl-date-wrap">
+            <span class="ctrl-date-label">To</span>
+            <input type="date" class="ctrl-date" id="filterTo" title="To date">
+          </div>
           <button id="btnClearFilter" class="ctrl-clear" style="display:none">✕</button>
         </div>
       </div>
