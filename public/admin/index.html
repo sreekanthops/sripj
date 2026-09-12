@@ -697,6 +697,27 @@ select.field-select:focus{border-color:var(--accent)}
       <div id="planEditorGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px"></div>
     </div>
 
+    <!-- Geo Pricing -->
+    <div class="section">
+      <div class="section-title">Geo Pricing (by Region)
+        <button class="btn btn-ghost" id="geoRefreshBtn" style="margin-left:auto;padding:5px 14px;font-size:12px">Refresh</button>
+      </div>
+      <p style="font-size:12px;color:var(--ink3);line-height:1.6;margin-bottom:16px">
+        Visitors see prices in their local currency based on their IP address.
+        Edit any cell and click <b>Save Row</b>. Razorpay always charges in <b>INR</b> — these are display prices only.
+      </p>
+      <div class="table-wrap">
+        <table id="geoPricingTable">
+          <thead>
+            <tr><th>Region</th><th>Plan</th><th>Currency</th><th>Symbol</th><th>Amount</th><th></th></tr>
+          </thead>
+          <tbody id="geoPricingBody">
+            <tr><td colspan="6" style="text-align:center;color:var(--ink4);padding:20px">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Payment Orders -->
     <div class="section">
       <div class="section-title">Payment Orders
@@ -1788,6 +1809,52 @@ async function loadOrders() {
 
 document.getElementById('ordersRefreshBtn').onclick = loadOrders;
 
+// ── Geo Pricing editor ────────────────────────────────────────────────────────
+const REGION_LABELS = { IN:'🇮🇳 India', US:'🇺🇸 US/Canada', UK:'🇬🇧 UK', EU:'🇪🇺 Europe', AU:'🇦🇺 Australia', ROW:'🌍 Rest of World' };
+const PLAN_ORDER    = ['monthly','yearly','lifetime'];
+
+async function loadGeoPricing() {
+  const tbody = document.getElementById('geoPricingBody');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--ink4);padding:20px">Loading…</td></tr>';
+  try {
+    const { rows } = await payApi('GET', '/admin/geo-pricing');
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--ink4);padding:20px">No geo prices found</td></tr>'; return; }
+    // Sort: region order then plan order
+    const regionOrder = ['IN','US','UK','EU','AU','ROW'];
+    rows.sort((a,b) => regionOrder.indexOf(a.region) - regionOrder.indexOf(b.region) || PLAN_ORDER.indexOf(a.plan_id) - PLAN_ORDER.indexOf(b.plan_id));
+    tbody.innerHTML = rows.map(r => `
+      <tr data-region="${r.region}" data-plan="${r.plan_id}">
+        <td>${REGION_LABELS[r.region] || r.region}</td>
+        <td style="font-weight:600">${r.plan_id}</td>
+        <td><input class="geo-currency" value="${r.currency}" style="width:64px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:13px;color:var(--ink)"></td>
+        <td><input class="geo-symbol"   value="${r.symbol}"   style="width:50px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:13px;color:var(--ink)"></td>
+        <td><input class="geo-amount"   value="${r.amount}"   style="width:90px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:13px;color:var(--ink)" type="number" min="0" step="0.01"></td>
+        <td><button class="btn btn-primary geo-save-btn" style="padding:4px 14px;font-size:12px">Save</button> <span class="geo-status" style="font-size:11px;color:var(--green);font-weight:600"></span></td>
+      </tr>
+    `).join('');
+    // Attach save handlers
+    tbody.querySelectorAll('.geo-save-btn').forEach(btn => {
+      btn.onclick = async () => {
+        const tr       = btn.closest('tr');
+        const region   = tr.dataset.region;
+        const plan_id  = tr.dataset.plan;
+        const currency = tr.querySelector('.geo-currency').value.trim();
+        const symbol   = tr.querySelector('.geo-symbol').value.trim();
+        const amount   = parseFloat(tr.querySelector('.geo-amount').value);
+        const statusEl = tr.querySelector('.geo-status');
+        btn.disabled = true;
+        try {
+          await payApi('PUT', '/admin/geo-pricing', { region, plan_id, currency, symbol, amount });
+          statusEl.textContent = '✅ Saved';
+          setTimeout(() => { statusEl.textContent = ''; }, 3000);
+        } catch(e) { statusEl.textContent = e.message; }
+        finally { btn.disabled = false; }
+      };
+    });
+  } catch(e) { tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);padding:20px">${e.message}</td></tr>`; }
+}
+document.getElementById('geoRefreshBtn').onclick = loadGeoPricing;
+
 // Lazy-load payments tab on first open
 let payTabLoaded = false;
 let settingsTabLoaded = false;
@@ -1798,6 +1865,7 @@ document.getElementById('navTabs').addEventListener('click', e => {
     payTabLoaded = true;
     loadPaymentSettings();
     loadPlanEditor();
+    loadGeoPricing();
     loadOrders();
   }
   if (tab.dataset.page === 'settings' && !settingsTabLoaded) {

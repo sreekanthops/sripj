@@ -150,18 +150,22 @@ const FEATURES = {
 async function loadPlans() {
   const grid = document.getElementById('pricingGrid');
   try {
-    const [plansRes, cfgRes] = await Promise.all([
+    const [plansRes, cfgRes, geoRes] = await Promise.all([
       fetch('/api/payments/plans').then(r => r.json()),
       fetch('/api/payments/config').then(r => r.json()),
+      fetch('/api/payments/geo-price').then(r => r.json()).catch(() => ({ region: 'IN', prices: {} })),
     ]);
-    const plans = plansRes.plans || [];
-    const keyId = cfgRes.keyId;
+    const plans    = plansRes.plans || [];
+    const keyId    = cfgRes.keyId;
+    const geoPrices = geoRes.prices || {};   // { monthly: { symbol, currency, amount }, … }
+    const geoRegion = geoRes.region || 'IN';
 
     grid.innerHTML = '';
     plans.forEach(p => {
       const isPopular = p.id === 'monthly';
       const isFree    = p.id === 'free';
       const features  = FEATURES[p.id] || [];
+      const geo       = geoPrices[p.id];     // local price for this plan, may be undefined
 
       // Countdown timer text
       let countdownHtml = '&nbsp;';
@@ -170,10 +174,17 @@ async function loadPlans() {
         countdownHtml = diff > 0 ? `Offer ends in <b>${diff} day${diff !== 1 ? 's' : ''}</b>` : '&nbsp;';
       }
 
-      // Price display
+      // Price display — show local currency if geo price available, else fallback INR
       let priceHtml = '';
       if (isFree) {
         priceHtml = `<div class="card-price"><sup>&#8377;</sup>0</div>`;
+      } else if (geo) {
+        const sym = geo.symbol;
+        const amt = geo.amount % 1 === 0 ? geo.amount.toLocaleString() : geo.amount.toFixed(2);
+        priceHtml = `<div class="card-price"><sup style="font-size:16px">${sym}</sup>${amt}</div>`;
+        if (geoRegion !== 'IN') {
+          priceHtml += `<div style="font-size:11px;color:var(--ink4);margin-top:2px">₹${(p.discountActive ? p.effectivePriceInr : p.price_inr).toLocaleString('en-IN')} for India</div>`;
+        }
       } else if (p.discountActive) {
         const origInr = p.price_inr;
         const discInr = p.effectivePriceInr;

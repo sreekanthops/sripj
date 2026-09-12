@@ -1,9 +1,55 @@
 const router   = require('express').Router();
 const crypto   = require('crypto');
+const https    = require('https');
 const { v4: uuidv4 } = require('uuid');
 const db       = require('../db');
 const { verifyToken, verifyAdminToken } = require('../auth');
 const { getUserPlan } = require('../subscription');
+
+// ── Geo-IP helper — map country code → region key ─────────────────────────────
+const COUNTRY_TO_REGION = (() => {
+  const map = {};
+  // India
+  ['IN'].forEach(c => { map[c] = 'IN'; });
+  // UK
+  ['GB'].forEach(c => { map[c] = 'UK'; });
+  // Europe
+  ['DE','FR','IT','ES','NL','BE','AT','CH','SE','NO','DK','FI','PL','PT','CZ','HU','RO','GR','IE','SK','SI','HR','BG','LT','LV','EE','CY','LU','MT'].forEach(c => { map[c] = 'EU'; });
+  // Australia / NZ
+  ['AU','NZ'].forEach(c => { map[c] = 'AU'; });
+  // US / Canada
+  ['US','CA'].forEach(c => { map[c] = 'US'; });
+  return map;
+})();
+
+function getRegionFromIp(ip) {
+  return new Promise(resolve => {
+    // Use ip-api.com free tier (no key, 1000 req/min)
+    const cleanIp = (ip || '').replace(/^::ffff:/, '');
+    if (!cleanIp || cleanIp === '127.0.0.1' || cleanIp === '::1' || cleanIp.startsWith('192.168') || cleanIp.startsWith('10.')) {
+      return resolve('IN'); // default to India for local dev
+    }
+    const req = https.get(`https://ip-api.com/json/${cleanIp}?fields=countryCode`, res => {
+      let data = '';
+      res.on('data', d => { data += d; });
+      res.on('end', () => {
+        try {
+          const { countryCode } = JSON.parse(data);
+          resolve(COUNTRY_TO_REGION[countryCode] || 'ROW');
+        } catch { resolve('ROW'); }
+      });
+    });
+    req.on('error', () => resolve('ROW'));
+    req.setTimeout(3000, () => { req.destroy(); resolve('ROW'); });
+  });
+}
+
+function getGeoPrices(region) {
+  const rows = db.prepare(`SELECT plan_id, currency, symbol, amount FROM geo_pricing WHERE region = ?`).all(region);
+  const result = {};
+  rows.forEach(r => { result[r.plan_id] = { currency: r.currency, symbol: r.symbol, amount: r.amount }; });
+  return result;
+}
 
 // ── Helper: get live Razorpay credentials from app_settings ──────────────────
 function getRazorpayCreds() {
@@ -214,6 +260,35 @@ router.put('/admin/plans/:id', verifyAdminToken, (req, res) => {
     notes_limit != null ? Number(notes_limit) : null,
     req.params.id
   );
+  res.json({ ok: true });
+});
+
+// ── GET /api/payments/geo-price  — detect visitor region, return local prices ──
+router.get('/geo-price', async (req, res) => {
+  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
+  const region = await getRegionFromIp(ip);
+  const prices = getGeoPrices(region);
+  const finalPrices = Object.keys(prices).length ? prices : getGeoPrices('ROW');
+  res.json({ region, prices: finalPrices });
+});
+
+// ── GET /api/payments/admin/geo-pricing  — list all geo prices ───────────────
+router.get('/admin/geo-pricing', verifyAdminToken, (req, res) => {
+  const rows = db.prepare(`SELECT region, plan_id, currency, symbol, amount FROM geo_pricing ORDER BY region, plan_id`).all();
+  res.json({ rows });
+});
+
+// ── PUT /api/payments/admin/geo-pricing  — upsert a region/plan price ────────
+router.put('/admin/geo-pricing', verifyAdminToken, (req, res) => {
+  const { region, plan_id, currency, symbol, amount } = req.body;
+  if (!region || !plan_id || !currency || !symbol || amount == null)
+    return res.status(400).json({ error: 'region, plan_id, currency, symbol, amount required' });
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO geo_pricing (id, region, plan_id, currency, symbol, amount, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(region, plan_id) DO UPDATE SET currency=excluded.currency, symbol=excluded.symbol, amount=excluded.amount, updated_at=excluded.updated_at
+  `).run(uuidv4(), region, plan_id, currency, symbol, Number(amount), now);
   res.json({ ok: true });
 });
 

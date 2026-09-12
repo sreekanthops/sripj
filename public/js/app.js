@@ -376,14 +376,24 @@ document.getElementById('shareClose')?.addEventListener('click', () => closeOv('
   window._refreshUpgradePrices = async function() {
     if (window._upgradeOverlayPricesLoaded) return;
     try {
-      const data = await fetch('/api/payments/plans').then(r => r.json());
-      (data.plans || []).forEach(p => {
+      const [plansData, geoData] = await Promise.all([
+        fetch('/api/payments/plans').then(r => r.json()),
+        fetch('/api/payments/geo-price').then(r => r.json()).catch(() => ({ prices: {} })),
+      ]);
+      const geoPrices = geoData.prices || {};
+      const periodSuffix = { monthly:'/mo', yearly:'/yr', lifetime:' once' };
+      (plansData.plans || []).forEach(p => {
         const el = document.getElementById('upg-price-' + p.id);
         if (!el) return;
-        const price = p.discountActive ? p.effectivePriceInr : p.price_inr;
-        if (!price) return;
-        const periodSuffix = { monthly:'/mo', yearly:'/yr', lifetime:' once' };
-        el.innerHTML = '\u20b9' + price.toLocaleString('en-IN') + '<span>' + (periodSuffix[p.id]||'') + '</span>';
+        const geo = geoPrices[p.id];
+        if (geo) {
+          const amt = geo.amount % 1 === 0 ? geo.amount.toLocaleString() : geo.amount.toFixed(2);
+          el.innerHTML = geo.symbol + amt + '<span>' + (periodSuffix[p.id]||'') + '</span>';
+        } else {
+          const price = p.discountActive ? p.effectivePriceInr : p.price_inr;
+          if (!price) return;
+          el.innerHTML = '\u20b9' + price.toLocaleString('en-IN') + '<span>' + (periodSuffix[p.id]||'') + '</span>';
+        }
         if (p.discountActive && p.discount_label) {
           el.title = p.discount_label + ' \u2014 ' + p.discount_pct + '% off';
         }

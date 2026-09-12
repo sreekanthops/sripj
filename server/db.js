@@ -257,6 +257,47 @@ if (!hasTable('user_music_library')) {
   `);
 }
 
+// geo_pricing — per-region prices for each plan
+if (!hasTable('geo_pricing')) {
+  db.exec(`
+    CREATE TABLE geo_pricing (
+      id         TEXT PRIMARY KEY,
+      region     TEXT NOT NULL,          -- e.g. 'IN', 'US', 'UK', 'EU', 'AU', 'ROW'
+      plan_id    TEXT NOT NULL,          -- 'monthly' | 'yearly' | 'lifetime'
+      currency   TEXT NOT NULL,          -- 'INR', 'USD', 'GBP', 'EUR', 'AUD'
+      symbol     TEXT NOT NULL,          -- '₹', '$', '£', '€', 'A$'
+      amount     REAL NOT NULL,          -- display amount in that currency
+      updated_at TEXT NOT NULL,
+      UNIQUE(region, plan_id)
+    )
+  `);
+
+  // Seed default geo prices
+  const now = new Date().toISOString();
+  const seedGeo = db.prepare(`
+    INSERT OR IGNORE INTO geo_pricing (id, region, plan_id, currency, symbol, amount, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+  const { v4: uuid } = require('uuid');
+  const geoDefaults = [
+    // India
+    ['IN','monthly','INR','₹',149], ['IN','yearly','INR','₹',999], ['IN','lifetime','INR','₹',2499],
+    // US/Canada
+    ['US','monthly','USD','$',4.99], ['US','yearly','USD','$',39.99], ['US','lifetime','USD','$',79.99],
+    // UK
+    ['UK','monthly','GBP','£',4.49], ['UK','yearly','GBP','£',34.99], ['UK','lifetime','GBP','£',64.99],
+    // Europe
+    ['EU','monthly','EUR','€',4.99], ['EU','yearly','EUR','€',39.99], ['EU','lifetime','EUR','€',74.99],
+    // Australia
+    ['AU','monthly','AUD','A$',7.99], ['AU','yearly','AUD','A$',59.99], ['AU','lifetime','AUD','A$',119.99],
+    // Rest of World
+    ['ROW','monthly','USD','$',3.99], ['ROW','yearly','USD','$',29.99], ['ROW','lifetime','USD','$',69.99],
+  ];
+  geoDefaults.forEach(([region, plan_id, currency, symbol, amount]) => {
+    seedGeo.run(uuid(), region, plan_id, currency, symbol, amount, now);
+  });
+}
+
 // replies.user_id
 if (!hasColumn('replies', 'user_id')) db.exec(`ALTER TABLE replies ADD COLUMN user_id TEXT`);
 
