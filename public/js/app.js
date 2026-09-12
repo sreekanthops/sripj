@@ -712,7 +712,6 @@ document.getElementById('profSave').onclick = async () => {
   const email       = document.getElementById('profEmail').value.trim();
   const phone       = document.getElementById('profPhone').value.trim();
   const bio         = document.getElementById('profBio').value.trim();
-  if (!phone) { toast('Phone number is required'); document.getElementById('profPhone').focus(); return; }
   try {
     await api('PUT', '/auth/profile', { displayName, email, phone, bio, avatarUrl: currentUser.avatarUrl || '' });
     currentUser.displayName = displayName;

@@ -342,10 +342,12 @@ router.get('/resolve/:token', (req, res) => {
 router.put('/profile', verifyToken, (req, res) => {
   runMigrationOnce();
   const { displayName, bio, email, phone, avatarUrl } = req.body;
-  if (!phone?.trim()) return res.status(400).json({ error: 'Phone number is required' });
-  const phoneClean = phone.trim().replace(/\s+/g, '');
-  if (!/^\+?[0-9]{7,15}$/.test(phoneClean))
-    return res.status(400).json({ error: 'Enter a valid phone number (7–15 digits, optional + prefix)' });
+  // Strip everything except digits and a leading +
+  const rawPhone   = (phone || '').trim();
+  const phoneClean = rawPhone.replace(/[^\d+]/g, '').replace(/(?<=.)\+/g, ''); // keep + only at start
+  // Validate only if a phone was actually provided
+  if (phoneClean && !/^\+?[0-9]{7,15}$/.test(phoneClean))
+    return res.status(400).json({ error: 'Enter a valid phone number (7–15 digits)' });
   db.prepare('UPDATE users SET display_name=?, bio=?, email=?, phone=?, avatar_url=? WHERE id=?')
     .run(displayName?.trim() || '', bio?.trim() || '', email?.trim().toLowerCase() || '', phoneClean, avatarUrl || '', req.user.userId);
   res.json({ ok: true });
