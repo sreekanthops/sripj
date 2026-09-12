@@ -163,7 +163,7 @@ router.get('/stats', verifyAdminToken, (req, res) => {
 
   // all users list
   const users = db.prepare(`
-    SELECT u.id, u.username, u.display_name, u.created_at,
+    SELECT u.id, u.username, u.display_name, u.email, u.phone, u.created_at,
            COUNT(DISTINCT n.id) as note_count,
            COALESCE(SUM(n.views),0) as total_views
     FROM users u
@@ -203,6 +203,60 @@ router.get('/stats', verifyAdminToken, (req, res) => {
     notesPerUser,
     noteViewsDaily,
   });
+});
+
+// ── GET /api/admin/visitors ───────────────────────────────────────────────────
+// Returns recent page_views with IP-based geo lookup (free ip-api.com batch)
+router.get('/visitors', verifyAdminToken, async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+  const rows = db.prepare(`
+    SELECT pv.id, pv.user_id, pv.path, pv.ip, pv.ua, pv.duration_s, pv.created_at,
+           u.username, u.display_name
+    FROM page_views pv
+    LEFT JOIN users u ON u.id = pv.user_id
+    ORDER BY pv.created_at DESC
+    LIMIT ?
+  `).all(limit);
+
+  // Collect unique IPs for geo lookup (skip private/loopback)
+  const privateRe = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1|localhost)/;
+  const uniqueIps = [...new Set(rows.map(r => r.ip).filter(ip => ip && !privateRe.test(ip)))];
+
+  let geoMap = {};
+  try {
+    if (uniqueIps.length) {
+      // ip-api.com free batch: up to 100 IPs per call
+      const batch = uniqueIps.slice(0, 100).map(ip => ({ query: ip, fields: 'query,country,regionName,city,status' }));
+      const geoRes = await fetch('http://ip-api.com/batch?fields=query,country,regionName,city,status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(batch),
+        signal: AbortSignal.timeout(4000),
+      });
+      if (geoRes.ok) {
+        const geoData = await geoRes.json();
+        geoData.forEach(g => {
+          if (g.status === 'success') {
+            geoMap[g.query] = [g.city, g.regionName, g.country].filter(Boolean).join(', ');
+          }
+        });
+      }
+    }
+  } catch { /* geo lookup optional — proceed without it */ }
+
+  const visitors = rows.map(r => ({
+    id:          r.id,
+    username:    r.username || null,
+    displayName: r.display_name || null,
+    path:        r.path,
+    ip:          r.ip,
+    location:    geoMap[r.ip] || (privateRe.test(r.ip) ? 'Local' : '—'),
+    ua:          r.ua,
+    duration_s:  r.duration_s,
+    createdAt:   r.created_at,
+  }));
+
+  res.json({ visitors });
 });
 
 // ── DELETE /api/admin/users/:id ───────────────────────────────────────────────

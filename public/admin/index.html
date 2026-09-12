@@ -367,6 +367,7 @@ select.field-select:focus{border-color:var(--accent)}
     <button class="nav-tab active" data-page="overview">Overview</button>
     <button class="nav-tab" data-page="activity">Activity</button>
     <button class="nav-tab" data-page="users">Users</button>
+    <button class="nav-tab" data-page="visitors">Visitors</button>
     <button class="nav-tab" data-page="reactions">Reactions</button>
     <button class="nav-tab" data-page="subscriptions">Subscriptions</button>
     <button class="nav-tab" data-page="grant">Grant Free Access</button>
@@ -421,13 +422,41 @@ select.field-select:focus{border-color:var(--accent)}
               <th>#</th>
               <th>Username</th>
               <th>Display Name</th>
+              <th>Email</th>
+              <th>Phone</th>
               <th>Joined</th>
               <th>Entries</th>
-              <th>Total Views</th>
+              <th>Views</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody id="usersTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- VISITORS -->
+  <div class="page" id="page-visitors">
+    <div class="section">
+      <div class="section-title">Page Visitor Log
+        <button class="btn btn-ghost" id="visitorsRefreshBtn" style="margin-left:auto;padding:5px 14px;font-size:12px">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Time</th>
+              <th>User</th>
+              <th>Page</th>
+              <th>Location</th>
+              <th>IP</th>
+              <th>Time Spent</th>
+              <th>Device</th>
+            </tr>
+          </thead>
+          <tbody id="visitorsTable"><tr><td colspan="8" style="text-align:center;color:var(--ink4);padding:30px">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -998,6 +1027,11 @@ document.getElementById('navTabs').addEventListener('click', e => {
     subTabLoaded = true;
     loadSubscriptions();
   }
+  // Lazy-load visitors tab on first open
+  if (tab.dataset.page === 'visitors' && !visitorsLoaded) {
+    visitorsLoaded = true;
+    loadVisitors();
+  }
 });
 
 // ── LOAD STATS ───────────────────────────────────────────────────────────────
@@ -1095,7 +1129,9 @@ function renderUsers() {
       <td style="color:var(--ink4)">${i + 1}</td>
       <td><span class="badge badge-gold">@${u.username}</span></td>
       <td>${u.display_name || '—'}</td>
-      <td>${fmtDate(u.created_at)}</td>
+      <td style="font-size:12px">${u.email ? `<a href="mailto:${u.email}" style="color:var(--accent)">${u.email}</a>` : '<span style="color:var(--ink4)">—</span>'}</td>
+      <td style="font-size:12px">${u.phone || '<span style="color:var(--ink4)">—</span>'}</td>
+      <td style="font-size:12px">${fmtDate(u.created_at)}</td>
       <td>${u.note_count}</td>
       <td>${u.total_views.toLocaleString()}</td>
       <td style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px">
@@ -1122,6 +1158,51 @@ function renderUsers() {
     btn.onclick = () => openGrantFreeModal(btn.dataset.grantfree, btn.dataset.uname);
   });
 }
+
+// ── VISITORS ─────────────────────────────────────────────────────────────────
+let visitorsLoaded = false;
+
+function fmtDateTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short' }) + ' ' +
+         d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+}
+
+function parseDevice(ua) {
+  if (!ua) return '—';
+  if (/Mobile|Android|iPhone|iPad/i.test(ua)) return '📱 Mobile';
+  if (/Tablet/i.test(ua)) return '📱 Tablet';
+  return '🖥️ Desktop';
+}
+
+async function loadVisitors() {
+  const tbody = document.getElementById('visitorsTable');
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--ink4);padding:30px">Loading…</td></tr>';
+  try {
+    const data = await api('GET', '/visitors?limit=200');
+    if (!data.visitors.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--ink4);padding:30px">No visitors recorded yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.visitors.map((v, i) => `
+      <tr>
+        <td style="color:var(--ink4)">${i + 1}</td>
+        <td style="font-size:11px;white-space:nowrap">${fmtDateTime(v.createdAt)}</td>
+        <td style="font-size:12px">${v.username ? `<span class="badge badge-gold">@${v.username}</span>${v.displayName ? `<span style="color:var(--ink3);margin-left:5px">${v.displayName}</span>` : ''}` : '<span style="color:var(--ink4)">Guest</span>'}</td>
+        <td style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${v.path}">${v.path}</td>
+        <td style="font-size:12px">${v.location}</td>
+        <td style="font-size:11px;color:var(--ink4)">${v.ip || '—'}</td>
+        <td style="font-size:12px">${v.duration_s > 0 ? (v.duration_s < 60 ? v.duration_s + 's' : Math.round(v.duration_s / 60) + 'm ' + (v.duration_s % 60) + 's') : '—'}</td>
+        <td style="font-size:11px">${parseDevice(v.ua)}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--red);padding:30px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+document.getElementById('visitorsRefreshBtn').onclick = () => loadVisitors();
 
 // ── REACTIONS ────────────────────────────────────────────────────────────────
 function renderReactions() {
