@@ -1773,7 +1773,24 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   #notesGrid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 680px) {
-  #notesGrid { grid-template-columns: 1fr; }
+  #notesGrid {
+    grid-template-columns: 1fr;
+    gap: 28px;        /* extra breathing room between stacked cards */
+    align-items: stretch;
+  }
+  /* kill rotation on mobile — tilted cards overlap when stacked vertically */
+  .note-card,
+  .note-card.rot-0,
+  .note-card.rot-1,
+  .note-card.rot-2,
+  .note-card.rot-3,
+  .note-card.rot-4,
+  .note-card.rot-5 {
+    transform: none !important;
+  }
+  .note-card:hover {
+    transform: translateY(-4px) !important;
+  }
   #notesSection { padding: 16px 14px 80px; }
   .topbar-inner { padding: 0 14px; }
   .brand-name { font-size: 18px; }
