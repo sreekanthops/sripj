@@ -180,6 +180,7 @@ function showApp() {
 // ── LANDING PAGE BUTTONS ────────────────────────────────────────────────────
 document.getElementById('landingSignInBtn')?.addEventListener('click', () => showAuth());
 document.getElementById('landingStartBtn')?.addEventListener('click', () => showAuth());
+document.getElementById('landingStartBtn2')?.addEventListener('click', () => showAuth());
 document.getElementById('landingLearnBtn')?.addEventListener('click', () => {
   document.getElementById('landingLearnSection')?.scrollIntoView({ behavior: 'smooth' });
 });
