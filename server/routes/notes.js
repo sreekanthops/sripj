@@ -3,6 +3,9 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 const { verifyToken, optionalAuth, checkPassword } = require('../auth');
 const { getUserPlan } = require('../subscription');
+let _emitToUser = null;
+try { _emitToUser = require('../ws').emitToUser; } catch {}
+const emitToUser = (uid, type, payload) => { try { _emitToUser?.(uid, type, payload); } catch {} };
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 function getReactorKey(req) {
@@ -104,6 +107,7 @@ function buildNote(row, req, authorUser) {
     tags:          tags,
     views:         row.views,
     pinned:        row.pinned ? true : false,
+    isPublic:      !!row.is_public,
     createdAt:     row.created_at,
     editedAt:      row.edited_at,
     reactions:     reactions,
@@ -303,23 +307,42 @@ router.delete('/:id', verifyToken, (req, res) => {
   res.json({ success: true });
 });
 
+// PUT /api/notes/:id/public  (owner only — toggle is_public)
+router.put('/:id/public', verifyToken, (req, res) => {
+  const row = db.prepare('SELECT id, user_id, is_public FROM notes WHERE id=?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  if (row.user_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
+  const newVal = req.body.isPublic !== undefined ? (req.body.isPublic ? 1 : 0) : (row.is_public ? 0 : 1);
+  db.prepare('UPDATE notes SET is_public=? WHERE id=?').run(newVal, row.id);
+  res.json({ isPublic: !!newVal });
+});
+
 // POST /api/notes/:id/react  (toggle 1 reaction per user/guest per emoji)
 router.post('/:id/react', optionalAuth, (req, res) => {
   const { emoji } = req.body;
   if (!emoji) return res.status(400).json({ error: 'emoji required' });
-  const note = db.prepare('SELECT id FROM notes WHERE id = ?').get(req.params.id);
+  const note = db.prepare('SELECT id, user_id, is_public FROM notes WHERE id = ?').get(req.params.id);
   if (!note) return res.status(404).json({ error: 'Not found' });
   const reactorKey = getReactorKey(req);
+  const actorId    = req.user?.userId || null;
 
   const existing = db.prepare('SELECT id FROM note_reactions WHERE note_id = ? AND emoji = ? AND reactor_key = ?')
                      .get(req.params.id, emoji, reactorKey);
   if (existing) {
-    // toggle off / undo
     db.prepare('DELETE FROM note_reactions WHERE id = ?').run(existing.id);
   } else {
-    // add reaction
     db.prepare('INSERT INTO note_reactions (id, note_id, emoji, reactor_key, created_at) VALUES (?, ?, ?, ?, ?)')
       .run(uuidv4(), req.params.id, emoji, reactorKey, new Date().toISOString());
+    // Notify note owner if public note and actor ≠ owner
+    if (note.is_public && actorId && actorId !== note.user_id) {
+      const notifId = uuidv4();
+      const now     = new Date().toISOString();
+      db.prepare('INSERT INTO notifications (id, recipient_id, type, actor_id, note_id, created_at) VALUES (?,?,?,?,?,?)')
+        .run(notifId, note.user_id, 'reaction', actorId, note.id, now);
+      emitToUser(note.user_id, 'notification', {
+        notification: { id: notifId, type: 'reaction', actorId, noteId: note.id, createdAt: now }
+      });
+    }
   }
 
   const { reactions, userReactions } = getNoteReactions(req.params.id, reactorKey);
@@ -330,19 +353,28 @@ router.post('/:id/react', optionalAuth, (req, res) => {
 router.post('/:id/replies', optionalAuth, (req, res) => {
   const { name, text } = req.body;
   if (!text?.trim()) return res.status(400).json({ error: 'text required' });
-  const note = db.prepare('SELECT id FROM notes WHERE id = ?').get(req.params.id);
+  const note = db.prepare('SELECT id, user_id, is_public FROM notes WHERE id = ?').get(req.params.id);
   if (!note) return res.status(404).json({ error: 'Not found' });
   const id      = uuidv4();
   const userId  = req.user?.userId || null;
   const author  = req.user ? null : (name?.trim() || 'Anonymous');
-  // if logged in, get their display name
   let displayName = author;
   if (userId) {
     const u = db.prepare('SELECT display_name, username FROM users WHERE id = ?').get(userId);
     displayName = u?.display_name || u?.username || 'User';
   }
   db.prepare('INSERT INTO replies (id, note_id, user_id, name, text, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(id, req.params.id, userId, displayName, text.trim(), new Date().toISOString());
+    .run(id, note.id, userId, displayName, text.trim(), new Date().toISOString());
+  // Notify note owner if public note and actor ≠ owner
+  if (note.is_public && userId && userId !== note.user_id) {
+    const notifId = uuidv4();
+    const now     = new Date().toISOString();
+    db.prepare('INSERT INTO notifications (id, recipient_id, type, actor_id, note_id, created_at) VALUES (?,?,?,?,?,?)')
+      .run(notifId, note.user_id, 'reply', userId, note.id, now);
+    emitToUser(note.user_id, 'notification', {
+      notification: { id: notifId, type: 'reply', actorId: userId, noteId: note.id, createdAt: now }
+    });
+  }
   res.status(201).json({ id, userId, name: displayName, text: text.trim(), createdAt: new Date().toISOString() });
 });
 

@@ -1,10 +1,12 @@
 require('dotenv').config();
+const http    = require('http');
 const express = require('express');
 const cors    = require('cors');
 const morgan  = require('morgan');
 const path    = require('path');
 
-const app = express();
+const app    = express();
+const server = http.createServer(app);
 // Trust reverse proxy (Nginx, Cloudflare, etc.) so req.ip and
 // x-forwarded-for contain the real visitor IP, not the proxy's IP
 app.set('trust proxy', true);
@@ -97,5 +99,15 @@ app.get('/{*splat}', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
+// ── WebSocket server ────────────────────────────────────────────────────────
+const { attachWS } = require('./ws');
+attachWS(server);
+
+app.use('/api/feed',          require('./routes/feed'));
+app.use('/api/follows',       require('./routes/follows'));
+app.use('/api/conversations', require('./routes/conversations'));
+app.use('/api/messages',      require('./routes/messages'));
+app.use('/api/notifications', require('./routes/notifications'));
+
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`Diary running → http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Diary running → http://localhost:${PORT}`));

@@ -327,6 +327,71 @@ if (hasTable('reply_reactions') && hasColumn('reply_reactions', 'count')) {
   `);
 }
 
+// ── SOCIAL FEATURE MIGRATIONS ────────────────────────────────────────────────
+
+// notes: public feed toggle
+if (!hasColumn('notes', 'is_public')) db.exec(`ALTER TABLE notes ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0`);
+
+// social tables
+if (!hasTable('follows')) {
+  db.exec(`
+    CREATE TABLE follows (
+      id          TEXT PRIMARY KEY,
+      follower_id TEXT NOT NULL,
+      followee_id TEXT NOT NULL,
+      created_at  TEXT NOT NULL,
+      UNIQUE(follower_id, followee_id)
+    )
+  `);
+}
+
+if (!hasTable('conversations')) {
+  db.exec(`
+    CREATE TABLE conversations (
+      id         TEXT PRIMARY KEY,
+      created_at TEXT NOT NULL
+    )
+  `);
+}
+
+if (!hasTable('conversation_members')) {
+  db.exec(`
+    CREATE TABLE conversation_members (
+      conversation_id TEXT NOT NULL,
+      user_id         TEXT NOT NULL,
+      PRIMARY KEY (conversation_id, user_id)
+    )
+  `);
+}
+
+if (!hasTable('messages')) {
+  db.exec(`
+    CREATE TABLE messages (
+      id              TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL,
+      sender_id       TEXT NOT NULL,
+      body            TEXT NOT NULL,
+      created_at      TEXT NOT NULL,
+      read_at         TEXT
+    )
+  `);
+}
+
+if (!hasTable('notifications')) {
+  db.exec(`
+    CREATE TABLE notifications (
+      id           TEXT PRIMARY KEY,
+      recipient_id TEXT NOT NULL,
+      type         TEXT NOT NULL,
+      actor_id     TEXT,
+      note_id      TEXT,
+      message_id   TEXT,
+      read         INTEGER NOT NULL DEFAULT 0,
+      created_at   TEXT NOT NULL
+    )
+  `);
+}
+
 // Re-enable FK enforcement
 db.pragma('foreign_keys = ON');
 

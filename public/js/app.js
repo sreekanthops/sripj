@@ -172,9 +172,15 @@ function showAuth() {
 }
 function showApp() {
   document.getElementById('authScreen').classList.add('hidden');
-  document.getElementById('appScreen').classList.remove('hidden');
+  const appScreen = document.getElementById('appScreen');
+  appScreen.classList.remove('hidden');
   document.getElementById('authModal').classList.add('hidden');
   renderTopbarUserChip();
+  // Show bottom nav + adjust layout when logged in
+  if (currentUser) {
+    document.getElementById('bottomNav').style.display = '';
+    appScreen.classList.add('has-bottom-nav');
+  }
 }
 
 // ── LANDING PAGE BUTTONS ────────────────────────────────────────────────────
@@ -225,6 +231,9 @@ document.getElementById('loginBtn').onclick = async () => {
       avatarUrl:   profile.avatarUrl   ?? data.avatarUrl   ?? '',
       shareToken:  profile.shareToken  ?? data.shareToken  ?? '',
     };
+    window._currentUserId = currentUser.userId;
+    window.WS?.wsConnect?.(token);
+    setTimeout(() => window.Notif?.init?.(), 200);
     await enterOwnDiary();
   } catch (e) { errEl.textContent = e.message; }
 };
@@ -563,6 +572,9 @@ function renderHeader() {
   }
   renderVisitorHostDp();
   renderTopbarUserChip();
+  // Show/hide notification bell
+  const bell = document.getElementById('notifBell');
+  if (bell) bell.classList.toggle('hidden', !currentUser);
 }
 
 function renderVisitorHostDp() {
@@ -594,6 +606,91 @@ function renderVisitorHostDp() {
 document.getElementById('topbarUserChip')?.addEventListener('click', () => {
   if (currentUser) openProfileModal();
 });
+
+// ── BOTTOM NAV ──────────────────────────────────────────────────────────────
+document.getElementById('bottomNav')?.addEventListener('click', e => {
+  const btn = e.target.closest('.bottom-nav-btn');
+  if (!btn) return;
+  const tab = btn.dataset.tab;
+  document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.toggle('active', b === btn));
+  if (tab === 'home') {
+    window.Feed?.hideFeed?.();
+    window.Chat?.closeChatPanel?.();
+  } else if (tab === 'feed') {
+    window.Feed?.showFeed?.();
+  } else if (tab === 'new') {
+    if (isOwner) openNewForm();
+    // reset active — center + button is not a page tab
+    document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'home'));
+  } else if (tab === 'chat') {
+    if (currentUser) window.Chat?.openChatPanel?.();
+    else showAuth();
+  } else if (tab === 'profile') {
+    if (currentUser) openProfileModal();
+    else showAuth();
+  }
+});
+
+// ── FOLLOW / UNFOLLOW on public profiles ────────────────────────────────────
+async function loadFollowStateAndRender(targetUserId) {
+  if (!currentUser) return;
+  try {
+    const data = await fetch(`/api/follows/${targetUserId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(r => r.json());
+
+    const name = viewingUser?.displayName || viewingUser?.username || '';
+    const hdr  = document.getElementById('headerActions');
+    if (!hdr) return;
+
+    // Inject follow + message buttons after existing "My Stories" btn
+    const existingBtn = hdr.querySelector('[data-action]');
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;gap:8px;align-items:center;flex-wrap:wrap';
+    div.innerHTML = `
+      ${existingBtn ? existingBtn.outerHTML : ''}
+      <button id="profileFollowBtn" class="btn-follow${data.isFollowing ? ' following' : ''}" data-uid="${targetUserId}">
+        ${data.isFollowing ? '✓ Following' : '+ Follow'}
+      </button>
+      <button id="profileMsgBtn" class="btn-message" data-uid="${targetUserId}">✉️ Message</button>
+    `;
+    hdr.innerHTML = '';
+    hdr.appendChild(div);
+
+    // Follow count strip below the sidebar title
+    const sub = document.getElementById('sidebarSub');
+    if (sub) {
+      const strip = document.createElement('div');
+      strip.className = 'follow-counts';
+      strip.innerHTML = `
+        <div class="follow-count-item"><span class="follow-count-num">${data.followerCount}</span>Followers</div>
+        <div class="follow-count-item"><span class="follow-count-num">${data.followingCount}</span>Following</div>
+      `;
+      sub.after(strip);
+    }
+
+    // Follow btn
+    document.getElementById('profileFollowBtn')?.addEventListener('click', async () => {
+      const fbtn      = document.getElementById('profileFollowBtn');
+      const following = fbtn.classList.contains('following');
+      try {
+        if (following) {
+          await fetch(`/api/follows/${targetUserId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+          fbtn.classList.remove('following'); fbtn.textContent = '+ Follow';
+        } else {
+          await fetch(`/api/follows/${targetUserId}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
+          fbtn.classList.add('following'); fbtn.textContent = '✓ Following';
+        }
+      } catch {}
+    });
+
+    // Message btn
+    document.getElementById('profileMsgBtn')?.addEventListener('click', () => {
+      if (!currentUser) return showAuth();
+      window.Chat?.startConversation?.(targetUserId);
+    });
+  } catch {}
+}
 
 // Topbar share button
 document.getElementById('topbarShareBtn')?.addEventListener('click', () => openShareModal());
@@ -1008,6 +1105,8 @@ async function enterPublicDiary(usernameOrToken, password = '', byToken = false)
         `<span class="brand-visitor-prefix">@${esc(viewingUser.username)}</span>` +
         '<span class="brand-title-wrap"><span class="brand-unsent">Unsent</span><span class="brand-stories">Stories</span></span>';
     }
+    // Load follow state + show follow/message buttons when visiting someone else
+    if (!isOwner) loadFollowStateAndRender(viewingUser.id);
     document.getElementById('pageTitleCaption').textContent = '';
     renderHeader();
     buildSwatches(0);
@@ -1068,6 +1167,7 @@ function promptDiaryPassword(username, userObj, noteIdToOpen = null) {
   setTimeout(() => passInput?.focus(), 150);
 }
 
+window.openNoteById = id => enterSingleNote(id);
 async function enterSingleNote(noteId) {
   try {
     const headers = {};
@@ -1714,6 +1814,7 @@ document.getElementById('fSave').onclick = async () => {
     }
   }
 
+  const isPublic = document.getElementById('fIsPublic')?.checked || false;
   const payload = { title: title||'Untitled', body, font, titleFont, fontSize, fontWeight, colorIdx,
                     musicUrl: finalMusicUrl,
                     noteMusicId: finalNoteMusicId,
@@ -1722,9 +1823,12 @@ document.getElementById('fSave').onclick = async () => {
     let saved;
     if (editId) {
       saved = await api('PUT', `/notes/${editId}`, payload);
+      // Sync is_public separately
+      await api('PUT', `/notes/${editId}/public`, { isPublic }).catch(() => {});
       toast(defaultMusicLabel ? `Entry updated ✅  ${defaultMusicLabel}` : 'Entry updated ✅', defaultMusicLabel ? 4000 : 2600);
     } else {
       saved = await api('POST', '/notes', payload);
+      if (isPublic) await api('PUT', `/notes/${saved.id}/public`, { isPublic: true }).catch(() => {});
       toast(defaultMusicLabel ? `Entry saved 💾  ${defaultMusicLabel}` : 'Entry saved 💾', defaultMusicLabel ? 4000 : 2600);
     }
     // Upload audio file if one was selected (replaces the placeholder musicUrl)
@@ -3002,6 +3106,10 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
         bio: data.bio || '', avatarUrl: data.avatarUrl || '',
         shareToken: sToken
       };
+      // Expose userId for chat.js, connect WS, init notifications
+      window._currentUserId = currentUser.userId;
+      window.WS?.wsConnect?.(token);
+      setTimeout(() => window.Notif?.init?.(), 200);
     } catch {
       // Token invalid/expired — clear JWT but keep shareToken so we can
       // still recognise the user on /s/:token reload
