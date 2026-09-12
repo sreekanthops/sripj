@@ -59,6 +59,21 @@ function fmtTime(iso) {
   return new Date(iso).toLocaleTimeString('en-GB',
     { hour:'2-digit', minute:'2-digit' });
 }
+// Diary-style date widget: torn-page calendar look
+// size: 'sm' (card) | 'lg' (detail)
+function fmtDateWidget(iso, size = 'sm') {
+  const d = new Date(iso);
+  const day   = d.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase(); // MON
+  const num   = d.getDate();                                                         // 14
+  const month = d.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase();   // JAN
+  const year  = d.getFullYear();                                                    // 2025
+  const cls   = size === 'lg' ? 'cal-widget cal-widget-lg' : 'cal-widget';
+  return `<span class="${cls}" title="${fmtDate(iso)}">
+    <span class="cal-day">${day}</span>
+    <span class="cal-num">${num}</span>
+    <span class="cal-mon">${month} ${year}</span>
+  </span>`;
+}
 function fmtDur(s) {
   if (!isFinite(s)) return '0:00';
   const m = Math.floor(s / 60);
@@ -2148,7 +2163,7 @@ function buildNoteCard(n, index, total) {
   body.className = 'card-body-section';
   body.innerHTML = `
     <div class="card-meta-row">
-      <span class="card-date">📅 ${fmtDate(n.createdAt)}</span>
+      <span class="card-date">${fmtDateWidget(n.createdAt, 'sm')}</span>
       <span class="card-num">${n.pinned ? '<span class="pin-badge">📌 Pinned</span>' : numStr}</span>
     </div>
     <div class="card-title" ${n.titleFont ? `style="font-family:${esc(n.titleFont)}"` : ''}>${esc(n.title)}</div>
@@ -2448,9 +2463,9 @@ function renderDetail(note) {
         <h2 class="detail-title" style="font-family:${esc(note.titleFont||note.font)};color:${p.accent}">${esc(note.title)}</h2>
       </div>
       <div class="detail-meta">
-        <span>📅 ${fmtDate(note.createdAt)} · ${fmtTime(note.createdAt)}</span>
+        ${fmtDateWidget(note.createdAt, 'lg')} <span class="cal-time">🕐 ${fmtTime(note.createdAt)}</span>
         ${isOwner ? `<span>👁 ${note.views} views</span>` : ''}
-        ${note.editedAt ? `<span>✏️ Edited ${fmtDate(note.editedAt)}</span>` : ''}
+        ${note.editedAt ? `<span>✏️ Edited&nbsp;${fmtDate(note.editedAt)}</span>` : ''}
         <span>💬 ${(note.replies||[]).length} ${(note.replies||[]).length===1?'reply':'replies'}</span>
       </div>
       ${note.musicUrl ? `<div style="font-size:12px;color:var(--accent);margin-bottom:12px;font-style:italic;font-family:var(--sans)">♫ Background music is playing</div>` : ''}
