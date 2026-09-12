@@ -1195,9 +1195,10 @@ async function loadNoteBgLibrary() {
 async function loadGlobalMusicLibrary() {
   if (_globalMusicLib) return _globalMusicLib;
   try {
-    const d = await fetch('/api/music-library').then(r => r.json());
+    const res = await fetch('/api/music-library');
+    const d   = await res.json();
     _globalMusicLib = (d.tracks || []).map(t => ({ ...t, source: 'global' }));
-  } catch { _globalMusicLib = []; }
+  } catch(e) { console.error('[music] loadGlobal failed:', e); _globalMusicLib = []; }
   return _globalMusicLib;
 }
 
@@ -1205,9 +1206,10 @@ async function loadUserMusicLibrary() {
   if (_userMusicLib) return _userMusicLib;
   if (!token) { _userMusicLib = []; return _userMusicLib; }
   try {
-    const d = await fetch('/api/user-music', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+    const res = await fetch('/api/user-music', { headers: { Authorization: `Bearer ${token}` } });
+    const d   = await res.json();
     _userMusicLib = (d.tracks || []).map(t => ({ ...t, source: 'user' }));
-  } catch { _userMusicLib = []; }
+  } catch(e) { console.error('[music] loadUser failed:', e); _userMusicLib = []; }
   return _userMusicLib;
 }
 
@@ -1334,23 +1336,29 @@ async function renderMusicPicker(activeMusicId, activeCustomUrl) {
   if (!userContainer || !globalContainer) return;
 
   // Show loading state while fetching
-  userContainer.innerHTML   = '<div class="music-col-empty mpc-loading">Loading…</div>';
-  globalContainer.innerHTML = '<div class="music-col-empty mpc-loading">Loading…</div>';
+  userContainer.innerHTML   = '<div class="music-col-empty">Loading…</div>';
+  globalContainer.innerHTML = '<div class="music-col-empty">Loading…</div>';
 
-  // Always fetch fresh (don't rely on stale cache)
+  // Always fetch fresh on each open
   _userMusicLib   = null;
   _globalMusicLib = null;
 
-  const [userTracks, globalTracks] = await Promise.all([
-    loadUserMusicLibrary(),
-    loadGlobalMusicLibrary(),
-  ]);
+  let userTracks = [], globalTracks = [];
+  try {
+    userTracks = await loadUserMusicLibrary();
+  } catch(e) { userTracks = []; }
+  try {
+    globalTracks = await loadGlobalMusicLibrary();
+  } catch(e) { globalTracks = []; }
 
-  buildTrackList(userContainer, userTracks, activeMusicId);
-  buildTrackList(globalContainer, globalTracks, activeMusicId);
+  try { buildTrackList(userContainer,   userTracks,   activeMusicId); }
+  catch(e) { console.error('[music] buildTrackList user failed:', e); userContainer.innerHTML   = '<div class="music-col-empty">Error loading</div>'; }
+
+  try { buildTrackList(globalContainer, globalTracks, activeMusicId); }
+  catch(e) { console.error('[music] buildTrackList global failed:', e); globalContainer.innerHTML = '<div class="music-col-empty">Error loading</div>'; }
 
   _selectedMusicId = activeMusicId || '';
-  updateDefaultMusicNotice();
+  try { updateDefaultMusicNotice(); } catch(e) {}
 }
 
 // Wire the "Upload custom bg" file input
@@ -1397,8 +1405,8 @@ async function openNewForm() {
   applyBodyPreview();
   openOv('formOverlay');
   setTimeout(() => document.getElementById('fTitle').focus(), 120);
-  await renderNoteBgPicker('');
-  await renderMusicPicker('', '');
+  try { await renderNoteBgPicker(''); } catch(e) {}
+  try { await renderMusicPicker('', ''); } catch(e) {}
 }
 async function openEditForm(note) {
   editId = note.id; pendingTags = Array.isArray(note.tags) ? [...note.tags] : [];
@@ -1422,8 +1430,8 @@ async function openEditForm(note) {
   renderExistMedia(note); setupUploadZone();
   applyBodyPreview();
   openOv('formOverlay');
-  await renderNoteBgPicker(note.bgUrl || '');
-  await renderMusicPicker(note.noteMusicId || '', note.musicUrl || '');
+  try { await renderNoteBgPicker(note.bgUrl || ''); } catch(e) {}
+  try { await renderMusicPicker(note.noteMusicId || '', note.musicUrl || ''); } catch(e) {}
 }
 
 document.getElementById('fSave').onclick = async () => {
