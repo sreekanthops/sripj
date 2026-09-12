@@ -49,7 +49,7 @@ const audioUpload = multer({
 // Separate multer instance for avatars — accepts any image/* MIME
 const avatarUpload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Image files only'));
