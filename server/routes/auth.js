@@ -1,7 +1,48 @@
-const router = require('express').Router();
+const router   = require('express').Router();
 const { v4: uuidv4 } = require('uuid');
-const db = require('../db');
+const db       = require('../db');
 const { signToken, verifyToken, hashPassword, checkPassword } = require('../auth');
+const nodemailer = require('nodemailer');
+
+// ── Mailer (lazy-init) ────────────────────────────────────────────────────────
+let _transporter = null;
+function getTransporter() {
+  if (_transporter) return _transporter;
+  _transporter = nodemailer.createTransport({
+    host:   process.env.SMTP_HOST || 'smtp.gmail.com',
+    port:   parseInt(process.env.SMTP_PORT || '465'),
+    secure: process.env.SMTP_SECURE !== 'false',
+    auth: {
+      user: process.env.SMTP_USER || '',
+      pass: process.env.SMTP_PASS || '',
+    },
+  });
+  return _transporter;
+}
+
+async function sendResetEmail(toEmail, resetUrl) {
+  const from = process.env.SMTP_FROM || '"Unsent Stories" <noreply@unsentstories.in>';
+  await getTransporter().sendMail({
+    from,
+    to:      toEmail,
+    subject: 'Reset your Unsent Stories password',
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+        <h2 style="color:#2f5a6e">Reset your password</h2>
+        <p>Click the button below to reset your Unsent Stories password. This link expires in <b>1 hour</b>.</p>
+        <p style="margin:28px 0">
+          <a href="${resetUrl}" style="background:#2f5a6e;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600">
+            Reset Password
+          </a>
+        </p>
+        <p style="color:#888;font-size:13px">If you didn't request this, ignore this email — your password won't change.</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+        <p style="color:#aaa;font-size:11px">Unsent Stories · unsentstories.in</p>
+      </div>
+    `,
+    text: `Reset your Unsent Stories password:\n\n${resetUrl}\n\nThis link expires in 1 hour. If you didn't request this, ignore this email.`,
+  });
+}
 
 function genShareToken() {
   return uuidv4().replace(/-/g, '').slice(0, 14);
@@ -9,20 +50,82 @@ function genShareToken() {
 
 // POST /api/auth/signup
 router.post('/signup', async (req, res) => {
-  const { username, password, displayName } = req.body;
+  const { username, password, displayName, email } = req.body;
   if (!username?.trim() || !password) return res.status(400).json({ error: 'Username and password required' });
+  if (!email?.trim()) return res.status(400).json({ error: 'Email address is required' });
+  const emailClean = email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailClean)) return res.status(400).json({ error: 'Please enter a valid email address' });
   const uname = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
   if (uname.length < 3) return res.status(400).json({ error: 'Username must be at least 3 characters (a-z, 0-9, _)' });
   if (password.length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters' });
   const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(uname);
   if (exists) return res.status(409).json({ error: 'Username already taken' });
+  const emailExists = db.prepare('SELECT id FROM users WHERE email = ?').get(emailClean);
+  if (emailExists) return res.status(409).json({ error: 'An account with this email already exists' });
   const id    = uuidv4();
   const hash  = await hashPassword(password);
   const token = genShareToken();
-  db.prepare('INSERT INTO users (id, username, display_name, bio, password_hash, share_token, created_at) VALUES (?,?,?,?,?,?,?)')
-    .run(id, uname, displayName?.trim() || uname, '', hash, token, new Date().toISOString());
+  db.prepare('INSERT INTO users (id, username, display_name, bio, password_hash, email, share_token, created_at) VALUES (?,?,?,?,?,?,?,?)')
+    .run(id, uname, displayName?.trim() || uname, '', hash, emailClean, token, new Date().toISOString());
   const jwt = signToken(id, uname);
-  res.status(201).json({ token: jwt, userId: id, username: uname, displayName: displayName?.trim() || uname, shareToken: token });
+  res.status(201).json({ token: jwt, userId: id, username: uname, displayName: displayName?.trim() || uname, email: emailClean, shareToken: token });
+});
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email?.trim()) return res.status(400).json({ error: 'Email required' });
+  const emailClean = email.trim().toLowerCase();
+  const user = db.prepare('SELECT id, email FROM users WHERE email = ?').get(emailClean);
+  // Always respond OK to prevent email enumeration
+  if (!user) return res.json({ ok: true, message: 'If an account with that email exists, a reset link has been sent.' });
+
+  // Invalidate any existing tokens for this user
+  db.prepare('UPDATE password_reset_tokens SET used = 1 WHERE user_id = ?').run(user.id);
+
+  const resetToken = uuidv4().replace(/-/g, '');
+  const expiresAt  = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+  db.prepare('INSERT INTO password_reset_tokens (token, user_id, expires_at, used) VALUES (?,?,?,0)')
+    .run(resetToken, user.id, expiresAt);
+
+  const appUrl   = (process.env.APP_URL || 'http://localhost:8080').replace(/\/$/, '');
+  const resetUrl = `${appUrl}/reset-password?token=${resetToken}`;
+
+  try {
+    await sendResetEmail(user.email, resetUrl);
+  } catch (err) {
+    console.error('[auth] forgot-password email failed:', err.message);
+    // Still return ok so we don't leak whether email exists
+  }
+  res.json({ ok: true, message: 'If an account with that email exists, a reset link has been sent.' });
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ error: 'Token and new password required' });
+  if (password.length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters' });
+
+  const row = db.prepare('SELECT * FROM password_reset_tokens WHERE token = ?').get(token);
+  if (!row || row.used) return res.status(400).json({ error: 'Invalid or expired reset link' });
+  if (new Date(row.expires_at) < new Date()) return res.status(400).json({ error: 'Reset link has expired. Please request a new one.' });
+
+  const hash = await hashPassword(password);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, row.user_id);
+  db.prepare('UPDATE password_reset_tokens SET used = 1 WHERE token = ?').run(token);
+
+  res.json({ ok: true, message: 'Password reset successfully. You can now sign in.' });
+});
+
+// GET /api/auth/verify-reset-token — check if a reset token is valid (before showing the form)
+router.get('/verify-reset-token', (req, res) => {
+  const { token } = req.query;
+  if (!token) return res.status(400).json({ error: 'Token required' });
+  const row = db.prepare('SELECT * FROM password_reset_tokens WHERE token = ?').get(token);
+  if (!row || row.used || new Date(row.expires_at) < new Date()) {
+    return res.status(400).json({ valid: false, error: 'Invalid or expired reset link' });
+  }
+  res.json({ valid: true });
 });
 
 // POST /api/auth/login

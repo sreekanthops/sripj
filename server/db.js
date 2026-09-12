@@ -231,6 +231,18 @@ if (!hasTable('music_library')) {
   `);
 }
 
+// password_reset_tokens — time-limited tokens for email-based password reset
+if (!hasTable('password_reset_tokens')) {
+  db.exec(`
+    CREATE TABLE password_reset_tokens (
+      token      TEXT PRIMARY KEY,
+      user_id    TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      used       INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+}
+
 // user_music_library — per-user personal music uploads
 if (!hasTable('user_music_library')) {
   db.exec(`

@@ -38,6 +38,11 @@ app.get('/pricing', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'pricing.html'));
 });
 
+// /reset-password?token=... — serve SPA (JS handles the reset form)
+app.get('/reset-password', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+});
+
 // /s/:token  — opaque diary share link → serves the SPA (JS handles resolution)
 app.get('/s/:token', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
