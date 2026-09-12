@@ -70,6 +70,11 @@ app.use('/api/payments',          require('./routes/payments'));
 app.use('/api/note-backgrounds',  require('./routes/note-backgrounds'));
 app.use('/api/music-library',     require('./routes/music-library'));
 app.use('/api/user-music',        require('./routes/user-music-library'));
+app.use('/api/feed',              require('./routes/feed'));
+app.use('/api/follows',           require('./routes/follows'));
+app.use('/api/conversations',     require('./routes/conversations'));
+app.use('/api/messages',          require('./routes/messages'));
+app.use('/api/notifications',     require('./routes/notifications'));
 
 // Admin portal — explicit route before SPA fallback
 app.get('/admin', (req, res) => {
@@ -102,12 +107,6 @@ app.get('/{*splat}', (req, res) => {
 // ── WebSocket server ────────────────────────────────────────────────────────
 const { attachWS } = require('./ws');
 attachWS(server);
-
-app.use('/api/feed',          require('./routes/feed'));
-app.use('/api/follows',       require('./routes/follows'));
-app.use('/api/conversations', require('./routes/conversations'));
-app.use('/api/messages',      require('./routes/messages'));
-app.use('/api/notifications', require('./routes/notifications'));
 
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => console.log(`Diary running → http://localhost:${PORT}`));

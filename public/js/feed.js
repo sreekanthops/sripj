@@ -209,13 +209,28 @@
     _observer.observe(_sentinel);
   }
 
+  function resetFeed() {
+    _page    = 1;
+    _loading = false;
+    _done    = false;
+    const container = document.getElementById('feedCards');
+    const sentinel  = document.getElementById('feedSentinel');
+    if (container && sentinel) {
+      // clear all cards but keep the sentinel and spinner in place
+      container.querySelectorAll('.feed-card').forEach(el => el.remove());
+      container.querySelectorAll('.feed-empty').forEach(el => el.remove());
+    }
+  }
+
   function showFeed() {
     const feedScreen  = document.getElementById('feedScreen');
     const notesSection = document.getElementById('notesSection');
     if (feedScreen)   feedScreen.style.display  = '';
     if (notesSection) notesSection.style.display = 'none';
     setActiveNavTab('feed');
-    if (_page === 1) loadMore();
+    // always reset + reload so newly-public notes appear immediately
+    resetFeed();
+    loadMore();
     initObserver();
   }
 
