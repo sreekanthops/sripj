@@ -3012,29 +3012,20 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
     await enterSingleNote(entryId);
 
   } else if (shareToken) {
-    // /s/:token — open diary by token
+    // /s/:token — always open diary publicly, no login required
     if (currentUser) {
       // Logged-in user — check if this is their own diary
-      // Match by shareToken OR by the stored shareToken (handles case where
-      // currentUser.shareToken was freshly set vs stale _storedShareToken)
       const isOwnToken = currentUser.shareToken === shareToken
                       || _storedShareToken === shareToken;
       if (isOwnToken) {
-        // It's their own diary — rewrite URL to /@username and enter
         history.replaceState({}, '', '/@' + encodeURIComponent(currentUser.username));
         await enterOwnDiary();
       } else {
-        // Different user's diary
         try { await enterPublicDiary(shareToken, '', true); }
         catch { await enterOwnDiary(); }
       }
-    } else if (_storedShareToken === shareToken) {
-      // Share token matches stored one but JWT is gone (expired/cleared)
-      // — show landing so they can re-authenticate; don't show as visitor
-      showLanding();
-      toast('Your session expired — please sign in again', 4000);
     } else {
-      // Visitor viewing someone else's diary
+      // No session — load diary publicly, no login required
       try { await enterPublicDiary(shareToken, '', true); }
       catch { showLanding(); }
     }
