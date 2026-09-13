@@ -184,6 +184,8 @@ function showApp() {
   appScreen.classList.remove('hidden');
   document.getElementById('authModal').classList.add('hidden');
   renderTopbarUserChip(); renderBottomNavAvatar();
+  const _askAi = document.getElementById('chatbotFabInline');
+  if (_askAi) _askAi.classList.toggle('hidden', !currentUser);
   document.getElementById('bottomNav').style.display = '';
   appScreen.classList.add('has-bottom-nav');
 }
@@ -567,7 +569,7 @@ function renderTopbarUserChip() {
 }
 
 function renderBottomNavAvatar() {
-  const imgEl  = document.getElementById('bnavAvatarImg');
+  const imgEl   = document.getElementById('bnavAvatarImg');
   const initial = document.getElementById('bnavAvatarInitial');
   if (!imgEl || !initial) return;
   if (currentUser?.avatarUrl) {
@@ -577,7 +579,14 @@ function renderBottomNavAvatar() {
   } else {
     imgEl.classList.add('hidden');
     imgEl.src = '';
-    initial.style.display = '';
+    initial.style.display = 'flex';
+    if (currentUser) {
+      // Logged in — show first letter (or ✦ fallback) instead of generic SVG
+      const name = currentUser.displayName || currentUser.username || '';
+      const letter = name ? name.charAt(0).toUpperCase() : '✦';
+      initial.innerHTML = `<span style="font-size:14px;font-weight:700;color:var(--accent);font-family:var(--serif)">${letter}</span>`;
+    }
+    // else leave the SVG in place for logged-out state
   }
 }
 
@@ -604,9 +613,11 @@ function renderHeader() {
   }
   renderVisitorHostDp();
   renderTopbarUserChip(); renderBottomNavAvatar();
-  // Show/hide notification bell
+  // Show/hide notification bell and Ask AI button
   const bell = document.getElementById('notifBell');
   if (bell) bell.classList.toggle('hidden', !currentUser);
+  const askAiBtn = document.getElementById('chatbotFabInline');
+  if (askAiBtn) askAiBtn.classList.toggle('hidden', !currentUser);
 }
 
 function renderVisitorHostDp() {
@@ -1100,8 +1111,6 @@ async function enterOwnDiary() {
   window._stickerSetOwner?.(true);
   window._stickerLoad?.(currentUser.username);
   window._chatbotSetOwner?.(true);
-  // Reload landing feed with auth token so isFollowing / isOwnNote states are correct
-  setTimeout(() => window.Feed?.reloadLanding?.(), 100);
   await loadAndRender();
 }
 
@@ -1154,6 +1163,7 @@ async function enterPublicDiary(usernameOrToken, password = '', byToken = false)
     setupUploadZone();
     showApp();
     window._stickerSetOwner?.(isOwner);
+    window._chatbotSetOwner?.(isOwner);
     window._stickerLoad?.(viewingUser.username, currentEnteredPassword);
     renderGrid();
   } catch (err) {
@@ -2975,7 +2985,7 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
 
 // ── CHATBOT ────────────────────────────────────────────────────────────────
 ;(function initChatbot() {
-  const fab        = document.getElementById('chatbotFab');
+  const fab        = document.getElementById('chatbotFabInline'); // inline topbar button
   const win        = document.getElementById('chatbotWindow');
   const msgsEl     = document.getElementById('chatbotMessages');
   const inputEl    = document.getElementById('chatbotInput');
@@ -3119,8 +3129,10 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
     appendBubble('ai', 'Chat cleared. Ask me anything about your stories!');
   }
 
-  window._chatbotSetOwner = (owner) => {
-    // Keep available for all views
+  // Show/hide the inline topbar Ask AI button — visible whenever logged in
+  window._chatbotSetOwner = (_owner) => {
+    const inlineBtn = document.getElementById('chatbotFabInline');
+    if (inlineBtn) inlineBtn.classList.toggle('hidden', !currentUser);
   };
 
   // ── Event listeners ──────────────────────────────────────────────────────

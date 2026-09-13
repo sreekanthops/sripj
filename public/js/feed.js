@@ -90,14 +90,14 @@
         _done = true;
         if (spinner) spinner.style.display = 'none';
         if (_page === 1 && container) {
-          container.innerHTML = '<div class="feed-empty">No public notes yet. Be the first to share! 🌍</div>';
+          container.innerHTML = '<div class="feed-empty">No public stories yet. When you write a note, tick <strong>🌍 Share to Feed</strong> to show it here.</div>';
         }
         return;
       }
       data.notes.forEach(note => {
         const div = document.createElement('div');
         div.innerHTML = renderFeedCard(note);
-        container.insertBefore(div.firstElementChild, _sentinel);
+        container.appendChild(div.firstElementChild);
       });
       _page++;
       if (data.notes.length < 20) _done = true;
@@ -241,7 +241,7 @@
   function showFeed() {
     const feedScreen  = document.getElementById('feedScreen');
     const notesSection = document.getElementById('notesSection');
-    if (feedScreen)   feedScreen.style.display  = '';
+    if (feedScreen)   feedScreen.style.display  = 'block';
     if (notesSection) notesSection.style.display = 'none';
     setActiveNavTab('feed');
     // always reset + reload so newly-public notes appear immediately
@@ -265,7 +265,13 @@
     showFeed();
   }
 
-  window.Feed = { initFeed, showFeed, hideFeed };
+  // Alias so enterOwnDiary can reload after auth state changes
+  function reloadLanding() {
+    resetFeed();
+    loadMore();
+  }
+
+  window.Feed = { initFeed, showFeed, hideFeed, reloadLanding };
 })();
 
 // ── Guest Feed Screen — standalone, no login required ─────────────────────
