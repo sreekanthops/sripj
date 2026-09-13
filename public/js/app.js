@@ -1861,6 +1861,8 @@ function buildTrackList(container, tracks, activeMusicId) {
       document.getElementById('fMusic').value = '';
       updateAudioLabel();
       updateDefaultMusicNotice();
+      // Show preview player so user can listen before saving
+      _setAudioPreview(t.url);
     });
 
     // delete button (user tracks only)
@@ -2063,6 +2065,17 @@ async function openEditForm(note) {
   openOv('formOverlay');
   try { await renderNoteBgPicker(note.bgUrl || ''); } catch(e) {}
   try { await renderMusicPicker(note.noteMusicId || '', note.musicUrl || ''); } catch(e) {}
+  // Pre-populate the audio preview player for the existing track
+  try {
+    if (note.noteMusicId) {
+      // find the track URL from the combined library lists
+      const allTracks = [...(_userMusicLib || []), ...(_globalMusicLib || [])];
+      const found = allTracks.find(t => t.id === note.noteMusicId);
+      if (found) _setAudioPreview(found.url);
+    } else if (note.musicUrl) {
+      _setAudioPreview(note.musicUrl);
+    }
+  } catch(e) {}
 }
 
 document.getElementById('fSave').onclick = async () => {
