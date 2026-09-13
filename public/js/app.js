@@ -176,11 +176,9 @@ function showApp() {
   appScreen.classList.remove('hidden');
   document.getElementById('authModal').classList.add('hidden');
   renderTopbarUserChip();
-  // Show bottom nav + adjust layout when logged in
-  if (currentUser) {
-    document.getElementById('bottomNav').style.display = '';
-    appScreen.classList.add('has-bottom-nav');
-  }
+  // Show bottom nav for everyone (guests can browse Feed; actions prompt login)
+  document.getElementById('bottomNav').style.display = '';
+  appScreen.classList.add('has-bottom-nav');
 }
 
 // ── LANDING PAGE BUTTONS ────────────────────────────────────────────────────
@@ -616,9 +614,16 @@ document.getElementById('bottomNav')?.addEventListener('click', e => {
   if (tab === 'home') {
     window.Feed?.hideFeed?.();
     window.Chat?.closeChatPanel?.();
+    if (!currentUser && !viewingUser) showLanding();
   } else if (tab === 'feed') {
+    // Feed is public — anyone can browse
+    if (document.getElementById('authScreen')?.classList.contains('hidden') === false) {
+      // currently on landing — switch to app screen first
+      showApp();
+    }
     window.Feed?.showFeed?.();
   } else if (tab === 'new') {
+    if (!currentUser) { showAuth(); return; }
     if (isOwner) openNewForm();
     // reset active — center + button is not a page tab
     document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'home'));

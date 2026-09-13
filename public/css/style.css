@@ -1824,6 +1824,41 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 .ls-signin-link:hover { opacity: .7; }
 
 /* ── Footer ───────────────────────────────────────────────── */
+/* ── Landing public feed section ──────────────────────────────────────────── */
+.ls-feed-section {
+  max-width: 600px; margin: 0 auto 32px; padding: 0 4px;
+}
+.ls-feed-header {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px;
+}
+.ls-feed-title {
+  font-family: var(--serif); font-size: 18px; font-weight: 700; color: var(--ink);
+}
+.ls-feed-sub {
+  font-size: 12px; color: var(--ink4); font-family: var(--sans);
+}
+.ls-feed-cards { display: flex; flex-direction: column; gap: 0; }
+.ls-feed-loading, .ls-feed-empty {
+  text-align: center; color: var(--ink4); font-size: 13px;
+  padding: 30px 0; font-family: var(--sans);
+}
+.ls-feed-more-btn {
+  font-size: 12px; font-weight: 600; padding: 8px 22px; border-radius: 20px;
+  border: 1.5px solid var(--border3); background: transparent;
+  color: var(--ink3); cursor: pointer; font-family: var(--sans);
+  transition: background .15s, color .15s;
+}
+.ls-feed-more-btn:hover { background: var(--bg3); color: var(--ink); }
+/* "Sign in to react" nudge button on landing feed cards */
+.feed-signin-nudge-btn {
+  margin-left: auto; font-size: 11px; font-weight: 600; padding: 4px 12px;
+  border-radius: 20px; border: 1.5px solid var(--accent);
+  background: transparent; color: var(--accent); cursor: pointer;
+  font-family: var(--sans); transition: background .15s, color .15s;
+  white-space: nowrap; flex-shrink: 0;
+}
+.feed-signin-nudge-btn:hover { background: var(--accent); color: #fff; }
+
 .landing-footer {
   text-align: center; padding: 20px; font-size: 12px;
   color: var(--ink4); border-top: 1px solid var(--border);

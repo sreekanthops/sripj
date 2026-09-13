@@ -110,6 +110,18 @@
     }
   }
 
+  function requireLogin(e) {
+    const token = localStorage.getItem('diary_token');
+    if (token) return true;
+    e.stopPropagation();
+    // show auth modal
+    const modal = document.getElementById('authModal');
+    const authScreen = document.getElementById('authScreen');
+    if (modal)      modal.classList.remove('hidden');
+    if (authScreen) authScreen.classList.remove('hidden');
+    return false;
+  }
+
   function bindCardEvents() {
     const container = document.getElementById('feedCards');
     if (!container) return;
@@ -118,6 +130,7 @@
     container.querySelectorAll('.feed-follow-btn[data-uid]').forEach(btn => {
       btn.onclick = async (e) => {
         e.stopPropagation();
+        if (!requireLogin(e)) return;
         const uid       = btn.dataset.uid;
         const following = btn.classList.contains('following');
         try {
@@ -161,18 +174,20 @@
       };
     });
 
-    // React button — open note detail for emoji reactions
+    // React button — open note detail for emoji reactions (login required)
     container.querySelectorAll('.feed-react-btn[data-note-id]').forEach(btn => {
       btn.onclick = (e) => {
         e.stopPropagation();
+        if (!requireLogin(e)) return;
         window.openNoteById?.(btn.dataset.noteId);
       };
     });
 
-    // Comment button
+    // Comment button (login required)
     container.querySelectorAll('.feed-comment-btn[data-note-id]').forEach(btn => {
       btn.onclick = (e) => {
         e.stopPropagation();
+        if (!requireLogin(e)) return;
         window.openNoteById?.(btn.dataset.noteId);
       };
     });
@@ -190,10 +205,11 @@
       };
     });
 
-    // Message button
+    // Message button (login required)
     container.querySelectorAll('.feed-msg-btn[data-uid]').forEach(btn => {
       btn.onclick = (e) => {
         e.stopPropagation();
+        if (!requireLogin(e)) return;
         window.Chat?.startConversation?.(btn.dataset.uid);
       };
     });
@@ -248,6 +264,81 @@
   function initFeed() {
     showFeed();
   }
+
+  // ── Landing-page public feed (no login required) ──────────────────────────
+  let _landingPage = 1;
+  let _landingDone = false;
+  let _landingLoading = false;
+
+  async function loadLandingFeed(reset) {
+    if (_landingLoading || _landingDone) return;
+    const container = document.getElementById('landingFeedCards');
+    if (!container) return;
+    _landingLoading = true;
+    if (reset) {
+      _landingPage = 1; _landingDone = false;
+      container.innerHTML = '<div class="ls-feed-loading">Loading stories…</div>';
+    }
+    try {
+      const data = await fetch(`/api/feed?page=${_landingPage}&limit=10`)
+        .then(r => r.json()).catch(() => ({ notes: [] }));
+      if (!data.notes?.length) {
+        _landingDone = true;
+        if (_landingPage === 1) container.innerHTML = '<div class="ls-feed-empty">No public stories yet.</div>';
+        document.getElementById('landingFeedMore').style.display = 'none';
+        return;
+      }
+      if (_landingPage === 1) container.innerHTML = '';
+      data.notes.forEach(note => {
+        const a = note.author;
+        const av = a.avatarUrl
+          ? `<img src="${a.avatarUrl.replace(/"/g,'')}" class="feed-av-img">`
+          : `<div class="feed-av-init">${(a.displayName||a.username||'?').charAt(0).toUpperCase()}</div>`;
+        const reactionTotal = note.reactions.reduce((s,r) => s + r.c, 0);
+        const topEmoji = [...note.reactions].sort((a,b)=>b.c-a.c).slice(0,3).map(r=>r.emoji).join('');
+        const el = document.createElement('article');
+        el.className = 'feed-card';
+        el.innerHTML = `
+          <div class="feed-card-body">
+            <div class="feed-card-author">
+              <div class="feed-av">${av}</div>
+              <div class="feed-author-info">
+                <div class="feed-author-name">${(a.displayName||a.username||'').replace(/</g,'&lt;')}</div>
+                <div class="feed-author-handle">@${(a.username||'').replace(/</g,'&lt;')}</div>
+              </div>
+            </div>
+            ${note.title ? `<h3 class="feed-card-title">${note.title.replace(/</g,'&lt;')}</h3>` : ''}
+            <p class="feed-card-text">${(note.body||'').slice(0,200).replace(/</g,'&lt;')}${(note.body||'').length>200?'…':''}</p>
+            <div class="feed-card-actions">
+              <button class="feed-react-btn lf-action" title="Sign in to react">${topEmoji||'♡'} ${reactionTotal||''}</button>
+              <button class="feed-comment-btn lf-action" title="Sign in to comment">💬 ${note.replyCount||0}</button>
+              <button class="feed-signin-nudge-btn" title="Sign in to interact">Sign in to react →</button>
+            </div>
+          </div>`;
+        // action buttons prompt login
+        el.querySelectorAll('.lf-action, .feed-signin-nudge-btn').forEach(btn => {
+          btn.onclick = e => {
+            e.stopPropagation();
+            const modal = document.getElementById('authModal');
+            const authScreen = document.getElementById('authScreen');
+            if (modal) modal.classList.remove('hidden');
+            if (authScreen) authScreen.classList.remove('hidden');
+          };
+        });
+        container.appendChild(el);
+      });
+      _landingPage++;
+      if (data.notes.length < 10) { _landingDone = true; document.getElementById('landingFeedMore').style.display = 'none'; }
+      else document.getElementById('landingFeedMore').style.display = '';
+    } catch {}
+    finally { _landingLoading = false; }
+  }
+
+  // Load on page open and wire "Load more" button
+  document.addEventListener('DOMContentLoaded', () => {
+    loadLandingFeed(true);
+    document.getElementById('landingFeedMoreBtn')?.addEventListener('click', () => loadLandingFeed(false));
+  });
 
   window.Feed = { initFeed, showFeed, hideFeed };
 })();
