@@ -1377,21 +1377,22 @@ async function enterPublicDiary(usernameOrToken, password = '', byToken = false)
   } catch (err) {
     if (err.isProtected) {
       showApp();
-      promptDiaryPassword(usernameOrToken, err.user);
+      promptDiaryPassword(usernameOrToken, err.user, null, byToken);
       return;
     }
-    if (!currentUser) { showAuth(); } else { toast('Stories not found'); await enterOwnDiary(); }
+    // Failed for a non-auth reason — show diary if guest, go home if logged in
+    if (!currentUser) { showLanding(); } else { toast('Diary not found'); await enterOwnDiary(); }
   }
 }
 
-function promptDiaryPassword(username, userObj, noteIdToOpen = null) {
+function promptDiaryPassword(usernameOrToken, userObj, noteIdToOpen = null, byToken = false) {
   const modalTitle = document.getElementById('passModalTitle');
   const modalSub   = document.getElementById('passModalSub');
   const passInput  = document.getElementById('diaryUnlockPass');
   const errEl      = document.getElementById('passErr');
 
   if (modalTitle) {
-    const name = userObj?.displayName || username;
+    const name = userObj?.displayName || usernameOrToken;
     modalTitle.textContent = `${name}'s Diary is Locked`;
   }
   if (errEl) errEl.textContent = '';
@@ -1406,7 +1407,7 @@ function promptDiaryPassword(username, userObj, noteIdToOpen = null) {
         return;
       }
       try {
-        await enterPublicDiary(username, pwd);
+        await enterPublicDiary(usernameOrToken, pwd, byToken);
         if (noteIdToOpen) {
           openDetail(noteIdToOpen);
         }
@@ -1443,12 +1444,15 @@ async function enterSingleNote(noteId) {
   } catch (err) {
     if (err.isProtected && err.user) {
       showApp();
-      promptDiaryPassword(err.user.username, err.user, noteId);
+      // Use share token if available so the password unlock hits the right endpoint
+      const tokenOrUser = err.user.shareToken || err.user.username;
+      const isTok = !!err.user.shareToken;
+      promptDiaryPassword(tokenOrUser, err.user, noteId, isTok);
       return;
     }
     toast('Entry not found');
     if (currentUser) enterOwnDiary();
-    else showAuth();
+    else showLanding();
   }
 }
 
