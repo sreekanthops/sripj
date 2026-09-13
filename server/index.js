@@ -71,6 +71,7 @@ app.use('/api/note-backgrounds',  require('./routes/note-backgrounds'));
 app.use('/api/music-library',     require('./routes/music-library'));
 app.use('/api/user-music',        require('./routes/user-music-library'));
 app.use('/api/feed',              require('./routes/feed'));
+app.use('/api/stories',           require('./routes/stories'));
 app.use('/api/follows',           require('./routes/follows'));
 app.use('/api/conversations',     require('./routes/conversations'));
 app.use('/api/messages',          require('./routes/messages'));

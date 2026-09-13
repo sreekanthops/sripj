@@ -418,9 +418,19 @@
   </main>
 
   <!-- ══ FEED SCREEN ══════════════════════════════════════════════ -->
-  <section id="feedScreen" style="display:none;padding:16px 16px 90px;max-width:640px;margin:0 auto;min-height:calc(100vh - var(--topbar-h))">
-    <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;font-family:var(--serif)">🌍 Public Feed</h2>
-    <div id="feedCards"></div>
+  <section id="feedScreen" style="display:none;padding:0 0 90px;max-width:640px;margin:0 auto;min-height:calc(100vh - var(--topbar-h))">
+    <!-- Story bar -->
+    <div class="story-bar-wrap" id="storyBar">
+      <div class="story-bar-inner" id="storyBarInner">
+        <div class="story-bar-loading">Loading stories…</div>
+      </div>
+    </div>
+    <div style="padding:16px 16px 0">
+      <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;font-family:var(--serif)">🌍 Public Feed</h2>
+    </div>
+    <div style="padding:0 16px">
+      <div id="feedCards"></div>
+    </div>
     <div id="feedSentinel" style="height:1px"></div>
     <div id="feedSpinner" style="display:none;text-align:center;padding:20px;color:var(--ink4)">Loading…</div>
   </section>
@@ -672,11 +682,34 @@
       </div>
       <div class="upload-previews" id="uploadPreviews"></div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-top:4px;padding:10px 0 4px;border-top:1px solid var(--border)">
-      <label style="font-size:12px;font-weight:600;color:var(--ink2);display:flex;align-items:center;gap:8px;cursor:pointer;flex:1">
-        <input type="checkbox" id="fIsPublic" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer">
-        🌍 Share to Feed <span style="font-size:11px;color:var(--ink4);font-weight:400">(visible to everyone)</span>
-      </label>
+    <!-- ── Visibility toggles ── -->
+    <div class="entry-toggle-row">
+      <div class="entry-toggle-item">
+        <div class="entry-toggle-info">
+          <span class="entry-toggle-icon">🌍</span>
+          <div>
+            <div class="entry-toggle-label">Share to Feed</div>
+            <div class="entry-toggle-hint">Visible to everyone in the public feed</div>
+          </div>
+        </div>
+        <label class="sw-toggle">
+          <input type="checkbox" id="fIsPublic">
+          <span class="sw-track"><span class="sw-thumb"></span></span>
+        </label>
+      </div>
+      <div class="entry-toggle-item">
+        <div class="entry-toggle-info">
+          <span class="entry-toggle-icon">⚡</span>
+          <div>
+            <div class="entry-toggle-label">Post as Story</div>
+            <div class="entry-toggle-hint">Visible for 24 hours · shown as a story ring</div>
+          </div>
+        </div>
+        <label class="sw-toggle">
+          <input type="checkbox" id="fIsStory">
+          <span class="sw-track"><span class="sw-thumb"></span></span>
+        </label>
+      </div>
     </div>
     <button class="btn btn-primary" id="fSave" style="width:100%;justify-content:center;margin-top:4px">Save Entry</button>
   </div>
@@ -782,7 +815,9 @@
     </button>
     <!-- Avatar + name -->
     <div class="upm-head">
-      <div class="upm-avatar" id="upmAvatar"></div>
+      <div class="upm-avatar-wrap no-story" id="upmAvatarWrap" title="View story">
+        <div class="upm-avatar" id="upmAvatar"></div>
+      </div>
       <div class="upm-info">
         <div class="upm-name" id="upmName"></div>
         <div class="upm-username" id="upmUsername"></div>
@@ -1162,6 +1197,32 @@
     <button class="btn btn-primary btn-lg" id="resetSubmitBtn">Reset Password</button>
     <p id="resetErr" class="auth-err"></p>
     <p id="resetOk"  style="color:#2f5a6e;font-size:13px;margin-top:8px;text-align:center;display:none"></p>
+  </div>
+</div>
+
+<!-- ══ STORY VIEWER MODAL ══════════════════════════════════════ -->
+<div id="storyViewerOverlay" class="story-viewer-overlay hidden">
+  <div class="story-viewer-card" id="storyViewerCard">
+    <!-- Progress bars -->
+    <div class="sv-progress-row" id="svProgressRow"></div>
+    <!-- Header: close + user info -->
+    <div class="sv-header">
+      <div class="sv-user-info">
+        <div class="sv-avatar" id="svAvatar"></div>
+        <div>
+          <div class="sv-name" id="svName"></div>
+          <div class="sv-time" id="svTime"></div>
+        </div>
+      </div>
+      <button class="sv-close" id="svClose" aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <!-- Tap areas -->
+    <div class="sv-tap sv-tap-left"  id="svTapLeft"></div>
+    <div class="sv-tap sv-tap-right" id="svTapRight"></div>
+    <!-- Story content -->
+    <div class="sv-body" id="svBody"></div>
   </div>
 </div>
 

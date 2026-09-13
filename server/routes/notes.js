@@ -109,6 +109,8 @@ function buildNote(row, req, authorUser) {
     views:         row.views,
     pinned:        row.pinned ? true : false,
     isPublic:      !!row.is_public,
+    isStory:       !!row.is_story,
+    storyExpiresAt: row.story_expires_at || null,
     createdAt:     row.created_at,
     editedAt:      row.edited_at,
     reactions:     reactions,
@@ -310,6 +312,21 @@ router.delete('/:id', verifyToken, (req, res) => {
   if (row.user_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
   db.prepare('DELETE FROM notes WHERE id = ?').run(req.params.id);
   res.json({ success: true });
+});
+
+// PUT /api/notes/:id/story  (owner only — toggle is_story, sets 24h expiry)
+router.put('/:id/story', verifyToken, (req, res) => {
+  const row = db.prepare('SELECT id, user_id, is_story FROM notes WHERE id=?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  if (row.user_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
+
+  const newVal = req.body.isStory !== undefined ? (req.body.isStory ? 1 : 0) : (row.is_story ? 0 : 1);
+  let expiresAt = null;
+  if (newVal === 1) {
+    expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  }
+  db.prepare('UPDATE notes SET is_story=?, story_expires_at=? WHERE id=?').run(newVal, expiresAt, row.id);
+  res.json({ isStory: !!newVal, storyExpiresAt: expiresAt });
 });
 
 // PUT /api/notes/:id/public  (owner only — toggle is_public)

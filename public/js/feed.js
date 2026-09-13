@@ -47,12 +47,18 @@
     const myId = window._currentUserId;
     const isOwnNote = myId && myId === a.id;
 
+    // Check if this user has an active story (available in StoryBar cache)
+    const hasStory = window._storyUserIds?.has(a.id);
+    const avWrapStyle = hasStory
+      ? 'cursor:pointer;padding:2.5px;border-radius:50%;background:linear-gradient(135deg,#f7971e,#f72585,#7209b7,#4cc9f0);display:inline-flex;flex-shrink:0'
+      : 'cursor:pointer';
+
     return `
       <article class="feed-card" data-note-id="${note.id}">
         ${note.bgUrl ? `<div class="feed-card-bg" ${bgStyle}></div>` : ''}
         <div class="feed-card-body">
           <div class="feed-card-author">
-            <div class="feed-av" data-uid="${escHtml(a.id)}" data-uname="${escHtml(a.username)}" style="cursor:pointer">${av}</div>
+            <div class="feed-av" data-uid="${escHtml(a.id)}" data-uname="${escHtml(a.username)}" style="${avWrapStyle}">${hasStory ? `<div style="border-radius:50%;border:2px solid var(--bg);overflow:hidden;width:100%;height:100%;display:flex;align-items:center;justify-content:center">${av}</div>` : av}</div>
             <div class="feed-author-info">
               <div class="feed-author-name feed-author-link" data-uid="${escHtml(a.id)}" data-uname="${escHtml(a.username)}" style="cursor:pointer">${escHtml(a.displayName || a.username)}</div>
               <div class="feed-author-handle">@${escHtml(a.username)} · ${relTime(note.createdAt)}</div>
@@ -147,11 +153,11 @@
       };
     });
 
-    // Author avatar → open user profile modal
+    // Author avatar → open stories if available, otherwise profile
     container.querySelectorAll('.feed-av[data-uid]').forEach(el => {
       el.onclick = (e) => {
         e.stopPropagation();
-        if (el.dataset.uid) window.openUserProfile?.(el.dataset.uid);
+        if (el.dataset.uid) window.StoryBar?.openForUser?.(el.dataset.uid);
       };
     });
 
@@ -247,6 +253,8 @@
     resetFeed();
     loadMore();
     initObserver();
+    // Load story bar
+    window.StoryBar?.load?.();
   }
 
   function hideFeed() {
@@ -271,6 +279,247 @@
   }
 
   window.Feed = { initFeed, showFeed, hideFeed, reloadLanding };
+})();
+
+// ── Story Bar + Story Viewer ─────────────────────────────────────────────────
+(function () {
+  'use strict';
+
+  const STORY_DURATION_MS = 5000; // 5s per story slide
+  const PALETTE_BG = [
+    '#1a1025','#0d1f2d','#12201a','#2a1615','#1e1a0c',
+    '#1a1825','#0e1f1f','#1f1215',
+  ];
+  const PALETTE_ACCENT = [
+    '#c084fc','#60a5fa','#34d399','#f87171','#fbbf24',
+    '#a78bfa','#2dd4bf','#f472b6',
+  ];
+
+  let _seenUsers = new Set(); // track which user stories have been viewed
+  let _groups    = [];        // cached story groups from API
+  let _curGroup  = 0;
+  let _curStory  = 0;
+  let _storyTimer = null;
+  let _progInterval = null;
+  let _progStart = null;
+
+  function authHeader() {
+    const t = localStorage.getItem('diary_token');
+    return t ? { Authorization: 'Bearer ' + t } : {};
+  }
+  function escHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function relTime(iso) {
+    const diff = (Date.now() - new Date(iso)) / 1000;
+    if (diff < 3600)  return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
+
+  // ── Render story bar ──────────────────────────────────────────────────────
+  function renderBar(groups) {
+    const inner = document.getElementById('storyBarInner');
+    if (!inner) return;
+    if (!groups.length) {
+      inner.innerHTML = '<span class="story-bar-empty" style="display:block">No stories right now</span>';
+      return;
+    }
+    inner.innerHTML = groups.map((g, gi) => {
+      const a = g.author;
+      const seen = _seenUsers.has(a.id);
+      const av = a.avatarUrl
+        ? `<img class="story-ring-img" src="${escHtml(a.avatarUrl)}" alt="">`
+        : `<div class="story-ring-init">${(a.displayName || a.username || '?').charAt(0).toUpperCase()}</div>`;
+      return `
+        <div class="story-bubble" data-group="${gi}">
+          <div class="story-ring${seen?' seen':''}">
+            <div class="story-ring-inner">${av}</div>
+          </div>
+          <div class="story-bubble-name">${escHtml(a.displayName || a.username)}</div>
+        </div>`;
+    }).join('');
+
+    inner.querySelectorAll('.story-bubble').forEach(el => {
+      el.onclick = () => openViewer(parseInt(el.dataset.group, 10), 0);
+    });
+  }
+
+  // ── Load stories ─────────────────────────────────────────────────────────
+  async function load() {
+    const inner = document.getElementById('storyBarInner');
+    if (inner) inner.innerHTML = '<span class="story-bar-loading">Loading stories…</span>';
+    try {
+      const res = await fetch('/api/stories/feed', { headers: { 'Content-Type': 'application/json', ...authHeader() } });
+      const data = await res.json().catch(() => ({ groups: [] }));
+      _groups = data.groups || [];
+      // Expose user IDs that have active stories for feed card ring rendering
+      window._storyUserIds = new Set(_groups.map(g => g.author.id));
+      renderBar(_groups);
+    } catch {
+      if (inner) inner.innerHTML = '';
+    }
+  }
+
+  // ── Story Viewer ──────────────────────────────────────────────────────────
+  function openViewer(groupIdx, storyIdx) {
+    _curGroup = groupIdx;
+    _curStory = storyIdx;
+    const overlay = document.getElementById('storyViewerOverlay');
+    if (overlay) overlay.classList.remove('hidden');
+    renderSlide();
+  }
+
+  function closeViewer() {
+    stopTimer();
+    const overlay = document.getElementById('storyViewerOverlay');
+    if (overlay) overlay.classList.add('hidden');
+  }
+
+  function stopTimer() {
+    clearTimeout(_storyTimer);
+    clearInterval(_progInterval);
+    _storyTimer = null;
+    _progInterval = null;
+  }
+
+  function startTimer() {
+    stopTimer();
+    _progStart = Date.now();
+    const fill = document.querySelector('.sv-prog-bar.active .sv-prog-fill');
+    if (fill) {
+      fill.style.transition = `width ${STORY_DURATION_MS}ms linear`;
+      fill.style.width = '100%';
+    }
+    _storyTimer = setTimeout(() => advanceStory(1), STORY_DURATION_MS);
+  }
+
+  function advanceStory(dir) {
+    const group = _groups[_curGroup];
+    if (!group) return closeViewer();
+    const next = _curStory + dir;
+    if (next >= group.stories.length) {
+      // next group
+      if (_curGroup + 1 < _groups.length) {
+        _seenUsers.add(group.author.id);
+        updateBarSeen(group.author.id);
+        openViewer(_curGroup + 1, 0);
+      } else {
+        _seenUsers.add(group.author.id);
+        updateBarSeen(group.author.id);
+        closeViewer();
+      }
+    } else if (next < 0) {
+      // prev group
+      if (_curGroup > 0) {
+        openViewer(_curGroup - 1, 0);
+      }
+    } else {
+      _curStory = next;
+      renderSlide();
+    }
+  }
+
+  function updateBarSeen(userId) {
+    document.querySelectorAll('.story-bubble').forEach(el => {
+      const gi = parseInt(el.dataset.group, 10);
+      if (_groups[gi]?.author?.id === userId) {
+        el.querySelector('.story-ring')?.classList.add('seen');
+      }
+    });
+  }
+
+  function renderSlide() {
+    stopTimer();
+    const group = _groups[_curGroup];
+    if (!group) return closeViewer();
+    const story = group.stories[_curStory];
+    if (!story) return closeViewer();
+    const a = group.author;
+
+    // Progress bars
+    const progRow = document.getElementById('svProgressRow');
+    if (progRow) {
+      progRow.innerHTML = group.stories.map((_, si) => {
+        const cls = si < _curStory ? 'done' : si === _curStory ? 'active' : '';
+        return `<div class="sv-prog-bar ${cls}"><div class="sv-prog-fill" style="${si < _curStory ? 'width:100%' : ''}"></div></div>`;
+      }).join('');
+    }
+
+    // Header
+    const svAvatar = document.getElementById('svAvatar');
+    if (svAvatar) {
+      if (a.avatarUrl) {
+        svAvatar.innerHTML = `<img src="${escHtml(a.avatarUrl)}" alt="">`;
+      } else {
+        svAvatar.textContent = (a.displayName || a.username || '?').charAt(0).toUpperCase();
+      }
+    }
+    const svName = document.getElementById('svName');
+    if (svName) svName.textContent = a.displayName || a.username;
+    const svTime = document.getElementById('svTime');
+    if (svTime) svTime.textContent = relTime(story.createdAt);
+
+    // Body — colour from palette
+    const ci  = story.colorIdx ?? 0;
+    const bg  = PALETTE_BG[ci % PALETTE_BG.length];
+    const acc = PALETTE_ACCENT[ci % PALETTE_ACCENT.length];
+    const svBody = document.getElementById('svBody');
+    const svCard = document.getElementById('storyViewerCard');
+    // Remove any previous bg element
+    svCard?.querySelectorAll('.sv-story-bg').forEach(el => el.remove());
+    // Inject background into the card (positioned ancestor)
+    const bgDiv = document.createElement('div');
+    bgDiv.className = 'sv-story-bg';
+    bgDiv.innerHTML = `<div class="sv-story-bg-color" style="background:${bg};width:100%;height:100%;position:absolute;inset:0"></div>`;
+    svCard?.insertBefore(bgDiv, svCard.firstChild);
+
+    if (svBody) {
+      svBody.innerHTML = `
+        <div class="sv-story-content">
+          ${story.title ? `<div class="sv-story-title" style="color:${escHtml(acc)}">${escHtml(story.title)}</div>` : ''}
+          <div class="sv-story-text">${escHtml(story.body || '')}</div>
+        </div>`;
+    }
+
+    // Tap areas
+    const tapL = document.getElementById('svTapLeft');
+    const tapR = document.getElementById('svTapRight');
+    if (tapL) tapL.onclick = () => advanceStory(-1);
+    if (tapR) tapR.onclick = () => advanceStory(1);
+
+    startTimer();
+  }
+
+  // Wire close button
+  document.getElementById('svClose')?.addEventListener('click', closeViewer);
+  // Close on overlay bg click
+  document.getElementById('storyViewerOverlay')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('storyViewerOverlay')) closeViewer();
+  });
+
+  // Expose openViewer globally so user profile modal can call it
+  window.StoryBar = { load, openViewer, openForUser };
+
+  // Open stories for a specific userId
+  async function openForUser(userId) {
+    // ensure groups are loaded
+    if (!_groups.length) await load();
+    const idx = _groups.findIndex(g => g.author.id === userId);
+    if (idx === -1) {
+      // Fetch on demand for this user
+      try {
+        const res  = await fetch(`/api/stories/user/${userId}`, { headers: authHeader() });
+        const data = await res.json().catch(() => ({ stories: [] }));
+        if (!data.stories?.length) { window.toast?.('No active stories right now'); return; }
+        // Build a one-off group and show
+        _groups.push({ author: data.stories[0].author || { id: userId, username: '', displayName: '', avatarUrl: '' }, stories: data.stories });
+        openViewer(_groups.length - 1, 0);
+      } catch {}
+      return;
+    }
+    openViewer(idx, 0);
+  }
 })();
 
 // ── Guest Feed Screen — standalone, no login required ─────────────────────

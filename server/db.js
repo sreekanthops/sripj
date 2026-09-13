@@ -413,6 +413,11 @@ if (!hasColumn('messages', 'media_url'))   db.exec(`ALTER TABLE messages ADD COL
 if (!hasColumn('messages', 'media_type'))  db.exec(`ALTER TABLE messages ADD COLUMN media_type  TEXT NOT NULL DEFAULT ''`);
 // media_type: '' | 'image' | 'audio' | 'video'
 
+// notes: story flag + expiry (24-hour Instagram-style stories)
+if (!hasColumn('notes', 'is_story'))         db.exec(`ALTER TABLE notes ADD COLUMN is_story         INTEGER NOT NULL DEFAULT 0`);
+if (!hasColumn('notes', 'story_expires_at')) db.exec(`ALTER TABLE notes ADD COLUMN story_expires_at TEXT`);
+// story_expires_at is set to created_at + 24h when is_story = 1
+
 // Re-enable FK enforcement
 db.pragma('foreign_keys = ON');
 

@@ -89,6 +89,7 @@ function toast(msg, dur = 2600) {
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.remove('show'), dur);
 }
+window.toast = toast;
 
 async function copyToClipboard(text) {
   if (!text) return false;
@@ -966,6 +967,21 @@ async function openUserProfile(userId) {
       avatar.innerHTML = `<img src="${esc(profile.avatarUrl)}" alt="">`;
     } else {
       avatar.textContent = name.charAt(0).toUpperCase();
+    }
+
+    // Story ring on avatar wrap — check if user has active stories
+    const avatarWrap = document.getElementById('upmAvatarWrap');
+    const hasStory = window._storyUserIds?.has(userId);
+    if (avatarWrap) {
+      if (hasStory) {
+        avatarWrap.classList.remove('no-story');
+        avatarWrap.title = 'View story';
+        avatarWrap.onclick = () => window.StoryBar?.openForUser?.(userId);
+      } else {
+        avatarWrap.classList.add('no-story');
+        avatarWrap.title = 'No active stories';
+        avatarWrap.onclick = null;
+      }
     }
 
     // Followers / Following stats → clickable to show user list
@@ -1967,6 +1983,8 @@ async function openNewForm() {
   document.getElementById('existMediaRow').innerHTML = '';
   const isPublicCheckbox = document.getElementById('fIsPublic');
   if (isPublicCheckbox) isPublicCheckbox.checked = false;
+  const isStoryCheckbox = document.getElementById('fIsStory');
+  if (isStoryCheckbox) isStoryCheckbox.checked = false;
   // Use user's saved defaults, fallback to app defaults
   const defTitleFont = localStorage.getItem(LS_TITLE_FONT) ?? '';
   const defBodyFont  = localStorage.getItem(LS_BODY_FONT)  ?? "'Kalam',cursive";
@@ -1994,9 +2012,11 @@ async function openEditForm(note) {
   document.getElementById('fWeight').value = note.fontWeight || 'normal';
   document.getElementById('fMusic').value  = (note.musicUrl && !note.noteMusicId && !note.musicUrl.startsWith('/uploads/')) ? note.musicUrl : '';
   document.getElementById('fTags').value   = '';
-  // ── pre-populate the Make Public checkbox with the note's current state ──
+  // ── pre-populate the Make Public + Story toggles with the note's current state ──
   const isPublicCheckbox = document.getElementById('fIsPublic');
   if (isPublicCheckbox) isPublicCheckbox.checked = !!note.isPublic;
+  const isStoryCheckbox = document.getElementById('fIsStory');
+  if (isStoryCheckbox) isStoryCheckbox.checked = !!note.isStory;
   syncFontPicker('titleFontPicker', 'fTitleFont', note.titleFont || '');
   syncFontPicker('bodyFontPicker',  'fFont',      note.font || "'Kalam',cursive");
   renderTagsChips();
@@ -2059,6 +2079,7 @@ document.getElementById('fSave').onclick = async () => {
   }
 
   const isPublic = document.getElementById('fIsPublic')?.checked || false;
+  const isStory  = document.getElementById('fIsStory')?.checked  || false;
   const payload = { title: title||'Untitled', body, font, titleFont, fontSize, fontWeight, colorIdx,
                     musicUrl: finalMusicUrl,
                     noteMusicId: finalNoteMusicId,
@@ -2067,12 +2088,14 @@ document.getElementById('fSave').onclick = async () => {
     let saved;
     if (editId) {
       saved = await api('PUT', `/notes/${editId}`, payload);
-      // Sync is_public separately
+      // Sync is_public + is_story separately
       await api('PUT', `/notes/${editId}/public`, { isPublic }).catch(() => {});
+      await api('PUT', `/notes/${editId}/story`,  { isStory  }).catch(() => {});
       toast(defaultMusicLabel ? `Entry updated ✅  ${defaultMusicLabel}` : 'Entry updated ✅', defaultMusicLabel ? 4000 : 2600);
     } else {
       saved = await api('POST', '/notes', payload);
       if (isPublic) await api('PUT', `/notes/${saved.id}/public`, { isPublic: true }).catch(() => {});
+      if (isStory)  await api('PUT', `/notes/${saved.id}/story`,  { isStory: true  }).catch(() => {});
       toast(defaultMusicLabel ? `Entry saved 💾  ${defaultMusicLabel}` : 'Entry saved 💾', defaultMusicLabel ? 4000 : 2600);
     }
     // Upload audio file if one was selected (replaces the placeholder musicUrl)

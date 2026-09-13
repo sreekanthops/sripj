@@ -3761,3 +3761,207 @@ body.draw-mode.tool-select #drawingCanvas {
   .chat-window { right: 8px; bottom: 72px; width: calc(100vw - 16px); }
   .notif-dropdown { width: calc(100vw - 32px); right: 16px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   TOGGLE SWITCHES  (entry form — public / story)
+   ══════════════════════════════════════════════════════════════════════ */
+.entry-toggle-row {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  padding-top: 4px;
+  display: flex; flex-direction: column; gap: 0;
+}
+.entry-toggle-item {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.entry-toggle-item:last-child { border-bottom: none; }
+.entry-toggle-info {
+  display: flex; align-items: center; gap: 10px; flex: 1;
+}
+.entry-toggle-icon { font-size: 18px; flex-shrink: 0; }
+.entry-toggle-label {
+  font-size: 13px; font-weight: 600; color: var(--ink2); line-height: 1.3;
+}
+.entry-toggle-hint {
+  font-size: 11px; color: var(--ink4); margin-top: 1px; line-height: 1.3;
+}
+
+/* The actual toggle switch */
+.sw-toggle { position: relative; display: inline-flex; flex-shrink: 0; cursor: pointer; }
+.sw-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.sw-track {
+  width: 44px; height: 26px; border-radius: 99px;
+  background: var(--border); border: 1.5px solid var(--border);
+  transition: background .18s, border-color .18s;
+  display: flex; align-items: center; padding: 0 3px;
+}
+.sw-thumb {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.3);
+  transform: translateX(0); transition: transform .18s;
+}
+.sw-toggle input:checked + .sw-track {
+  background: var(--accent); border-color: var(--accent);
+}
+.sw-toggle input:checked + .sw-track .sw-thumb {
+  transform: translateX(18px);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   STORY BAR  (horizontal scroll strip at top of feed)
+   ══════════════════════════════════════════════════════════════════════ */
+.story-bar-wrap {
+  padding: 12px 0 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky; top: 0; z-index: 20;
+}
+.story-bar-inner {
+  display: flex; gap: 14px; overflow-x: auto;
+  padding: 0 16px;
+  scrollbar-width: none;
+}
+.story-bar-inner::-webkit-scrollbar { display: none; }
+.story-bar-loading { font-size: 12px; color: var(--ink4); padding: 8px 4px; white-space: nowrap; }
+.story-bar-empty   { font-size: 12px; color: var(--ink4); padding: 8px 4px; white-space: nowrap; display: none; }
+
+/* Single story avatar bubble */
+.story-bubble {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 5px; cursor: pointer; flex-shrink: 0;
+}
+.story-ring {
+  width: 52px; height: 52px; border-radius: 50%;
+  padding: 2.5px;
+  background: linear-gradient(135deg, #f7971e, #f72585, #7209b7, #4cc9f0);
+  /* gradient ring */
+}
+.story-ring.seen { background: var(--border); }
+.story-ring-inner {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: var(--bg); padding: 2px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.story-ring-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.story-ring-init {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: var(--accent-bg); border: 1.5px solid var(--accent-ring);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 700; color: var(--accent); font-family: var(--serif);
+}
+.story-bubble-name {
+  font-size: 10px; color: var(--ink3); max-width: 60px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-align: center; font-family: var(--sans);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   STORY VIEWER  (Instagram-style full-screen modal)
+   ══════════════════════════════════════════════════════════════════════ */
+.story-viewer-overlay {
+  position: fixed; inset: 0; z-index: 1200;
+  background: rgba(0,0,0,.85);
+  display: flex; align-items: center; justify-content: center;
+}
+.story-viewer-overlay.hidden { display: none; }
+.story-viewer-card {
+  position: relative;
+  width: min(400px, 100vw);
+  height: min(700px, 95vh);
+  background: var(--bg);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+}
+.sv-progress-row {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+  display: flex; gap: 4px; padding: 10px 10px 0;
+  background: linear-gradient(rgba(0,0,0,.35), transparent);
+}
+.sv-prog-bar {
+  flex: 1; height: 3px; border-radius: 99px;
+  background: rgba(255,255,255,.25); overflow: hidden;
+}
+.sv-prog-fill {
+  height: 100%; width: 0%; background: #fff;
+  border-radius: 99px; transition: width linear;
+}
+.sv-prog-bar.done .sv-prog-fill  { width: 100%; }
+.sv-prog-bar.active .sv-prog-fill { /* animated by JS */ }
+
+.sv-header {
+  position: absolute; top: 22px; left: 0; right: 0; z-index: 11;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px 0;
+}
+.sv-user-info { display: flex; align-items: center; gap: 9px; }
+.sv-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--accent-bg); border: 2px solid rgba(255,255,255,.6);
+  overflow: hidden; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: var(--accent); font-family: var(--serif);
+}
+.sv-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.sv-name { font-size: 13px; font-weight: 600; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.5); }
+.sv-time { font-size: 11px; color: rgba(255,255,255,.7); }
+.sv-close {
+  background: rgba(0,0,0,.4); border: none; cursor: pointer;
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.sv-close svg { width: 12px; height: 12px; stroke: #fff; }
+
+/* Tap areas */
+.sv-tap {
+  position: absolute; top: 0; bottom: 0; width: 42%; z-index: 9;
+  cursor: pointer;
+}
+.sv-tap-left  { left: 0; }
+.sv-tap-right { right: 0; }
+
+/* Story content body */
+.sv-body {
+  flex: 1; display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 80px 20px 28px;
+  position: relative; z-index: 5;
+}
+.sv-story-bg {
+  position: absolute; inset: 0; z-index: 1;
+}
+.sv-story-bg-color {
+  width: 100%; height: 100%;
+}
+.sv-story-content {
+  position: relative; z-index: 2;
+}
+.sv-story-title {
+  font-size: 22px; font-weight: 700; color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,.6);
+  font-family: var(--serif); margin-bottom: 10px; line-height: 1.3;
+}
+.sv-story-text {
+  font-size: 15px; color: rgba(255,255,255,.92);
+  text-shadow: 0 1px 4px rgba(0,0,0,.5);
+  line-height: 1.7; font-family: var(--serif);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   STORY RING ON USER PROFILE MODAL AVATAR
+   ══════════════════════════════════════════════════════════════════════ */
+.upm-avatar-wrap {
+  position: relative; flex-shrink: 0;
+  padding: 3px; border-radius: 50%;
+  background: linear-gradient(135deg, #f7971e, #f72585, #7209b7, #4cc9f0);
+  display: inline-flex;
+}
+.upm-avatar-wrap.no-story {
+  background: transparent; padding: 0;
+}
+.upm-avatar-wrap > .upm-avatar {
+  /* inner white border to separate ring from avatar */
+  outline: 2.5px solid var(--bg);
+}
