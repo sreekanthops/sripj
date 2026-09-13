@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Cursor / agent skills (installed per-machine, not committed)
+.agents/
