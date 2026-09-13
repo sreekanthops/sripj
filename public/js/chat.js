@@ -63,23 +63,32 @@
       }
       list.innerHTML = _conversations.map(c => {
         const name = c.other?.displayName || c.other?.username || 'Unknown';
+        const uid  = c.other?.id || '';
         const last = c.lastMessage?.body || '';
         const unread = c.unreadCount > 0 ? `<span class="chat-unread-badge">${c.unreadCount}</span>` : '';
         const av = c.other?.avatarUrl
           ? `<img src="${c.other.avatarUrl}" class="chat-av-img">`
           : `<div class="chat-av-init">${name.charAt(0).toUpperCase()}</div>`;
         return `
-          <div class="chat-conv-item${_activeConvId === c.id ? ' active' : ''}" data-conv="${c.id}">
-            <div class="chat-av">${av}</div>
+          <div class="chat-conv-item${_activeConvId === c.id ? ' active' : ''}" data-conv="${c.id}" data-uid="${uid}">
+            <div class="chat-av chat-av-profile" data-uid="${uid}" style="cursor:pointer" title="View profile">${av}</div>
             <div class="chat-conv-info">
-              <div class="chat-conv-name">${name}${unread}</div>
+              <div class="chat-conv-name chat-name-profile" data-uid="${uid}" style="cursor:pointer">${name}${unread}</div>
               <div class="chat-conv-last">${last.slice(0, 40)}${last.length > 40 ? '…' : ''}</div>
             </div>
           </div>`;
       }).join('');
 
       list.querySelectorAll('[data-conv]').forEach(el => {
-        el.addEventListener('click', () => openConversation(el.dataset.conv));
+        // clicking anywhere on the row opens the conversation
+        el.addEventListener('click', (e) => {
+          // but if they clicked the avatar or name, open profile instead
+          if (e.target.closest('.chat-av-profile') || e.target.closest('.chat-name-profile')) {
+            const uid = e.target.closest('[data-uid]')?.dataset.uid;
+            if (uid) { e.stopPropagation(); window.openUserProfile?.(uid); return; }
+          }
+          openConversation(el.dataset.conv);
+        });
       });
     } catch (e) {
       list.innerHTML = `<div class="chat-empty">Error: ${e.message}</div>`;
@@ -96,7 +105,10 @@
     const conv = _conversations.find(c => c.id === convId);
     const title = conv?.other?.displayName || conv?.other?.username || 'Chat';
     const titleEl = document.getElementById('chatWindowTitle');
-    if (titleEl) titleEl.textContent = title;
+    if (titleEl) {
+      titleEl.textContent = title;
+      titleEl.dataset.uid = conv?.other?.id || '';
+    }
 
     await loadMessages(convId);
     // Mark as read
@@ -244,6 +256,11 @@
     });
     document.getElementById('chatWindowClose')?.addEventListener('click', closeChatWindow);
     document.getElementById('chatPanelClose')?.addEventListener('click', closeChatPanel);
+    // Chat window title → open user profile
+    document.getElementById('chatWindowTitle')?.addEventListener('click', () => {
+      const uid = document.getElementById('chatWindowTitle')?.dataset.uid;
+      if (uid) window.openUserProfile?.(uid);
+    });
   });
 
   window.Chat = { openChatPanel, startConversation, handleIncoming, openByMessageId };
