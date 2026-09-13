@@ -21,7 +21,11 @@
         "NSCameraUsageDescription": "Used to take photos for your diary entries.",
         "NSPhotoLibraryUsageDescription": "Used to pick photos and videos for your diary entries.",
         "NSMicrophoneUsageDescription": "Used to record audio for diary entries.",
-        "UIBackgroundModes": ["audio", "fetch", "remote-notification"]
+        "UIBackgroundModes": [
+          "audio",
+          "fetch",
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -37,7 +41,9 @@
         "WRITE_EXTERNAL_STORAGE",
         "RECORD_AUDIO",
         "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED"
+        "RECEIVE_BOOT_COMPLETED",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -62,19 +68,14 @@
           "icon": "./assets/icon.png",
           "color": "#2f5a6e"
         }
-      ],
-      [
-        "expo-av",
-        {
-          "microphonePermission": "Allow Unsent Stories to access the microphone."
-        }
       ]
     ],
     "scheme": "unsentstories",
     "extra": {
       "eas": {
-        "projectId": "unsent-stories"
+        "projectId": "fe66e7e3-b917-4f2f-ad84-81f2d1c329a5"
       }
-    }
+    },
+    "owner": "unsent-stories"
   }
 }

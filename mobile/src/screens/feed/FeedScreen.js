@@ -11,30 +11,41 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function FeedScreen({ navigation }) {
   const { user } = useAuth();
-  const [notes, setNotes]         = useState([]);
-  const [page, setPage]           = useState(1);
-  const [loading, setLoading]     = useState(false);
-  const [done, setDone]           = useState(false);
+  const [notes, setNotes]           = useState([]);
+  const [page, setPage]             = useState(1);
+  const [loading, setLoading]       = useState(false);
+  const [done, setDone]             = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // ref-based guard so rapid onEndReached calls can't trigger concurrent fetches
+  const fetchingRef = useRef(false);
+  const doneRef     = useRef(false);
 
   async function load(p = 1, refresh = false) {
-    if (loading || (done && !refresh)) return;
+    if (fetchingRef.current || (doneRef.current && !refresh)) return;
+    fetchingRef.current = true;
     setLoading(true);
     try {
       const data = await apiFetch(`/feed?page=${p}&limit=20`);
       const incoming = data.notes || [];
-      if (refresh) setNotes(incoming);
-      else setNotes(prev => [...prev, ...incoming]);
-      if (incoming.length < 20) setDone(true);
+      if (refresh) {
+        setNotes(incoming);
+      } else {
+        // deduplicate by id in case of any server-side overlap between pages
+        setNotes(prev => {
+          const seen = new Set(prev.map(n => n.id));
+          return [...prev, ...incoming.filter(n => !seen.has(n.id))];
+        });
+      }
+      if (incoming.length < 20) { doneRef.current = true; setDone(true); }
       setPage(p + 1);
     } catch (e) { toast(e.message); }
-    finally { setLoading(false); setRefreshing(false); }
+    finally { fetchingRef.current = false; setLoading(false); setRefreshing(false); }
   }
 
   useEffect(() => { load(1, true); }, []);
 
   const onRefresh = () => {
-    setDone(false); setRefreshing(true); load(1, true);
+    doneRef.current = false; setDone(false); setRefreshing(true); load(1, true);
   };
 
   async function toggleFollow(authorId, isFollowing) {
