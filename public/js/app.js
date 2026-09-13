@@ -1077,6 +1077,8 @@ async function enterOwnDiary() {
   window._stickerSetOwner?.(true);
   window._stickerLoad?.(currentUser.username);
   window._chatbotSetOwner?.(true);
+  // Reload landing feed with auth token so isFollowing / isOwnNote states are correct
+  setTimeout(() => window.Feed?.reloadLanding?.(), 100);
   await loadAndRender();
 }
 

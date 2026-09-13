@@ -122,8 +122,8 @@
     return false;
   }
 
-  function bindCardEvents() {
-    const container = document.getElementById('feedCards');
+  function bindCardEvents(container) {
+    if (!container) container = document.getElementById('feedCards');
     if (!container) return;
 
     // Follow buttons
@@ -265,13 +265,14 @@
     showFeed();
   }
 
-  // ── Landing-page public feed (no login required) ──────────────────────────
-  let _landingPage = 1;
-  let _landingDone = false;
+  // ── Landing-page public feed — reuses the same renderFeedCard + bindCardEvents
+  // so the landing preview and the in-app feed tab are 100% identical.
+  let _landingPage    = 1;
+  let _landingDone    = false;
   let _landingLoading = false;
 
   async function loadLandingFeed(reset) {
-    if (_landingLoading || _landingDone) return;
+    if (_landingLoading || (_landingDone && !reset)) return;
     const container = document.getElementById('landingFeedCards');
     if (!container) return;
     _landingLoading = true;
@@ -280,65 +281,49 @@
       container.innerHTML = '<div class="ls-feed-loading">Loading stories…</div>';
     }
     try {
-      const data = await fetch(`/api/feed?page=${_landingPage}&limit=10`)
-        .then(r => r.json()).catch(() => ({ notes: [] }));
+      const data = await fetch(`/api/feed?page=${_landingPage}&limit=10`, {
+        headers: { 'Content-Type': 'application/json', ...authHeader() }
+      }).then(r => r.json()).catch(() => ({ notes: [] }));
+
       if (!data.notes?.length) {
         _landingDone = true;
-        if (_landingPage === 1) container.innerHTML = '<div class="ls-feed-empty">No public stories yet.</div>';
+        if (_landingPage === 1) container.innerHTML = '<div class="ls-feed-empty">No public stories yet. Be the first to share! 🌍</div>';
         document.getElementById('landingFeedMore').style.display = 'none';
         return;
       }
       if (_landingPage === 1) container.innerHTML = '';
+
+      // Use the exact same card renderer as the in-app feed tab
+      const frag = document.createDocumentFragment();
       data.notes.forEach(note => {
-        const a = note.author;
-        const av = a.avatarUrl
-          ? `<img src="${a.avatarUrl.replace(/"/g,'')}" class="feed-av-img">`
-          : `<div class="feed-av-init">${(a.displayName||a.username||'?').charAt(0).toUpperCase()}</div>`;
-        const reactionTotal = note.reactions.reduce((s,r) => s + r.c, 0);
-        const topEmoji = [...note.reactions].sort((a,b)=>b.c-a.c).slice(0,3).map(r=>r.emoji).join('');
-        const el = document.createElement('article');
-        el.className = 'feed-card';
-        el.innerHTML = `
-          <div class="feed-card-body">
-            <div class="feed-card-author">
-              <div class="feed-av">${av}</div>
-              <div class="feed-author-info">
-                <div class="feed-author-name">${(a.displayName||a.username||'').replace(/</g,'&lt;')}</div>
-                <div class="feed-author-handle">@${(a.username||'').replace(/</g,'&lt;')}</div>
-              </div>
-            </div>
-            ${note.title ? `<h3 class="feed-card-title">${note.title.replace(/</g,'&lt;')}</h3>` : ''}
-            <p class="feed-card-text">${(note.body||'').slice(0,200).replace(/</g,'&lt;')}${(note.body||'').length>200?'…':''}</p>
-            <div class="feed-card-actions">
-              <button class="feed-react-btn lf-action" title="Sign in to react">${topEmoji||'♡'} ${reactionTotal||''}</button>
-              <button class="feed-comment-btn lf-action" title="Sign in to comment">💬 ${note.replyCount||0}</button>
-              <button class="feed-signin-nudge-btn" title="Sign in to interact">Sign in to react →</button>
-            </div>
-          </div>`;
-        // action buttons prompt login
-        el.querySelectorAll('.lf-action, .feed-signin-nudge-btn').forEach(btn => {
-          btn.onclick = e => {
-            e.stopPropagation();
-            const modal = document.getElementById('authModal');
-            const authScreen = document.getElementById('authScreen');
-            if (modal) modal.classList.remove('hidden');
-            if (authScreen) authScreen.classList.remove('hidden');
-          };
-        });
-        container.appendChild(el);
+        const div = document.createElement('div');
+        div.innerHTML = renderFeedCard(note);
+        frag.appendChild(div.firstElementChild);
       });
+      container.appendChild(frag);
+
+      // Bind events — same handlers as the in-app feed tab
+      bindCardEvents(container);
+
       _landingPage++;
-      if (data.notes.length < 10) { _landingDone = true; document.getElementById('landingFeedMore').style.display = 'none'; }
-      else document.getElementById('landingFeedMore').style.display = '';
-    } catch {}
-    finally { _landingLoading = false; }
+      const moreEl = document.getElementById('landingFeedMore');
+      if (data.notes.length < 10) { _landingDone = true; if (moreEl) moreEl.style.display = 'none'; }
+      else if (moreEl) moreEl.style.display = '';
+    } catch (err) {
+      console.error('[landingFeed]', err);
+    } finally {
+      _landingLoading = false;
+    }
   }
 
-  // Load on page open and wire "Load more" button
+  // Load on page open; reload when user logs in so follow-state is fresh
   document.addEventListener('DOMContentLoaded', () => {
     loadLandingFeed(true);
     document.getElementById('landingFeedMoreBtn')?.addEventListener('click', () => loadLandingFeed(false));
   });
 
-  window.Feed = { initFeed, showFeed, hideFeed };
+  // Expose reload so app.js can call it after login
+  window.Feed.reloadLanding = () => loadLandingFeed(true);
+
+  window.Feed = { initFeed, showFeed, hideFeed, reloadLanding: () => loadLandingFeed(true) };
 })();
