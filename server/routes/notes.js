@@ -356,16 +356,26 @@ router.post('/:id/tag-view', verifyToken, (req, res) => {
 
   // re-fetch updated record
   const rec = db.prepare('SELECT * FROM note_tag_views WHERE note_id=? AND viewer_id=?').get(note.id, req.user.userId);
-  if (rec.notified) return res.json({ ok: true });  // already notified
 
   const totalDur  = rec.duration_s;
   const viewCount = rec.view_count;
 
+  // notified=1 means we sent *some* notification already.
+  // Allow 'tagged_seen' to fire even if we previously sent 'tagged_no_response'
+  // so the owner knows the person eventually read it properly.
+  // But don't re-fire the same type twice.
+  const alreadyNotified = !!rec.notified;
+
   let notifType = null;
   if (totalDur >= 5) {
     // Seen — 5+ seconds total across all views
-    notifType = 'tagged_seen';
-  } else if (viewCount >= 2 && dur < 2) {
+    // Only fire if we haven't sent tagged_seen before (notified flag covers both types;
+    // check the notifications table to avoid duplicate tagged_seen)
+    const hasSeen = alreadyNotified && db.prepare(
+      "SELECT id FROM notifications WHERE note_id=? AND recipient_id=? AND type='tagged_seen' LIMIT 1"
+    ).get(note.id, authorId);
+    if (!hasSeen) notifType = 'tagged_seen';
+  } else if (!alreadyNotified && viewCount >= 2 && dur < 2) {
     // Skipped at least twice — this view was also short (< 2s), so no engagement
     notifType = 'tagged_no_response';
   }

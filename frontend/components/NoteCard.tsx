@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Bookmark, Eye, Camera, Music, MessageCircle } from "lucide-react";
 import type { Note } from "@/lib/api";
@@ -15,11 +15,13 @@ interface Props {
   onReact?: (noteId: string, emoji: string) => void;
   onTagClick?: (tag: string) => void;
   activeTag?: string | null;
+  /** Called when the tagged user has viewed this post; durationSec = seconds visible */
+  onTagView?: (noteId: string, durationSec: number) => void;
 }
 
 const QUICK_EMOJIS = ["❤️", "😂", "🔥", "😍", "👏"];
 
-export default function NoteCard({ note, index, total, isOwner, onClick, onReact, onTagClick, activeTag }: Props) {
+export default function NoteCard({ note, index, total, isOwner, onClick, onReact, onTagClick, activeTag, onTagView }: Props) {
   const hasMedia = note.media?.length > 0;
   const moodLabel = hasMedia ? "Memory" : "Read";
   const numStr = `${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`;
@@ -27,15 +29,59 @@ export default function NoteCard({ note, index, total, isOwner, onClick, onReact
   // Total reactions count
   const totalReactions = Object.values(note.reactions || {}).reduce((a, b) => a + b, 0);
 
+  // ── Visibility tracking for tagged posts ──────────────────────────────────
+  // When isPinnedTag is true (this user is the tagged person), we track how long
+  // the card is visible. On unmount / visibility-lost we report the duration.
+  const articleRef = useRef<HTMLElement>(null);
+  const visibleSince = useRef<number | null>(null);
+  const reportedDur  = useRef<number>(0);   // cumulative seconds already reported
+
+  useEffect(() => {
+    if (!note.isPinnedTag || !onTagView) return;
+
+    const el = articleRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          visibleSince.current = Date.now();
+        } else {
+          if (visibleSince.current !== null) {
+            const dur = (Date.now() - visibleSince.current) / 1000;
+            reportedDur.current += dur;
+            visibleSince.current = null;
+            onTagView(note.id, dur);
+          }
+        }
+      },
+      { threshold: 0.5 }   // card must be at least 50% on-screen
+    );
+
+    observer.observe(el);
+
+    return () => {
+      observer.disconnect();
+      // Report any remaining visible time on unmount
+      if (visibleSince.current !== null) {
+        const dur = (Date.now() - visibleSince.current) / 1000;
+        onTagView(note.id, dur);
+        visibleSince.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [note.id, note.isPinnedTag]);
+
   return (
     <motion.article
+      ref={articleRef}
       layout
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97 }}
       transition={{ duration: 0.3 }}
       onClick={onClick}
-      className="note-card"
+      className={`note-card${note.isPinnedTag ? " note-card-tagged" : ""}`}
     >
       {/* Media thumbnail */}
       {hasMedia && <CardMediaSlider media={note.media} />}

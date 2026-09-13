@@ -40,6 +40,10 @@ export interface Note {
   userReactions?: string[];
   replies: Reply[];
   media: MediaItem[];
+  // tagged-post fields (present when the post is directed at the viewer)
+  taggedUserId?: string;
+  isPinnedTag?: boolean;
+  tagViewStatus?: { durationS: number; viewCount: number; notified: boolean } | null;
 }
 
 export interface PublicUser {

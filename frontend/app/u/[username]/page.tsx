@@ -12,6 +12,11 @@ import Modal from "@/components/Modal";
 import { api } from "@/lib/api";
 import type { Note, PublicUser } from "@/lib/api";
 
+// Feed note shape returned by /api/feed — superset of Note
+interface FeedNote extends Note {
+  author?: { id: string; username: string; displayName: string; avatarUrl: string };
+}
+
 type SortKey = "newest" | "oldest" | "most-reactions" | "most-comments" | "most-views";
 type FilterTab = "all" | "this-week" | "monthly" | "yearly";
 
@@ -22,6 +27,7 @@ function DiaryPage() {
   const { user, loading: authLoading, logout, refreshUser } = useAuth();
 
   const [notes,        setNotes]        = useState<Note[]>([]);
+  const [taggedNotes,  setTaggedNotes]  = useState<FeedNote[]>([]);
   const [pageUser,     setPageUser]     = useState<PublicUser|null>(null);
   const [pageLoading,  setPageLoading]  = useState(true);
   const [openNoteId,   setOpenNoteId]   = useState<string|null>(null);
@@ -53,7 +59,18 @@ function DiaryPage() {
     finally  { setPageLoading(false); }
   }, [username, filterFrom, filterTo]);
 
+  // Load tagged posts from the social feed (pinned at top for the tagged user)
+  const loadTaggedPosts = useCallback(async () => {
+    if (!user) return;
+    try {
+      const data = await api.get<{ notes: FeedNote[] }>("/feed?page=1&limit=10");
+      const pinned = data.notes.filter(n => n.isPinnedTag);
+      setTaggedNotes(pinned);
+    } catch { /* ignore */ }
+  }, [user]);
+
   useEffect(() => { if (!authLoading) load(); }, [load, authLoading]);
+  useEffect(() => { if (!authLoading && isOwner) loadTaggedPosts(); }, [loadTaggedPosts, authLoading, isOwner]);
 
   // Apply tab filter to date range
   useEffect(() => {
@@ -82,19 +99,30 @@ function DiaryPage() {
     return Array.from(set).sort();
   }, [notes]);
 
+  // Merge tagged posts at top of the owner's own feed (deduplicated)
+  const mergedNotes = useMemo(() => {
+    if (!isOwner || taggedNotes.length === 0) return notes;
+    const ownIds = new Set(notes.map(n => n.id));
+    const extra = taggedNotes.filter(n => !ownIds.has(n.id));
+    return [...extra, ...notes];
+  }, [notes, taggedNotes, isOwner]);
+
   // Apply tag filter + sort
   const displayedNotes = useMemo(() => {
-    let list = activeTag ? notes.filter(n => (n.tags||[]).includes(activeTag)) : notes;
+    let list = activeTag ? mergedNotes.filter(n => (n.tags||[]).includes(activeTag)) : mergedNotes;
     const totalReactions = (n: Note) => Object.values(n.reactions||{}).reduce((a,b)=>a+b,0);
+    // tagged (pinned) posts always stay at top regardless of sort
+    const pinned   = list.filter(n => n.isPinnedTag);
+    const unpinned = list.filter(n => !n.isPinnedTag);
     switch (sortKey) {
-      case "oldest":         list = [...list].sort((a,b) => a.createdAt.localeCompare(b.createdAt)); break;
-      case "most-reactions": list = [...list].sort((a,b) => totalReactions(b) - totalReactions(a)); break;
-      case "most-comments":  list = [...list].sort((a,b) => (b.replies?.length||0) - (a.replies?.length||0)); break;
-      case "most-views":     list = [...list].sort((a,b) => b.views - a.views); break;
-      default:               list = [...list].sort((a,b) => b.createdAt.localeCompare(a.createdAt)); break;
+      case "oldest":         unpinned.sort((a,b) => a.createdAt.localeCompare(b.createdAt)); break;
+      case "most-reactions": unpinned.sort((a,b) => totalReactions(b) - totalReactions(a)); break;
+      case "most-comments":  unpinned.sort((a,b) => (b.replies?.length||0) - (a.replies?.length||0)); break;
+      case "most-views":     unpinned.sort((a,b) => b.views - a.views); break;
+      default:               unpinned.sort((a,b) => b.createdAt.localeCompare(a.createdAt)); break;
     }
-    return list;
-  }, [notes, sortKey, activeTag]);
+    return [...pinned, ...unpinned];
+  }, [mergedNotes, sortKey, activeTag]);
 
   const handleLogout = () => { logout(); router.push("/"); };
   const handleProfileUpdate = async (displayName: string, bio: string) => {
@@ -267,7 +295,7 @@ function DiaryPage() {
 
       {/* ── NOTES COUNT + GRID ── */}
       <div className="notes-header">
-        {notes.length > 0 && (
+        {mergedNotes.length > 0 && (
           <span className="notes-count">{displayedNotes.length} {displayedNotes.length===1?"entry":"entries"}</span>
         )}
       </div>
@@ -310,9 +338,15 @@ function DiaryPage() {
                   onClick={() => setOpenNoteId(n.id)}
                   onTagClick={tag => setActiveTag(prev => prev===tag ? null : tag)}
                   activeTag={activeTag}
+                  onTagView={async (noteId, durationSec) => {
+                    try {
+                      await api.post(`/notes/${noteId}/tag-view`, { durationSec });
+                    } catch { /* ignore */ }
+                  }}
                   onReact={async (noteId, emoji) => {
                     const res = await api.post<{ reactions: Record<string, number>; userReactions: string[]; isReacted: boolean }>(`/notes/${noteId}/react`, { emoji });
                     setNotes(prev => prev.map(x => x.id === noteId ? { ...x, reactions: res.reactions, userReactions: res.userReactions } : x));
+                    setTaggedNotes(prev => prev.map(x => x.id === noteId ? { ...x, reactions: res.reactions, userReactions: res.userReactions } : x));
                   }}
                 />
               ))}
