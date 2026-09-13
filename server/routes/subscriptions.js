@@ -23,18 +23,19 @@ router.get('/me', verifyToken, (req, res) => {
 router.get('/admin/list', verifyAdminToken, (req, res) => {
   const rows = db.prepare(`
     SELECT
-      u.id          AS user_id,
+      u.id                   AS user_id,
       u.username,
       u.display_name,
-      u.created_at  AS user_created_at,
-      s.id          AS sub_id,
+      u.created_at           AS user_created_at,
+      u.notes_limit_override,
+      s.id                   AS sub_id,
       s.plan_id,
-      p.name        AS plan_name,
+      p.name                 AS plan_name,
       p.price_usd,
       s.starts_at,
       s.expires_at,
       s.granted_by,
-      s.created_at  AS sub_created_at
+      s.created_at           AS sub_created_at
     FROM users u
     LEFT JOIN user_subscriptions s ON s.user_id = u.id
     LEFT JOIN subscription_plans p ON p.id = s.plan_id
@@ -46,11 +47,12 @@ router.get('/admin/list', verifyAdminToken, (req, res) => {
     const livePlan   = getUserPlan(row.user_id);
     const note_count = db.prepare('SELECT COUNT(*) as c FROM notes WHERE user_id = ?').get(row.user_id).c;
     return {
-      userId:       row.user_id,
-      username:     row.username,
-      displayName:  row.display_name || '',
-      userCreatedAt:row.user_created_at,
-      noteCount:    note_count,
+      userId:             row.user_id,
+      username:           row.username,
+      displayName:        row.display_name || '',
+      userCreatedAt:      row.user_created_at,
+      noteCount:          note_count,
+      notesLimitOverride: row.notes_limit_override ?? null,
       // raw subscription row (may be null if never assigned)
       rawPlanId:    row.plan_id || null,
       rawPlanName:  row.plan_name || null,
@@ -61,6 +63,7 @@ router.get('/admin/list', verifyAdminToken, (req, res) => {
       // effective plan after expiry check
       effectivePlan: livePlan.planId,
       effectiveName: livePlan.name,
+      notesLimit:   livePlan.notesLimit,   // effective limit after override
       isExpired:    !!(row.expires_at && new Date(row.expires_at) < new Date()),
     };
   });

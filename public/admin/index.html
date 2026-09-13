@@ -550,6 +550,26 @@ select.field-select:focus{border-color:var(--accent)}
   <!-- SUBSCRIPTIONS -->
   <div class="page" id="page-subscriptions">
 
+    <!-- Free Tier Limit control -->
+    <div class="section">
+      <div class="section-title">Free Tier — Note Creation Limit</div>
+      <div class="settings-card" style="max-width:560px">
+        <p style="font-size:12px;color:var(--ink3);line-height:1.6;margin-bottom:16px">
+          Set the <b>global default</b> for how many entries a Free plan user can create. Set <b>-1</b> for unlimited.
+          You can also override this per-user using the <b>Note Limit</b> button in the table below.
+        </p>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+          <div class="field" style="margin:0;flex:1;min-width:140px">
+            <label>Global Free Limit <span style="color:var(--ink4);font-weight:400">(-1 = unlimited)</span></label>
+            <input type="number" id="subFreeLimitInput" min="-1" placeholder="e.g. 5"
+              style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r2);padding:10px 14px;font-size:14px;color:var(--ink);outline:none;font-family:var(--sans)">
+          </div>
+          <button class="btn btn-primary" id="subSaveFreeLimitBtn" style="margin-bottom:1px">Save</button>
+          <span id="subFreeLimitStatus" style="font-size:12px;font-weight:600;align-self:center"></span>
+        </div>
+      </div>
+    </div>
+
     <!-- Plan summary cards -->
     <div class="section">
       <div class="section-title">Plan Distribution</div>
@@ -601,6 +621,7 @@ select.field-select:focus{border-color:var(--accent)}
               <th>Granted By</th>
               <th>Days Left</th>
               <th>Entries</th>
+              <th>Note Limit</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -1067,6 +1088,7 @@ document.getElementById('navTabs').addEventListener('click', e => {
   if (tab.dataset.page === 'subscriptions' && !subTabLoaded) {
     subTabLoaded = true;
     loadSubscriptions();
+    loadFreeLimit();
   }
   // Lazy-load visitors tab on first open
   if (tab.dataset.page === 'visitors' && !visitorsLoaded) {
@@ -1246,6 +1268,7 @@ document.getElementById('noteLimitSaveBtn').onclick = async () => {
     document.getElementById('noteLimitModal').classList.add('hidden');
     toast(`Note limit updated`);
     await loadStats();
+    if (subTabLoaded) await loadSubscriptions();
   } catch (e) { errEl.textContent = e.message; }
 };
 
@@ -1254,8 +1277,30 @@ async function loadFreeLimit() {
   try {
     const { notesLimit } = await api('GET', '/free-limit');
     document.getElementById('freeLimitInput').value = notesLimit;
+    document.getElementById('subFreeLimitInput').value = notesLimit;
   } catch(e) { /* silently fail */ }
 }
+
+// Save button on the Subscriptions page
+document.getElementById('subSaveFreeLimitBtn').onclick = async () => {
+  const raw    = document.getElementById('subFreeLimitInput').value.trim();
+  const status = document.getElementById('subFreeLimitStatus');
+  status.textContent = '';
+  if (raw === '') { status.style.color = 'var(--red)'; status.textContent = 'Enter a value'; return; }
+  const val = Number(raw);
+  if (isNaN(val)) { status.style.color = 'var(--red)'; status.textContent = 'Invalid number'; return; }
+  try {
+    await payApi('PUT', '/admin/plans/free', { notes_limit: val });
+    // keep Settings input in sync
+    document.getElementById('freeLimitInput').value = val;
+    status.style.color = 'var(--green)';
+    status.textContent = '✅ Saved! Global limit: ' + (val === -1 ? 'Unlimited' : val);
+    setTimeout(() => { status.textContent = ''; }, 4000);
+    toast('Free plan limit updated → ' + (val === -1 ? 'Unlimited' : val + ' entries'));
+    // Refresh the table so the Note Limit column reflects the new global default
+    await loadSubscriptions();
+  } catch(e) { status.style.color = 'var(--red)'; status.textContent = e.message; }
+};
 
 document.getElementById('saveFreeLimitBtn').onclick = async () => {
   const raw    = document.getElementById('freeLimitInput').value.trim();
@@ -1519,10 +1564,20 @@ function renderSubUsers(users) {
         <td style="font-size:12px;color:var(--ink3)">${u.grantedBy ? '<span title="Admin assigned">Admin</span>' : (u.subId ? 'Self' : '—')}</td>
         <td>${daysLeftCell(u)}</td>
         <td>${u.noteCount}</td>
+        <td style="font-size:12px;white-space:nowrap">
+          ${u.notesLimitOverride != null
+            ? `<span style="color:var(--accent);font-weight:700">${u.notesLimitOverride === -1 ? '∞' : u.notesLimitOverride}</span> <span style="color:var(--ink4)">(override)</span>`
+            : `<span style="color:var(--ink3)">${u.notesLimit === -1 ? '∞' : u.notesLimit}</span> <span style="color:var(--ink4)">(global)</span>`
+          }
+        </td>
         <td style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px">
           <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px"
             data-assign="${u.userId}" data-uname="${u.username}" data-plan="${u.effectivePlan}" data-expires="${u.expiresAt || ''}">
             Assign Plan
+          </button>
+          <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;color:var(--accent);border-color:var(--accent)"
+            data-notelimit="${u.userId}" data-uname="${u.username}" data-current="${u.notesLimitOverride ?? ''}">
+            Note Limit
           </button>
           <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;color:var(--green);border-color:var(--green)"
             data-grantfree="${u.userId}" data-uname="${u.username}">Free Grant</button>
@@ -1541,6 +1596,11 @@ function renderSubUsers(users) {
   // Bind Free Grant buttons
   tbody.querySelectorAll('[data-grantfree]').forEach(btn => {
     btn.onclick = () => openGrantFreeModal(btn.dataset.grantfree, btn.dataset.uname);
+  });
+
+  // Bind Note Limit buttons
+  tbody.querySelectorAll('[data-notelimit]').forEach(btn => {
+    btn.onclick = () => openNoteLimitModal(btn.dataset.notelimit, btn.dataset.uname, btn.dataset.current);
   });
 
   // Bind Revoke buttons
