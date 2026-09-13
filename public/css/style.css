@@ -2064,9 +2064,45 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   text-align: center; padding: 20px; font-size: 12px;
   color: var(--ink4); border-top: 1px solid var(--border);
   margin-top: auto;
+  /* make room for fixed bar */
+  padding-bottom: 100px;
 }
 .landing-footer a { color: var(--accent); text-decoration: none; }
 .landing-footer a:hover { text-decoration: underline; }
+
+/* ── Fixed bottom CTA bar ─────────────────────────────────── */
+.ls-fixed-cta {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  display: flex; gap: 10px; justify-content: center; align-items: center;
+  padding: 14px 20px 20px;
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+}
+/* Hide the bar whenever the landing screen is not shown */
+#authScreen.hidden ~ #landingFixedBar,
+#landingFixedBar.hidden { display: none !important; }
+
+.ls-cta-fixed-primary {
+  flex: 1; max-width: 220px;
+  font-size: 15px; padding: 14px 0; border-radius: 14px;
+}
+.ls-cta-fixed-ghost {
+  flex: 1; max-width: 180px;
+  font-size: 14px; padding: 13px 0; border-radius: 14px;
+}
+
+/* ── Emotional section spacing ────────────────────────────── */
+.ls-emotional {
+  padding: 32px 0 24px;
+  border-top: 1px solid var(--border2);
+  border-bottom: 1px solid var(--border2);
+  margin-bottom: 0 !important;
+}
+.ls-emotional .ls-line-serif {
+  font-size: 20px; margin-bottom: 20px;
+}
+.ls-emotional .ls-line-quiet {
+  font-size: 15px; line-height: 2;
+}
 
 /* btn-outline (used elsewhere) */
 .btn-outline {
