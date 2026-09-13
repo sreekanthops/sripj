@@ -1707,9 +1707,9 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
    LANDING PAGE
 ══════════════════════════════════════════════════════ */
 .landing-screen {
-  min-height: 100vh;
   background: var(--bg);
   display: flex; flex-direction: column;
+  /* no min-height — content determines height, footer stays right after content */
 }
 
 /* ── Nav ─────────────────────────────────────────────────── */
@@ -1824,7 +1824,7 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 /* ── Main column ─────────────────────────────────────────── */
 .ls-main {
   max-width: 600px; width: 100%; margin: 0 auto;
-  padding: 64px 28px 100px; /* extra bottom for fixed bar */
+  padding: 64px 28px 88px; /* 88px bottom = fixed bar height + safe gap */
   box-sizing: border-box;
 }
 
