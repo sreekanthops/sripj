@@ -1697,6 +1697,7 @@ document.getElementById('fTags').addEventListener('blur', e => {
 // ── FORMS ──────────────────────────────────────────────────────────────────
 // ── Note background + music picker state ──────────────────────────────────
 let _selectedBgUrl     = '';   // final URL to save (library or uploaded)
+let _selectedBgId      = '';   // library bg id of currently selected bg ('' for none/custom)
 let _selectedMusicId   = '';   // music_library or user_music_library id, or '' for none
 let _pendingBgFile     = null; // File object if user uploaded custom bg
 let _pendingAudioFile  = null; // File object if user uploaded audio for this note only
@@ -1704,6 +1705,9 @@ let _uploadedAudioUrl  = '';   // set after successful audio upload
 let _noteBgLibrary     = null; // cached [{id,url,label}]
 let _globalMusicLib    = null; // cached global tracks [{id,url,title,artist,source:'global'}]
 let _userMusicLib      = null; // cached user tracks [{id,url,title,artist,source:'user'}]
+// default bg state: loaded from server each time form opens
+let _defaultBgId       = null; // user's own default (null = follow admin, ''= none, id=specific)
+let _adminDefaultBgId  = '';   // admin global default bg id
 
 // ── Audio upload helpers ───────────────────────────────────────────────────
 function _setAudioPreview(src) {
@@ -1885,30 +1889,67 @@ function buildTrackList(container, tracks, activeMusicId) {
   });
 }
 
+async function loadBgDefaults() {
+  if (!token) return;
+  try {
+    const d = await fetch('/api/note-backgrounds/defaults', {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.json());
+    _adminDefaultBgId = d.adminDefault || '';
+    _defaultBgId      = d.userDefault;   // null | '' | id
+  } catch(e) { /* non-fatal */ }
+}
+
+function effectiveDefaultBgId() {
+  // user has set own default → use it (even if '')
+  if (_defaultBgId !== null && _defaultBgId !== undefined) return _defaultBgId;
+  // user never set → fall back to admin default
+  return _adminDefaultBgId || '';
+}
+
 async function renderNoteBgPicker(activeBgUrl) {
   const picker = document.getElementById('noteBgPicker');
   if (!picker) return;
   const lib = await loadNoteBgLibrary();
+
+  // For new notes (activeBgUrl === '') apply effective default
+  let resolvedUrl = activeBgUrl;
+  if (!resolvedUrl) {
+    const defId = effectiveDefaultBgId();
+    if (defId) {
+      const defBg = lib.find(b => b.id === defId);
+      if (defBg) resolvedUrl = defBg.url;
+    }
+  }
+
   picker.innerHTML = `
-    <button type="button" class="note-bg-opt note-bg-none${!activeBgUrl ? ' active' : ''}" id="noteBgNoneBtn" title="No background">
+    <button type="button" class="note-bg-opt note-bg-none${!resolvedUrl ? ' active' : ''}" id="noteBgNoneBtn" title="No background">
       <span class="note-bg-none-label">Default</span>
     </button>
-    ${lib.map(bg => `
-      <button type="button" class="note-bg-opt${activeBgUrl === bg.url ? ' active' : ''}"
-        data-bg-url="${bg.url}" data-bg-id="${bg.id}" title="${esc(bg.label)}">
-        <img src="${bg.url}" alt="${esc(bg.label)}" loading="lazy">
-      </button>`).join('')}
+    ${lib.map(bg => {
+      const isDefault = bg.id === effectiveDefaultBgId();
+      return `
+        <button type="button" class="note-bg-opt${resolvedUrl === bg.url ? ' active' : ''}"
+          data-bg-url="${bg.url}" data-bg-id="${bg.id}" title="${esc(bg.label)}${isDefault ? ' ★ Default' : ''}">
+          <img src="${bg.url}" alt="${esc(bg.label)}" loading="lazy">
+          ${isDefault ? '<span class="note-bg-default-star" title="Your default">★</span>' : ''}
+        </button>`;
+    }).join('')}
   `;
-  _selectedBgUrl = activeBgUrl || '';
+  _selectedBgUrl = resolvedUrl || '';
+  _selectedBgId  = lib.find(b => b.url === resolvedUrl)?.id || '';
   updateBgSelectedLabel();
+  updateNoteBgDefaultLabel();
 
   picker.querySelectorAll('.note-bg-opt').forEach(btn => {
     btn.addEventListener('click', () => {
       picker.querySelectorAll('.note-bg-opt').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       _selectedBgUrl = btn.dataset.bgUrl || '';
+      _selectedBgId  = btn.dataset.bgId  || '';
       _pendingBgFile = null;
       updateBgSelectedLabel();
+      updateNoteBgDefaultLabel();
     });
   });
 }
@@ -1927,6 +1968,19 @@ function updateBgSelectedLabel() {
     lbl.textContent = '';
     clr.style.display = 'none';
   }
+}
+
+function updateNoteBgDefaultLabel() {
+  const lbl = document.getElementById('noteBgDefaultLabel');
+  if (!lbl) return;
+  const defId = effectiveDefaultBgId();
+  const lib   = _noteBgLibrary || [];
+  if (!defId) {
+    lbl.textContent = 'No default set';
+    return;
+  }
+  const defBg = lib.find(b => b.id === defId);
+  lbl.textContent = defBg ? `Current default: ${defBg.label || 'Background'}` : '';
 }
 
 // Show "default music will be set to …" notice when nothing is selected
@@ -1983,15 +2037,39 @@ document.getElementById('fBgFile')?.addEventListener('change', e => {
   if (!file) return;
   _pendingBgFile = file;
   _selectedBgUrl = '';
+  _selectedBgId  = '';
   document.querySelectorAll('#noteBgPicker .note-bg-opt').forEach(b => b.classList.remove('active'));
   updateBgSelectedLabel();
+  updateNoteBgDefaultLabel();
 });
 // Wire the "Clear" button
 document.getElementById('noteBgClearBtn')?.addEventListener('click', () => {
-  _pendingBgFile = null; _selectedBgUrl = '';
+  _pendingBgFile = null; _selectedBgUrl = ''; _selectedBgId = '';
   document.querySelectorAll('#noteBgPicker .note-bg-opt').forEach(b => b.classList.remove('active'));
   document.getElementById('noteBgNoneBtn')?.classList.add('active');
   updateBgSelectedLabel();
+  updateNoteBgDefaultLabel();
+});
+
+// Wire the "★ Set as Default Background" button
+document.getElementById('noteBgSetDefaultBtn')?.addEventListener('click', async () => {
+  const lbl = document.getElementById('noteBgDefaultLabel');
+  const setId = _selectedBgId || '';   // '' means "no background" as default
+  if (!token) { toast('Sign in to save a default background'); return; }
+  try {
+    const r = await fetch('/api/note-backgrounds/defaults', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ bgId: setId }),
+    });
+    if (!r.ok) throw new Error((await r.json()).error || 'Failed');
+    _defaultBgId = setId || null;
+    updateNoteBgDefaultLabel();
+    // re-render picker so ★ badge moves to new default
+    _noteBgLibrary = null;
+    await renderNoteBgPicker(_selectedBgUrl);
+    toast(setId ? '★ Default background saved!' : 'Default background cleared');
+  } catch(e) { toast('Could not save default: ' + e.message); }
 });
 
 function resetAudioState() {
@@ -2005,7 +2083,7 @@ function resetAudioState() {
 
 async function openNewForm() {
   editId = null; pendingTags = [];
-  _selectedBgUrl = ''; _selectedMusicId = ''; _pendingBgFile = null;
+  _selectedBgUrl = ''; _selectedBgId = ''; _selectedMusicId = ''; _pendingBgFile = null;
   resetAudioState();
   document.getElementById('formTitle').textContent = '✒ New Entry';
   document.getElementById('fTitle').value  = '';
@@ -2030,12 +2108,13 @@ async function openNewForm() {
   applyTitleFontPreview();
   openOv('formOverlay');
   setTimeout(() => document.getElementById('fTitle').focus(), 120);
+  try { await loadBgDefaults(); } catch(e) {}
   try { await renderNoteBgPicker(''); } catch(e) {}
   try { await renderMusicPicker('', ''); } catch(e) {}
 }
 async function openEditForm(note) {
   editId = note.id; pendingTags = Array.isArray(note.tags) ? [...note.tags] : [];
-  _selectedBgUrl = note.bgUrl || ''; _selectedMusicId = note.noteMusicId || ''; _pendingBgFile = null;
+  _selectedBgUrl = note.bgUrl || ''; _selectedBgId = ''; _selectedMusicId = note.noteMusicId || ''; _pendingBgFile = null;
   _pendingAudioFile = null;
   _uploadedAudioUrl = (note.musicUrl && !note.noteMusicId && note.musicUrl.startsWith('/uploads/')) ? note.musicUrl : '';
   updateAudioLabel();
@@ -2063,7 +2142,13 @@ async function openEditForm(note) {
   applyBodyPreview();
   applyTitleFontPreview();
   openOv('formOverlay');
+  try { await loadBgDefaults(); } catch(e) {}
   try { await renderNoteBgPicker(note.bgUrl || ''); } catch(e) {}
+  // after picker rendered, set _selectedBgId from library match
+  if (!_selectedBgId && note.bgUrl) {
+    const match = (_noteBgLibrary || []).find(b => b.url === note.bgUrl);
+    if (match) _selectedBgId = match.id;
+  }
   try { await renderMusicPicker(note.noteMusicId || '', note.musicUrl || ''); } catch(e) {}
   // Pre-populate the audio preview player for the existing track
   try {

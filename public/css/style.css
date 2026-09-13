@@ -2417,8 +2417,15 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   display: block;
   pointer-events: none;
 }
+.note-bg-opt { position: relative; }
 .note-bg-opt:hover { transform: scale(1.06); border-color: var(--border3); }
 .note-bg-opt.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-ring); }
+.note-bg-default-star {
+  position: absolute; top: 2px; right: 2px;
+  font-size: 10px; line-height: 1;
+  color: #f59e0b; text-shadow: 0 0 3px rgba(0,0,0,.5);
+  pointer-events: none;
+}
 .note-bg-none {
   display: flex; align-items: center; justify-content: center;
   background: repeating-linear-gradient(

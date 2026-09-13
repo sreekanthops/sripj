@@ -418,6 +418,12 @@ if (!hasColumn('notes', 'is_story'))         db.exec(`ALTER TABLE notes ADD COLU
 if (!hasColumn('notes', 'story_expires_at')) db.exec(`ALTER TABLE notes ADD COLUMN story_expires_at TEXT`);
 // story_expires_at is set to created_at + 24h when is_story = 1
 
+// ── per-user default note background ─────────────────────────────────────────
+// NULL = use admin global default; '' = explicitly "no background"
+if (!hasColumn('users', 'default_note_bg_id')) {
+  db.exec(`ALTER TABLE users ADD COLUMN default_note_bg_id TEXT`);
+}
+
 // ── user feedback ────────────────────────────────────────────────────────────
 if (!hasTable('feedback')) {
   db.exec(`

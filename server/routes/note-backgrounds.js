@@ -4,7 +4,7 @@ const path    = require('path');
 const fs      = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const db      = require('../db');
-const { verifyAdminToken } = require('../auth');
+const { verifyAdminToken, verifyToken } = require('../auth');
 
 const BG_DIR = path.join(__dirname, '..', '..', 'public', 'note-backgrounds');
 fs.mkdirSync(BG_DIR, { recursive: true });
@@ -67,6 +67,54 @@ router.delete('/:id', verifyAdminToken, (req, res) => {
   if (!row) return res.status(404).json({ error: 'Not found' });
   fs.unlink(path.join(BG_DIR, row.filename), () => {});
   db.prepare('DELETE FROM note_backgrounds WHERE id = ?').run(row.id);
+  // If this was the admin global default, clear it
+  db.prepare(`UPDATE app_settings SET value='', updated_at=? WHERE key='default_note_bg_id'`)
+    .run(new Date().toISOString());
+  res.json({ ok: true });
+});
+
+// ── GET /api/note-backgrounds/defaults  — returns admin global default + user's own ──
+// Must be defined BEFORE /:id to avoid route conflict
+router.get('/defaults', verifyToken, (req, res) => {
+  const adminDefault = db.prepare(`SELECT value FROM app_settings WHERE key='default_note_bg_id'`).get()?.value || '';
+  const user = db.prepare('SELECT default_note_bg_id FROM users WHERE id=?').get(req.user.userId);
+  // user.default_note_bg_id === null  → user never set own → use admin default
+  // user.default_note_bg_id === ''    → user explicitly chose "none"
+  // user.default_note_bg_id === <id>  → user has their own default
+  const userDefault = user?.default_note_bg_id;  // may be null or string
+  res.json({ adminDefault, userDefault });
+});
+
+// ── PUT /api/note-backgrounds/defaults  — user sets their own default bg ─────
+router.put('/defaults', verifyToken, (req, res) => {
+  const { bgId } = req.body;  // bgId = '' to clear, or a valid note_backgrounds id
+  // validate — must be '' or an existing bg id
+  if (bgId && bgId !== '') {
+    const exists = db.prepare('SELECT id FROM note_backgrounds WHERE id=?').get(bgId);
+    if (!exists) return res.status(404).json({ error: 'Background not found' });
+  }
+  db.prepare('UPDATE users SET default_note_bg_id=? WHERE id=?')
+    .run(bgId === '' ? '' : bgId, req.user.userId);
+  res.json({ ok: true });
+});
+
+// ── GET /api/note-backgrounds/admin-default-get  — admin reads global default ─
+router.get('/admin-default-get', verifyAdminToken, (req, res) => {
+  const adminDefault = db.prepare(`SELECT value FROM app_settings WHERE key='default_note_bg_id'`).get()?.value || '';
+  res.json({ adminDefault });
+});
+
+// ── PUT /api/note-backgrounds/admin-default  — admin sets global default bg ──
+router.put('/admin-default', verifyAdminToken, (req, res) => {
+  const { bgId } = req.body;  // bgId = '' to clear, or a valid id
+  if (bgId && bgId !== '') {
+    const exists = db.prepare('SELECT id FROM note_backgrounds WHERE id=?').get(bgId);
+    if (!exists) return res.status(404).json({ error: 'Background not found' });
+  }
+  const now = new Date().toISOString();
+  db.prepare(`INSERT INTO app_settings (key, value, updated_at) VALUES ('default_note_bg_id', ?, ?)
+    ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at`)
+    .run(bgId || '', now);
   res.json({ ok: true });
 });
 

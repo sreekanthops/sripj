@@ -2439,37 +2439,67 @@ function setupUploadSection({ zoneId, inputId, previewsWrapId, previewsId, uploa
   });
 }
 
+let _nbAdminDefaultId = '';  // track which bg is currently the global default
+
 async function loadNoteBackgrounds() {
   const grid = document.getElementById('nbGrid');
   const count = document.getElementById('nbCount');
   grid.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ink4);font-size:12px">Loading…</div>';
   try {
-    const res = await fetch('/api/note-backgrounds');
-    const { backgrounds } = await res.json();
+    // Load admin default alongside backgrounds
+    const [bgRes, defRes] = await Promise.all([
+      fetch('/api/note-backgrounds'),
+      fetch('/api/note-backgrounds/admin-default-get', { headers: { Authorization: 'Bearer ' + adminToken } }),
+    ]);
+    const { backgrounds } = await bgRes.json();
+    const defData = defRes.ok ? await defRes.json() : {};
+    _nbAdminDefaultId = defData.adminDefault || '';
+
     count.textContent = `(${backgrounds.length})`;
     if (!backgrounds.length) { grid.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ink4);font-size:12px">No backgrounds yet.</div>'; return; }
     grid.innerHTML = '';
     backgrounds.forEach(bg => {
+      const isDefault = bg.id === _nbAdminDefaultId;
       const card = document.createElement('div');
       card.className = 'gi-card';
+      card.dataset.bgId = bg.id;
       card.innerHTML = `
-        <img src="${bg.url}" alt="${bg.label}" loading="lazy">
+        <div style="position:relative">
+          <img src="${bg.url}" alt="${bg.label}" loading="lazy">
+          ${isDefault ? '<span style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,.6);color:#f59e0b;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px">★ Global Default</span>' : ''}
+        </div>
         <div class="gi-card-body">
           <input class="gi-label-input" value="${bg.label}" placeholder="Label…">
-          <div class="gi-card-foot">
+          <div class="gi-card-foot" style="flex-wrap:wrap;gap:4px">
             <button class="gi-save-btn">Save</button>
             <button class="gi-del-btn">Delete</button>
+            <button class="nb-default-btn" style="padding:4px 8px;font-size:10px;font-weight:700;border-radius:4px;cursor:pointer;background:${isDefault ? 'var(--amber-bg)' : 'var(--surface3)'};border:1.5px solid ${isDefault ? 'var(--amber)' : 'var(--border)'};color:${isDefault ? 'var(--amber)' : 'var(--ink3)'}">
+              ${isDefault ? '★ Default' : 'Set Default'}
+            </button>
           </div>
         </div>`;
       card.querySelector('.gi-save-btn').onclick = async () => {
         const label = card.querySelector('.gi-label-input').value.trim();
         await fetch('/api/note-backgrounds/' + bg.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminToken }, body: JSON.stringify({ label }) });
-        toast('Saved');
+        toast('Label saved');
       };
       card.querySelector('.gi-del-btn').onclick = async () => {
         if (!confirm('Delete this background?')) return;
         await fetch('/api/note-backgrounds/' + bg.id, { method: 'DELETE', headers: { Authorization: 'Bearer ' + adminToken } });
         toast('Deleted'); loadNoteBackgrounds();
+      };
+      card.querySelector('.nb-default-btn').onclick = async () => {
+        const newId = bg.id === _nbAdminDefaultId ? '' : bg.id;  // toggle off if already default
+        try {
+          const r = await fetch('/api/note-backgrounds/admin-default', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminToken },
+            body: JSON.stringify({ bgId: newId }),
+          });
+          if (!r.ok) throw new Error((await r.json()).error || 'Failed');
+          toast(newId ? '★ Global default background set!' : 'Global default cleared');
+          loadNoteBackgrounds();  // re-render to update badges
+        } catch(e) { toast('Error: ' + e.message); }
       };
       grid.appendChild(card);
     });
