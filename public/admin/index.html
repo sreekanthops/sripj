@@ -426,6 +426,7 @@ select.field-select:focus{border-color:var(--accent)}
               <th>Phone</th>
               <th>Joined</th>
               <th>Entries</th>
+              <th>Note Limit</th>
               <th>Views</th>
               <th>Action</th>
             </tr>
@@ -801,6 +802,26 @@ select.field-select:focus{border-color:var(--accent)}
 
   <!-- SETTINGS -->
   <div class="page" id="page-settings">
+
+    <!-- Free Tier Limits -->
+    <div class="section">
+      <div class="section-title">Free Tier Limits</div>
+      <div class="settings-card" style="max-width:480px">
+        <p style="font-size:12px;color:var(--ink3);line-height:1.6;margin-bottom:16px">
+          Set how many diary entries a <b>Free plan</b> user can write. Set to <b>-1</b> for unlimited.
+          This is the global default. You can also override per-user from the <b>Users</b> tab.
+        </p>
+        <div class="field">
+          <label>Free Plan — Max Entries <span style="color:var(--ink4);font-weight:400">(-1 = unlimited)</span></label>
+          <input type="number" id="freeLimitInput" min="-1" placeholder="e.g. 5" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r2);padding:10px 14px;font-size:14px;color:var(--ink);outline:none;font-family:var(--sans)">
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="btn btn-primary" id="saveFreeLimitBtn">Save Limit</button>
+          <span id="freeLimitStatus" style="font-size:12px;color:var(--green);font-weight:600"></span>
+        </div>
+      </div>
+    </div>
+
     <div class="section">
       <div class="section-title">Change Admin Password</div>
       <div class="settings-card">
@@ -941,6 +962,26 @@ select.field-select:focus{border-color:var(--accent)}
     <div class="modal-footer">
       <button class="btn btn-ghost" id="gfCancelBtn">Cancel</button>
       <button class="btn btn-primary" id="gfSaveBtn" style="background:var(--green)">Grant Free Access</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── USER NOTE LIMIT MODAL ──────────────────────────────────── -->
+<div id="noteLimitModal" class="hidden" style="position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;">
+  <div class="modal-card">
+    <div class="modal-title" id="noteLimitModalTitle" style="color:var(--accent)">✏️ Set Note Limit</div>
+    <p style="font-size:12px;color:var(--ink3);margin-bottom:16px;line-height:1.5">
+      Override how many entries this user can create. Leave blank or set to <b>-1</b> for unlimited. Set to <b>0</b> to block new entries. Set to a positive number to cap at that count.<br>
+      <span style="color:var(--ink4)">Global free limit applies when no override is set.</span>
+    </p>
+    <div class="field">
+      <label>Max Entries <span style="color:var(--ink4);font-weight:400">(-1 = unlimited · blank = use global default)</span></label>
+      <input type="number" id="noteLimitInput" min="-1" placeholder="blank = global default" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r2);padding:10px 14px;font-size:14px;color:var(--ink);outline:none;font-family:var(--sans)">
+    </div>
+    <p class="err" id="noteLimitErr"></p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="noteLimitCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="noteLimitSaveBtn">Save</button>
     </div>
   </div>
 </div>
@@ -1121,10 +1162,17 @@ function renderActivityChart() {
 function renderUsers() {
   const tbody = document.getElementById('usersTable');
   if (!stats.users.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--ink4);padding:30px">No users yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--ink4);padding:30px">No users yet</td></tr>';
     return;
   }
-  tbody.innerHTML = stats.users.map((u, i) => `
+  tbody.innerHTML = stats.users.map((u, i) => {
+    const limitVal = u.notes_limit_override != null ? u.notes_limit_override : null;
+    const limitDisplay = limitVal === null
+      ? '<span style="color:var(--ink4);font-size:11px">default</span>'
+      : limitVal === -1
+        ? '<span style="color:var(--green);font-size:11px">∞</span>'
+        : `<span style="font-weight:700;color:var(--accent)">${limitVal}</span>`;
+    return `
     <tr>
       <td style="color:var(--ink4)">${i + 1}</td>
       <td><span class="badge badge-gold">@${u.username}</span></td>
@@ -1133,6 +1181,11 @@ function renderUsers() {
       <td style="font-size:12px">${u.phone || '<span style="color:var(--ink4)">—</span>'}</td>
       <td style="font-size:12px">${fmtDate(u.created_at)}</td>
       <td>${u.note_count}</td>
+      <td>
+        ${limitDisplay}
+        <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px;margin-left:5px"
+          data-setlimit="${u.id}" data-uname="${u.username}" data-currlimit="${limitVal !== null ? limitVal : ''}">✏️</button>
+      </td>
       <td>${u.total_views.toLocaleString()}</td>
       <td style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px">
         <button class="btn btn-danger" style="padding:4px 10px;font-size:11px"
@@ -1141,7 +1194,7 @@ function renderUsers() {
           data-grantfree="${u.id}" data-uname="${u.username}">Free Grant</button>
       </td>
     </tr>
-  `).join('');
+  `}).join('');
 
   tbody.querySelectorAll('[data-del]').forEach(btn => {
     btn.onclick = async () => {
@@ -1157,7 +1210,69 @@ function renderUsers() {
   tbody.querySelectorAll('[data-grantfree]').forEach(btn => {
     btn.onclick = () => openGrantFreeModal(btn.dataset.grantfree, btn.dataset.uname);
   });
+
+  tbody.querySelectorAll('[data-setlimit]').forEach(btn => {
+    btn.onclick = () => openNoteLimitModal(btn.dataset.setlimit, btn.dataset.uname, btn.dataset.currlimit);
+  });
 }
+
+// ── Note Limit modal ──────────────────────────────────────────────────────────
+let noteLimitTargetId = null;
+
+function openNoteLimitModal(userId, username, currentLimit) {
+  noteLimitTargetId = userId;
+  document.getElementById('noteLimitModalTitle').textContent = `✏️ Note Limit — @${username}`;
+  document.getElementById('noteLimitInput').value = currentLimit !== '' ? currentLimit : '';
+  document.getElementById('noteLimitErr').textContent = '';
+  document.getElementById('noteLimitModal').classList.remove('hidden');
+}
+
+document.getElementById('noteLimitCancelBtn').onclick = () => {
+  document.getElementById('noteLimitModal').classList.add('hidden');
+};
+document.getElementById('noteLimitModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('noteLimitModal'))
+    document.getElementById('noteLimitModal').classList.add('hidden');
+});
+document.getElementById('noteLimitSaveBtn').onclick = async () => {
+  const raw    = document.getElementById('noteLimitInput').value.trim();
+  const errEl  = document.getElementById('noteLimitErr');
+  errEl.textContent = '';
+  // blank → clear override (null), number → set
+  const payload = raw === '' ? null : Number(raw);
+  if (payload !== null && isNaN(payload)) { errEl.textContent = 'Enter a valid number or leave blank'; return; }
+  try {
+    await api('PUT', `/users/${noteLimitTargetId}/note-limit`, { notesLimit: payload });
+    document.getElementById('noteLimitModal').classList.add('hidden');
+    toast(`Note limit updated`);
+    await loadStats();
+  } catch (e) { errEl.textContent = e.message; }
+};
+
+// ── Free Tier Limit settings ──────────────────────────────────────────────────
+async function loadFreeLimit() {
+  try {
+    const { notesLimit } = await api('GET', '/free-limit');
+    document.getElementById('freeLimitInput').value = notesLimit;
+  } catch(e) { /* silently fail */ }
+}
+
+document.getElementById('saveFreeLimitBtn').onclick = async () => {
+  const raw    = document.getElementById('freeLimitInput').value.trim();
+  const status = document.getElementById('freeLimitStatus');
+  status.textContent = '';
+  if (raw === '') { status.style.color = 'var(--red)'; status.textContent = 'Enter a value'; return; }
+  const val = Number(raw);
+  if (isNaN(val)) { status.style.color = 'var(--red)'; status.textContent = 'Invalid number'; return; }
+  try {
+    // Reuse the existing PUT /api/payments/admin/plans/free endpoint
+    await payApi('PUT', '/admin/plans/free', { notes_limit: val });
+    status.style.color = 'var(--green)';
+    status.textContent = '✅ Saved! New limit: ' + (val === -1 ? 'Unlimited' : val);
+    setTimeout(() => { status.textContent = ''; }, 4000);
+    toast('Free plan limit updated → ' + (val === -1 ? 'Unlimited' : val + ' entries'));
+  } catch(e) { status.style.color = 'var(--red)'; status.textContent = e.message; }
+};
 
 // ── VISITORS ─────────────────────────────────────────────────────────────────
 let visitorsLoaded = false;
@@ -2080,6 +2195,7 @@ document.getElementById('navTabs').addEventListener('click', e => {
   if (tab.dataset.page === 'settings' && !settingsTabLoaded) {
     settingsTabLoaded = true;
     loadGoogleSettings();
+    loadFreeLimit();
   }
   if (tab.dataset.page === 'note-backgrounds') loadNoteBackgrounds();
   if (tab.dataset.page === 'music-library')    loadMusicLibraryAdmin();

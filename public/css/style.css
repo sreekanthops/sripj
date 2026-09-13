@@ -1852,7 +1852,7 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 /* ── Main column ─────────────────────────────────────────── */
 .ls-main {
   max-width: 600px; width: 100%; margin: 0 auto;
-  padding: 64px 28px 88px; /* 88px bottom = fixed bar height + safe gap */
+  padding: 64px 28px 56px;
   box-sizing: border-box;
 }
 

@@ -164,6 +164,7 @@ router.get('/stats', verifyAdminToken, (req, res) => {
   // all users list
   const users = db.prepare(`
     SELECT u.id, u.username, u.display_name, u.email, u.phone, u.created_at,
+           u.notes_limit_override,
            COUNT(DISTINCT n.id) as note_count,
            COALESCE(SUM(n.views),0) as total_views
     FROM users u
@@ -266,6 +267,24 @@ router.delete('/users/:id', verifyAdminToken, (req, res) => {
   db.prepare('DELETE FROM notes WHERE user_id = ?').run(req.params.id);
   db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
+});
+
+// ── PUT /api/admin/users/:id/note-limit — set per-user free note limit override
+router.put('/users/:id/note-limit', verifyAdminToken, (req, res) => {
+  const user = db.prepare('SELECT id FROM users WHERE id = ?').get(req.params.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  const { notesLimit } = req.body;
+  // null = clear override (fall back to plan default)
+  const val = notesLimit === null || notesLimit === '' ? null : Number(notesLimit);
+  if (val !== null && (isNaN(val) || val < 0)) return res.status(400).json({ error: 'notesLimit must be a non-negative integer or null' });
+  db.prepare('UPDATE users SET notes_limit_override = ? WHERE id = ?').run(val, req.params.id);
+  res.json({ ok: true, notesLimitOverride: val });
+});
+
+// ── GET /api/admin/free-limit — get global free plan notes_limit
+router.get('/free-limit', verifyAdminToken, (req, res) => {
+  const plan = db.prepare(`SELECT notes_limit FROM subscription_plans WHERE id = 'free'`).get();
+  res.json({ notesLimit: plan?.notes_limit ?? 5 });
 });
 
 module.exports = router;

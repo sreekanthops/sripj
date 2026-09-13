@@ -392,6 +392,11 @@ if (!hasTable('notifications')) {
   `);
 }
 
+// users: per-user note limit override (NULL = use plan default)
+if (!hasColumn('users', 'notes_limit_override')) {
+  db.exec(`ALTER TABLE users ADD COLUMN notes_limit_override INTEGER`);
+}
+
 // Re-enable FK enforcement
 db.pragma('foreign_keys = ON');
 
