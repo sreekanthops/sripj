@@ -239,10 +239,10 @@
   }
 
   function showFeed() {
-    const feedScreen  = document.getElementById('feedScreen');
-    const notesSection = document.getElementById('notesSection');
-    if (feedScreen)   feedScreen.style.display  = 'block';
-    if (notesSection) notesSection.style.display = 'none';
+    const feedScreen   = document.getElementById('feedScreen');
+    const mainContent  = document.getElementById('mainContent');
+    if (feedScreen)  feedScreen.style.display  = 'block';
+    if (mainContent) mainContent.style.display = 'none';
     setActiveNavTab('feed');
     // always reset + reload so newly-public notes appear immediately
     resetFeed();
@@ -251,10 +251,10 @@
   }
 
   function hideFeed() {
-    const feedScreen  = document.getElementById('feedScreen');
-    const notesSection = document.getElementById('notesSection');
-    if (feedScreen)   feedScreen.style.display  = 'none';
-    if (notesSection) notesSection.style.display = '';
+    const feedScreen   = document.getElementById('feedScreen');
+    const mainContent  = document.getElementById('mainContent');
+    if (feedScreen)  feedScreen.style.display  = 'none';
+    if (mainContent) mainContent.style.display = '';
   }
 
   function setActiveNavTab(tab) {
