@@ -9,6 +9,7 @@ import NoteCard from "@/components/NoteCard";
 import NoteDetail from "@/components/NoteDetail";
 import NoteForm from "@/components/NoteForm";
 import Modal from "@/components/Modal";
+import NotificationBell from "@/components/NotificationBell";
 import { api } from "@/lib/api";
 import type { Note, PublicUser } from "@/lib/api";
 
@@ -212,12 +213,17 @@ function DiaryPage() {
           )}
         </div>
 
-        {/* New Entry button */}
-        {isOwner && (
-          <button className="btn-new-entry" onClick={() => { setEditNote(null); setFormOpen(true); }}>
-            <PenLine size={14}/> + New Entry
-          </button>
-        )}
+        {/* Notification bell + New Entry button */}
+        <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
+          {isOwner && (
+            <NotificationBell onNoteOpen={(id) => setOpenNoteId(id)} />
+          )}
+          {isOwner && (
+            <button className="btn-new-entry" onClick={() => { setEditNote(null); setFormOpen(true); }}>
+              <PenLine size={14}/> + New Entry
+            </button>
+          )}
+        </div>
       </nav>
 
       {/* ── HERO (left) + FILTERS (right) in one row ── */}
