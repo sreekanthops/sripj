@@ -183,7 +183,7 @@ function showApp() {
   const appScreen = document.getElementById('appScreen');
   appScreen.classList.remove('hidden');
   document.getElementById('authModal').classList.add('hidden');
-  renderTopbarUserChip();
+  renderTopbarUserChip(); renderBottomNavAvatar();
   document.getElementById('bottomNav').style.display = '';
   appScreen.classList.add('has-bottom-nav');
 }
@@ -566,6 +566,21 @@ function renderTopbarUserChip() {
   }
 }
 
+function renderBottomNavAvatar() {
+  const imgEl  = document.getElementById('bnavAvatarImg');
+  const initial = document.getElementById('bnavAvatarInitial');
+  if (!imgEl || !initial) return;
+  if (currentUser?.avatarUrl) {
+    imgEl.src = currentUser.avatarUrl;
+    imgEl.classList.remove('hidden');
+    initial.style.display = 'none';
+  } else {
+    imgEl.classList.add('hidden');
+    imgEl.src = '';
+    initial.style.display = '';
+  }
+}
+
 function renderHeader() {
   const el      = document.getElementById('headerActions');
   const fab     = document.getElementById('quickNewBtn');
@@ -588,7 +603,7 @@ function renderHeader() {
     if (fab) fab.style.display = 'none';
   }
   renderVisitorHostDp();
-  renderTopbarUserChip();
+  renderTopbarUserChip(); renderBottomNavAvatar();
   // Show/hide notification bell
   const bell = document.getElementById('notifBell');
   if (bell) bell.classList.toggle('hidden', !currentUser);
@@ -728,7 +743,7 @@ document.getElementById('profSignOutBtn')?.addEventListener('click', () => {
   localStorage.removeItem('diary_share_token');
   document.body.classList.remove('is-owner');
   window._chatbotSetOwner?.(false);
-  renderTopbarUserChip();
+  renderTopbarUserChip(); renderBottomNavAvatar();
   history.replaceState({}, '', '/');
   showLanding();
 });
@@ -749,7 +764,7 @@ document.getElementById('headerActions').addEventListener('click', e => {
     localStorage.removeItem('diary_share_token');
     document.body.classList.remove('is-owner');
     window._chatbotSetOwner?.(false);
-    renderTopbarUserChip();
+    renderTopbarUserChip(); renderBottomNavAvatar();
     history.replaceState({}, '', '/');
     showLanding();
   } else if (action === 'go-home') {
@@ -807,7 +822,7 @@ async function openProfileModal() {
     document.getElementById('profName').value  = currentUser.displayName || '';
     document.getElementById('profBio').value   = currentUser.bio || '';
     renderProfileAvatar(currentUser.avatarUrl);
-    renderTopbarUserChip();
+    renderTopbarUserChip(); renderBottomNavAvatar();
   } catch {}
 
   openOv('profileOverlay');
@@ -830,7 +845,7 @@ document.getElementById('profAvatarInput')?.addEventListener('change', async e =
     if (!res.ok) throw new Error(data.error || `Upload failed (${res.status})`);
     currentUser.avatarUrl = data.avatarUrl;
     renderProfileAvatar(currentUser.avatarUrl);
-    renderTopbarUserChip();
+    renderTopbarUserChip(); renderBottomNavAvatar();
     toast('Profile picture updated 📷✨');
   } catch (err) {
     toast('Error: ' + err.message);
@@ -849,7 +864,7 @@ document.getElementById('profAvatarRemoveBtn')?.addEventListener('click', async 
     });
     currentUser.avatarUrl = '';
     renderProfileAvatar('');
-    renderTopbarUserChip();
+    renderTopbarUserChip(); renderBottomNavAvatar();
     toast('Profile picture removed');
   } catch (err) {
     toast('Error: ' + err.message);
