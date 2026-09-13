@@ -393,7 +393,11 @@ function closeOv(id) {
 
 ['detailOverlay','formOverlay','profileOverlay','upgradeOverlay','libraryOverlay','shareOverlay','passOverlay','userProfileOverlay','userListOverlay'].forEach(id => {
   document.getElementById(id)?.addEventListener('click', e => {
-    if (e.target === document.getElementById(id)) closeOv(id);
+    if (e.target === document.getElementById(id)) {
+      closeOv(id);
+      // stop note music when detail overlay is dismissed via backdrop click
+      if (id === 'detailOverlay' && audio) { audio.pause(); audio.currentTime = 0; }
+    }
   });
 });
 document.getElementById('detailClose')?.addEventListener('click', () => {
