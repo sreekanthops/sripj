@@ -2053,8 +2053,8 @@ document.getElementById('noteBgClearBtn')?.addEventListener('click', () => {
 
 // Wire the "★ Set as Default Background" button
 document.getElementById('noteBgSetDefaultBtn')?.addEventListener('click', async () => {
-  const lbl = document.getElementById('noteBgDefaultLabel');
-  const setId = _selectedBgId || '';   // '' means "no background" as default
+  // _selectedBgId is set when a library thumbnail is active; '' = "None/Default" tile is active
+  const setId = _selectedBgId;   // string id or ''
   if (!token) { toast('Sign in to save a default background'); return; }
   try {
     const r = await fetch('/api/note-backgrounds/defaults', {
@@ -2063,12 +2063,13 @@ document.getElementById('noteBgSetDefaultBtn')?.addEventListener('click', async 
       body: JSON.stringify({ bgId: setId }),
     });
     if (!r.ok) throw new Error((await r.json()).error || 'Failed');
-    _defaultBgId = setId || null;
+    // store exactly what we saved: a bg id, or '' for "no background"
+    _defaultBgId = setId;
     updateNoteBgDefaultLabel();
     // re-render picker so ★ badge moves to new default
     _noteBgLibrary = null;
     await renderNoteBgPicker(_selectedBgUrl);
-    toast(setId ? '★ Default background saved!' : 'Default background cleared');
+    toast(setId ? '★ Default background saved!' : 'Default cleared — new notes will have no background');
   } catch(e) { toast('Could not save default: ' + e.message); }
 });
 
@@ -2084,6 +2085,7 @@ function resetAudioState() {
 async function openNewForm() {
   editId = null; pendingTags = [];
   _selectedBgUrl = ''; _selectedBgId = ''; _selectedMusicId = ''; _pendingBgFile = null;
+  _noteBgLibrary = null;   // always re-fetch so default changes take effect immediately
   resetAudioState();
   document.getElementById('formTitle').textContent = '✒ New Entry';
   document.getElementById('fTitle').value  = '';
