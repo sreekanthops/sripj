@@ -102,12 +102,19 @@
     const win = document.getElementById('chatWindow');
     if (win) win.classList.add('open');
 
-    const conv = _conversations.find(c => c.id === convId);
-    const title = conv?.other?.displayName || conv?.other?.username || 'Chat';
+    const conv  = _conversations.find(c => c.id === convId);
+    const other = conv?.other;
+    const title = other?.displayName || other?.username || 'Chat';
     const titleEl = document.getElementById('chatWindowTitle');
+    const avEl    = document.getElementById('chatWindowAv');
     if (titleEl) {
       titleEl.textContent = title;
-      titleEl.dataset.uid = conv?.other?.id || '';
+      titleEl.dataset.uid = other?.id || '';
+    }
+    if (avEl) {
+      avEl.innerHTML = other?.avatarUrl
+        ? `<img src="${other.avatarUrl}" style="width:100%;height:100%;object-fit:cover;">`
+        : title.charAt(0).toUpperCase();
     }
 
     await loadMessages(convId);
@@ -256,8 +263,9 @@
     });
     document.getElementById('chatWindowClose')?.addEventListener('click', closeChatWindow);
     document.getElementById('chatPanelClose')?.addEventListener('click', closeChatPanel);
-    // Chat window title → open user profile
-    document.getElementById('chatWindowTitle')?.addEventListener('click', () => {
+    // Chat window header (av + title) → open user profile
+    document.getElementById('chatWindowHeader')?.addEventListener('click', (e) => {
+      if (e.target.closest('#chatWindowClose')) return; // don't trigger on close btn
       const uid = document.getElementById('chatWindowTitle')?.dataset.uid;
       if (uid) window.openUserProfile?.(uid);
     });

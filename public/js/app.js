@@ -942,7 +942,8 @@ async function openUserProfile(userId) {
     userEl.textContent  = '@' + profile.username;
     bioEl.textContent   = profile.bio || '';
     postsEl.textContent = profile.publicPosts ?? 0;
-    fersEl.textContent  = followData.followerCount ?? 0;
+    let _followerCount = followData.followerCount ?? 0;
+    fersEl.textContent  = _followerCount;
     fingEl.textContent  = followData.followingCount ?? 0;
 
     // Avatar
@@ -952,7 +953,14 @@ async function openUserProfile(userId) {
       avatar.textContent = name.charAt(0).toUpperCase();
     }
 
-    // Follow/unfollow button
+    // Followers / Following stats → clickable to show user list
+    // Use onclick (not addEventListener) so repeated calls don't stack listeners
+    const fStat = fersEl.closest('.upm-stat');
+    const gStat = fingEl.closest('.upm-stat');
+    if (fStat) { fStat.style.cursor = 'pointer'; fStat.onclick = () => openUserList(userId, 'followers'); }
+    if (gStat) { gStat.style.cursor = 'pointer'; gStat.onclick = () => openUserList(userId, 'following'); }
+
+    // Follow/unfollow button — correct count on every toggle
     let _isFollowing = followData.isFollowing;
     if (followBtn) {
       followBtn.className = `btn-follow${_isFollowing ? ' following' : ''}`;
@@ -963,12 +971,13 @@ async function openUserProfile(userId) {
           if (_isFollowing) {
             await fetch(`/api/follows/${userId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
             _isFollowing = false;
+            _followerCount = Math.max(0, _followerCount - 1);
           } else {
             await fetch(`/api/follows/${userId}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
             _isFollowing = true;
-            // update count
-            fersEl.textContent = (parseInt(fersEl.textContent) || 0) + 1;
+            _followerCount++;
           }
+          fersEl.textContent = _followerCount;
           followBtn.className = `btn-follow${_isFollowing ? ' following' : ''}`;
           followBtn.textContent = _isFollowing ? '✓ Following' : '+ Follow';
         } catch {}

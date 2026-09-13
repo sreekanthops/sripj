@@ -64,15 +64,20 @@
       list.innerHTML = '<div class="notif-empty">No notifications yet</div>';
       return;
     }
-    list.innerHTML = _items.map(n => `
-      <div class="notif-item${n.read ? '' : ' notif-unread'}" data-notif-id="${n.id}" data-type="${n.type}" data-note-id="${n.noteId || ''}" data-msg-id="${n.messageId || ''}" data-actor-id="${n.actor?.id || ''}">
-        <span class="notif-icon">${typeIcon(n.type)}</span>
+    list.innerHTML = _items.map(n => {
+      const actor = n.actor;
+      const av = actor?.avatarUrl
+        ? `<img src="${actor.avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+        : `<span style="font-size:13px;font-weight:700;color:var(--accent);font-family:var(--serif)">${(actor?.displayName||actor?.username||'?').charAt(0).toUpperCase()}</span>`;
+      return `
+      <div class="notif-item${n.read ? '' : ' notif-unread'}" data-notif-id="${n.id}" data-type="${n.type}" data-note-id="${n.noteId || ''}" data-msg-id="${n.messageId || ''}" data-actor-id="${actor?.id || ''}">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--accent-bg);border:1.5px solid var(--accent-ring);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">${av}</div>
         <div class="notif-body">
           <div class="notif-text">${typeText(n)}</div>
           <div class="notif-time">${relTime(n.createdAt)}</div>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
 
     list.querySelectorAll('.notif-item').forEach(el => {
       el.addEventListener('click', () => {
