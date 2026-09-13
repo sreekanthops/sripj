@@ -96,18 +96,20 @@
         _done = true;
         if (spinner) spinner.style.display = 'none';
         if (_page === 1 && container) {
-          container.innerHTML = '<div class="feed-empty">No stories here yet. Write your first entry to get started! ✍️</div>';
+          container.innerHTML = '<div class="feed-empty">No public stories yet. Be the first to share! ✍️</div>';
         }
         return;
       }
+      const frag = document.createDocumentFragment();
       data.notes.forEach(note => {
         const div = document.createElement('div');
         div.innerHTML = renderFeedCard(note);
-        container.appendChild(div.firstElementChild);
+        if (div.firstElementChild) frag.appendChild(div.firstElementChild);
       });
+      if (container) container.appendChild(frag);
       _page++;
       if (data.notes.length < 20) _done = true;
-      bindCardEvents();
+      bindCardEvents(container);
     } catch (e) {
       if (container) container.insertAdjacentHTML('beforeend', `<div class="feed-empty">Error loading feed: ${e.message}</div>`);
     } finally {
@@ -277,6 +279,12 @@
     resetFeed();
     loadMore();
   }
+
+  // Wire Refresh button
+  document.getElementById('feedRefreshBtn')?.addEventListener('click', () => {
+    resetFeed();
+    loadMore();
+  });
 
   window.Feed = { initFeed, showFeed, hideFeed, reloadLanding };
 })();

@@ -6,7 +6,7 @@
   <title>Unsent Stories</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/css/style.css?v=20">
+  <link rel="stylesheet" href="/css/style.css?v=21">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -23,7 +23,13 @@
         <span class="brand-unsent">Unsent</span>
         <span class="brand-stories" style="font-size:14px;letter-spacing:2px">Stories</span>
       </div>
-      <button class="landing-signin-btn" id="landingSignInBtn">Sign In</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <a id="navInstaLink" href="#" target="_blank" rel="noopener" class="nav-insta-btn hidden" aria-label="Follow on Instagram" title="Follow us on Instagram">
+          <svg class="nav-insta-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="ig-nav" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="5%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="url(#ig-nav)"/><circle cx="12" cy="12" r="4" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="17.5" cy="6.5" r="1.2" fill="#fff"/></svg>
+          <span class="nav-insta-label">Follow</span>
+        </a>
+        <button class="landing-signin-btn" id="landingSignInBtn">Sign In</button>
+      </div>
     </div>
   </nav>
 
@@ -333,6 +339,11 @@
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r=".8" fill="currentColor"/><circle cx="12" cy="10" r=".8" fill="currentColor"/><circle cx="15" cy="10" r=".8" fill="currentColor"/></svg>
           <span>AI</span>
         </button>
+        <!-- Instagram follow button in topbar -->
+        <a id="topbarInstaLink" href="#" target="_blank" rel="noopener" class="topbar-insta-btn hidden" aria-label="Follow on Instagram" title="Follow us on Instagram">
+          <svg class="topbar-insta-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="ig-tb" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="5%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="url(#ig-tb)"/><circle cx="12" cy="12" r="4" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="17.5" cy="6.5" r="1.2" fill="#fff"/></svg>
+          <span>Follow</span>
+        </a>
         <!-- Notification bell -->
         <button id="notifBell" class="topbar-notif-btn hidden" title="Notifications" aria-label="Notifications">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -439,8 +450,9 @@
         <div class="story-bar-loading">Loading stories…</div>
       </div>
     </div>
-    <div style="padding:16px 16px 0">
-      <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;font-family:var(--serif)">🌍 Public Feed</h2>
+    <div style="padding:16px 16px 0;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 style="font-size:18px;font-weight:700;font-family:var(--serif);margin:0">🌍 Public Feed</h2>
+      <button id="feedRefreshBtn" style="background:none;border:1.5px solid var(--border2);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:600;color:var(--ink3);cursor:pointer;font-family:var(--sans)">↻ Refresh</button>
     </div>
     <div style="padding:0 16px">
       <div id="feedCards"></div>
@@ -1243,7 +1255,7 @@
 <script src="/js/ws-client.js"></script>
 <script src="/js/notifications.js"></script>
 <script src="/js/chat.js"></script>
-<script src="/js/feed.js"></script>
-<script src="/js/app.js?v=34"></script>
+<script src="/js/feed.js?v=2"></script>
+<script src="/js/app.js?v=35"></script>
 </body>
 </html>
