@@ -1980,7 +1980,11 @@ function updateNoteBgDefaultLabel() {
     return;
   }
   const defBg = lib.find(b => b.id === defId);
-  lbl.textContent = defBg ? `Current default: ${defBg.label || 'Background'}` : '';
+  // Show which bg is the current default, and highlight if the selection matches
+  const isSelected = defId === _selectedBgId;
+  lbl.textContent = defBg
+    ? (isSelected ? `★ Default: ${defBg.label || 'this background'}` : `Default: ${defBg.label || 'a background'}`)
+    : 'No default set';
 }
 
 // Show "default music will be set to …" notice when nothing is selected
@@ -2056,6 +2060,9 @@ document.getElementById('noteBgSetDefaultBtn')?.addEventListener('click', async 
   // _selectedBgId is set when a library thumbnail is active; '' = "None/Default" tile is active
   const setId = _selectedBgId;   // string id or ''
   if (!token) { toast('Sign in to save a default background'); return; }
+  const btn = document.getElementById('noteBgSetDefaultBtn');
+  const lbl = document.getElementById('noteBgDefaultLabel');
+  if (btn) btn.disabled = true;
   try {
     const r = await fetch('/api/note-backgrounds/defaults', {
       method: 'PUT',
@@ -2065,12 +2072,18 @@ document.getElementById('noteBgSetDefaultBtn')?.addEventListener('click', async 
     if (!r.ok) throw new Error((await r.json()).error || 'Failed');
     // store exactly what we saved: a bg id, or '' for "no background"
     _defaultBgId = setId;
-    updateNoteBgDefaultLabel();
-    // re-render picker so ★ badge moves to new default
+    // re-render picker so ★ badge moves to new default (also calls updateNoteBgDefaultLabel inside)
     _noteBgLibrary = null;
     await renderNoteBgPicker(_selectedBgUrl);
-    toast(setId ? '★ Default background saved!' : 'Default cleared — new notes will have no background');
-  } catch(e) { toast('Could not save default: ' + e.message); }
+    // Now _noteBgLibrary is freshly loaded — update label with correct name
+    updateNoteBgDefaultLabel();
+    const newName = setId ? ((_noteBgLibrary || []).find(b => b.id === setId)?.label || 'background') : null;
+    toast(setId ? `★ Default set to: ${newName}` : 'Default cleared — new notes will have no background');
+  } catch(e) {
+    toast('Could not save default: ' + e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 });
 
 function resetAudioState() {
