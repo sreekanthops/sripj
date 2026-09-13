@@ -47,23 +47,23 @@ const STORY_SELECT = `
     AND n.story_expires_at > ?
 `;
 
-// GET /api/stories/feed — stories from followed users + own
+// GET /api/stories/feed — all public active stories (own first, then others)
 router.get('/feed', optionalAuth, (req, res) => {
   const now    = storyNow();
   const userId = req.user?.userId;
 
   let rows;
   if (userId) {
-    // own stories + followed users' stories
+    // Show ALL public stories; own stories first, then everyone else's
     rows = db.prepare(`
       ${STORY_SELECT}
-        AND (n.user_id = ? OR n.user_id IN (
-          SELECT followee_id FROM follows WHERE follower_id = ?
-        ))
-      ORDER BY n.created_at DESC
-    `).all(now, userId, userId);
+        AND n.is_public = 1
+      ORDER BY
+        CASE WHEN n.user_id = ? THEN 0 ELSE 1 END,
+        n.created_at DESC
+    `).all(now, userId);
   } else {
-    // guest: only public stories
+    // guest: all public stories
     rows = db.prepare(`
       ${STORY_SELECT}
         AND n.is_public = 1

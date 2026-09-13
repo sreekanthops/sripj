@@ -194,6 +194,7 @@ for (const [username, posts] of Object.entries(DUMMY_POSTS)) {
 
 // ── 4. Follow relationships ──────────────────────────────────────────────────
 const follows = [
+  // dummy users follow gspaces2025 + each other
   ['aarav.writes',    'gspaces2025'],
   ['aarav.writes',    'priya_journals'],
   ['aarav.writes',    'kiran.m'],
@@ -209,12 +210,18 @@ const follows = [
   ['ravi.diaries',    'gspaces2025'],
   ['ravi.diaries',    'kiran.m'],
   ['ravi.diaries',    'meera.thoughts'],
+  // gspaces2025 follows all dummy users so they see stories + feed
+  ['gspaces2025',     'aarav.writes'],
+  ['gspaces2025',     'priya_journals'],
+  ['gspaces2025',     'kiran.m'],
+  ['gspaces2025',     'meera.thoughts'],
+  ['gspaces2025',     'ravi.diaries'],
 ];
 
 const insertFollow = db.prepare(`INSERT OR IGNORE INTO follows (id, follower_id, followee_id, created_at) VALUES (?, ?, ?, ?)`);
 for (const [from, to] of follows) {
-  const fId = insertedIds[from] || getUser(from)?.id;
-  const tId = to === 'gspaces2025' ? GS : (insertedIds[to] || getUser(to)?.id);
+  const fId = from === 'gspaces2025' ? GS : (insertedIds[from] || getUser(from)?.id);
+  const tId = to   === 'gspaces2025' ? GS : (insertedIds[to]   || getUser(to)?.id);
   if (!fId || !tId) continue;
   insertFollow.run(uid(), fId, tId, daysAgo(Math.random() * 10));
   console.log(`follow: @${from} → @${to}`);

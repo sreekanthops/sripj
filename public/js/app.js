@@ -4303,22 +4303,22 @@ document.getElementById('resetSubmitBtn')?.addEventListener('click', async () =>
   try {
     const res = await fetch('/api/payments/public/settings');
     if (!res.ok) return;
-    const { settings } = await res.json().catch(() => ({}));
-    const url = settings?.instagram_url?.trim();
+    const data = await res.json().catch(() => ({}));
+    const url  = (data?.settings?.instagram_url || '').trim();
     if (!url) return;
     // Landing footer
     const landingWrap = document.getElementById('landingInstaWrap');
     const landingLink = document.getElementById('landingInstaLink');
     if (landingWrap && landingLink) {
       landingLink.href = url;
-      landingWrap.style.display = '';
+      landingWrap.classList.remove('hidden');
     }
     // App diary footer
     const appWrap = document.getElementById('appInstaWrap');
     const appLink = document.getElementById('appInstaLink');
     if (appWrap && appLink) {
       appLink.href = url;
-      appWrap.style.display = '';
+      appWrap.classList.remove('hidden');
     }
-  } catch {}
+  } catch(e) { console.warn('[insta]', e); }
 })();
