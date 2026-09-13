@@ -2817,7 +2817,7 @@ function renderDetail(note) {
 
   // ── replies ──
   const repliesHtml = (note.replies||[]).map(r => {
-    const canEdit = currentUser && (r.userId === currentUser.userId || isOwner);
+    const canEdit = currentUser && r.userId === currentUser.userId;
     const replyReacts = Object.entries(r.reactions||{}).filter(([,v])=>v>0)
       .map(([e,c]) => {
         const isUser = (r.userReactions||[]).includes(e);
