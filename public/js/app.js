@@ -204,8 +204,9 @@ document.getElementById('landingSignInBtn')?.addEventListener('click', () => sho
 document.getElementById('landingSignInBtn2')?.addEventListener('click', () => showAuth());
 document.getElementById('landingStartBtn')?.addEventListener('click', () => showAuth());
 document.getElementById('landingStartBtn2')?.addEventListener('click', () => showAuth());
-// Feed button on landing → dedicated guest feed screen
+// Feed buttons on landing → dedicated guest feed screen
 document.getElementById('landingFeedBtn')?.addEventListener('click', () => showGuestFeed());
+document.getElementById('landingFeedBtnHero')?.addEventListener('click', () => showGuestFeed());
 document.getElementById('landingLearnBtn')?.addEventListener('click', () => {
   document.getElementById('landingLearnSection')?.scrollIntoView({ behavior: 'smooth' });
 });
