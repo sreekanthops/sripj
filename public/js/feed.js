@@ -322,8 +322,5 @@
     document.getElementById('landingFeedMoreBtn')?.addEventListener('click', () => loadLandingFeed(false));
   });
 
-  // Expose reload so app.js can call it after login
-  window.Feed.reloadLanding = () => loadLandingFeed(true);
-
   window.Feed = { initFeed, showFeed, hideFeed, reloadLanding: () => loadLandingFeed(true) };
 })();
