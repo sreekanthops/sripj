@@ -418,6 +418,23 @@ if (!hasColumn('notes', 'is_story'))         db.exec(`ALTER TABLE notes ADD COLU
 if (!hasColumn('notes', 'story_expires_at')) db.exec(`ALTER TABLE notes ADD COLUMN story_expires_at TEXT`);
 // story_expires_at is set to created_at + 24h when is_story = 1
 
+// ── user feedback ────────────────────────────────────────────────────────────
+if (!hasTable('feedback')) {
+  db.exec(`
+    CREATE TABLE feedback (
+      id           TEXT PRIMARY KEY,
+      user_id      TEXT,                        -- NULL for guests
+      username     TEXT NOT NULL DEFAULT '',    -- snapshot at submit time
+      rating       INTEGER NOT NULL DEFAULT 0,  -- 1–5 stars
+      helps_share  INTEGER NOT NULL DEFAULT 0,  -- 1=yes 0=no (Q2)
+      challenges   TEXT NOT NULL DEFAULT '',    -- free text (Q3)
+      improvements TEXT NOT NULL DEFAULT '',    -- free text (Q4)
+      recommend    INTEGER NOT NULL DEFAULT 0,  -- 1=yes 0=no (Q5)
+      created_at   TEXT NOT NULL
+    )
+  `);
+}
+
 // Re-enable FK enforcement
 db.pragma('foreign_keys = ON');
 

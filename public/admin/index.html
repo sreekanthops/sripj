@@ -375,6 +375,7 @@ select.field-select:focus{border-color:var(--accent)}
     <button class="nav-tab" data-page="note-backgrounds">Note Backgrounds</button>
     <button class="nav-tab" data-page="music-library">Music Library</button>
     <button class="nav-tab" data-page="payments">Payments</button>
+    <button class="nav-tab" data-page="feedback">Feedback</button>
     <button class="nav-tab" data-page="settings">Settings</button>
     <button class="nav-tab" data-page="profile">My Profile</button>
   </nav>
@@ -819,6 +820,50 @@ select.field-select:focus{border-color:var(--accent)}
           <tbody id="ordersTable"></tbody>
         </table>
       </div>
+    </div>
+
+  </div>
+
+  <!-- FEEDBACK -->
+  <div class="page" id="page-feedback">
+
+    <!-- Summary stat cards -->
+    <div class="stat-grid" id="fbStatGrid" style="margin-bottom:28px"></div>
+
+    <!-- Rating distribution bar -->
+    <div class="section">
+      <div class="section-title">Rating Distribution</div>
+      <div class="chart-wrap" id="fbRatingChartWrap">
+        <div id="fbRatingChart" style="padding:20px;text-align:center;color:var(--ink4);font-size:12px">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Responses table -->
+    <div class="section">
+      <div class="section-title">All Responses
+        <button class="btn btn-ghost" id="fbRefreshBtn" style="margin-left:auto;padding:5px 14px;font-size:12px">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Date</th>
+              <th>User</th>
+              <th>Stars</th>
+              <th>Helps Share?</th>
+              <th>Challenges</th>
+              <th>Improvements</th>
+              <th>Recommend?</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="fbTable">
+            <tr><td colspan="9" style="text-align:center;color:var(--ink4);padding:30px">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="fbPager" style="padding:14px 0;display:flex;gap:10px;align-items:center;font-size:12px;color:var(--ink3)"></div>
     </div>
 
   </div>
@@ -2479,6 +2524,169 @@ async function loadMusicLibraryAdmin() {
 
 setupUploadSection({ zoneId:'mlUploadZone', inputId:'mlFileInput', previewsWrapId:'mlPreviewsWrap', previewsId:'mlPreviews', uploadBtnId:'mlUploadBtn', cancelBtnId:'mlCancelBtn', statusId:'mlUploadStatus', apiPath:'/api/music-library', gridLoader: loadMusicLibraryAdmin });
 document.getElementById('mlRefreshBtn').onclick = loadMusicLibraryAdmin;
+
+// ── FEEDBACK TAB ─────────────────────────────────────────────────────────────
+let fbTabLoaded = false;
+let fbOffset = 0;
+const FB_LIMIT = 50;
+
+const FB_API = '/api/feedback';
+
+async function fbApi(method, path) {
+  const opts = {
+    method,
+    headers: { ...(adminToken ? { Authorization: 'Bearer ' + adminToken } : {}) },
+  };
+  const res  = await fetch(FB_API + path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Error');
+  return data;
+}
+
+function starsHtml(n) {
+  let s = '';
+  for (let i = 1; i <= 5; i++) s += `<span style="color:${i <= n ? '#f59e0b' : '#d1d5db'}">★</span>`;
+  return s;
+}
+
+function yesNo(v) {
+  return v ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-free">No</span>';
+}
+
+async function loadFeedback(offset = 0) {
+  fbOffset = offset;
+  const tbody  = document.getElementById('fbTable');
+  const pager  = document.getElementById('fbPager');
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--ink4);padding:30px">Loading…</td></tr>';
+  try {
+    const data = await fbApi('GET', `/admin?limit=${FB_LIMIT}&offset=${offset}`);
+
+    // Stats cards
+    document.getElementById('fbStatGrid').innerHTML = `
+      <div class="stat-card gold">
+        <div class="stat-label">Total Responses</div>
+        <div class="stat-value">${data.total}</div>
+        <div class="stat-sub">all submitted feedback</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Avg Rating</div>
+        <div class="stat-value">${data.avgRating || '—'}</div>
+        <div class="stat-sub">out of 5 stars</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Helps Share</div>
+        <div class="stat-value">${data.pctHelps}%</div>
+        <div class="stat-sub">say it helps express feelings</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-label">Would Recommend</div>
+        <div class="stat-value">${data.pctRecommend}%</div>
+        <div class="stat-sub">would recommend to others</div>
+      </div>
+    `;
+
+    // Rating distribution bars
+    renderFbRatingChart(data.ratingDist, data.total);
+
+    // Table
+    if (!data.rows.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--ink4);padding:30px">No feedback submitted yet</td></tr>';
+      pager.innerHTML = '';
+      return;
+    }
+    tbody.innerHTML = data.rows.map((r, i) => `
+      <tr>
+        <td style="color:var(--ink4)">${offset + i + 1}</td>
+        <td style="font-size:11px;white-space:nowrap">${fmtDate(r.created_at)}</td>
+        <td style="font-size:12px">${r.username ? `<span class="badge badge-gold">@${r.username}</span>` : '<span style="color:var(--ink4)">Guest</span>'}</td>
+        <td style="white-space:nowrap">${starsHtml(r.rating)} <span style="font-size:11px;color:var(--ink3)">${r.rating}/5</span></td>
+        <td>${yesNo(r.helps_share)}</td>
+        <td style="font-size:12px;max-width:200px;word-break:break-word">${r.challenges ? r.challenges : '<span style="color:var(--ink4)">—</span>'}</td>
+        <td style="font-size:12px;max-width:200px;word-break:break-word">${r.improvements ? r.improvements : '<span style="color:var(--ink4)">—</span>'}</td>
+        <td>${yesNo(r.recommend)}</td>
+        <td>
+          <button class="btn btn-danger" style="padding:3px 9px;font-size:11px"
+            data-fbdel="${r.id}">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+
+    // Delete handlers
+    tbody.querySelectorAll('[data-fbdel]').forEach(btn => {
+      btn.onclick = async () => {
+        if (!confirm('Delete this feedback entry?')) return;
+        try {
+          await fbApi('DELETE', '/admin/' + btn.dataset.fbdel);
+          toast('Feedback entry deleted');
+          await loadFeedback(fbOffset);
+        } catch(e) { toast('Error: ' + e.message); }
+      };
+    });
+
+    // Pagination
+    pager.innerHTML = '';
+    if (data.total > FB_LIMIT) {
+      const totalPages = Math.ceil(data.total / FB_LIMIT);
+      const curPage    = Math.floor(offset / FB_LIMIT);
+      if (curPage > 0) {
+        const prev = document.createElement('button');
+        prev.className = 'btn btn-ghost'; prev.style.cssText = 'padding:4px 12px;font-size:12px';
+        prev.textContent = '← Prev';
+        prev.onclick = () => loadFeedback((curPage - 1) * FB_LIMIT);
+        pager.appendChild(prev);
+      }
+      const info = document.createElement('span');
+      info.textContent = `Page ${curPage + 1} of ${totalPages}`;
+      pager.appendChild(info);
+      if (curPage < totalPages - 1) {
+        const next = document.createElement('button');
+        next.className = 'btn btn-primary'; next.style.cssText = 'padding:4px 12px;font-size:12px';
+        next.textContent = 'Next →';
+        next.onclick = () => loadFeedback((curPage + 1) * FB_LIMIT);
+        pager.appendChild(next);
+      }
+    }
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--red);padding:30px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+function renderFbRatingChart(dist, total) {
+  const el = document.getElementById('fbRatingChart');
+  if (!dist || !dist.length || !total) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink4);font-size:12px">No data yet</div>';
+    return;
+  }
+  const map = {};
+  dist.forEach(d => { map[d.rating] = d.c; });
+  const stars = [5, 4, 3, 2, 1];
+  const starLabels = ['Excellent', 'Great', 'Good', 'Fair', 'Poor'];
+  el.innerHTML = stars.map((s, idx) => {
+    const cnt = map[s] || 0;
+    const pct = total ? Math.round(cnt / total * 100) : 0;
+    const color = s >= 4 ? 'var(--green)' : s === 3 ? 'var(--amber)' : 'var(--red)';
+    return `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="min-width:70px;font-size:12px;color:var(--ink3);font-weight:600">${s} ★ ${starLabels[idx]}</span>
+        <div style="flex:1;background:var(--surface3);border-radius:99px;height:12px;overflow:hidden">
+          <div style="width:${pct}%;height:100%;background:${color};border-radius:99px;transition:width .3s"></div>
+        </div>
+        <span style="min-width:48px;font-size:11px;color:var(--ink3);text-align:right">${cnt} (${pct}%)</span>
+      </div>
+    `;
+  }).join('');
+}
+
+document.getElementById('fbRefreshBtn').onclick = () => loadFeedback(0);
+
+// Lazy-load feedback tab on first open
+document.getElementById('navTabs').addEventListener('click', e => {
+  const tab = e.target.closest('.nav-tab');
+  if (tab && tab.dataset.page === 'feedback' && !fbTabLoaded) {
+    fbTabLoaded = true;
+    loadFeedback(0);
+  }
+});
 </script>
 </body>
 </html>

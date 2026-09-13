@@ -76,6 +76,7 @@ app.use('/api/follows',           require('./routes/follows'));
 app.use('/api/conversations',     require('./routes/conversations'));
 app.use('/api/messages',          require('./routes/messages'));
 app.use('/api/notifications',     require('./routes/notifications'));
+app.use('/api/feedback',          require('./routes/feedback'));
 
 // Admin portal — explicit route before SPA fallback
 app.get('/admin', (req, res) => {

@@ -488,6 +488,10 @@
       </div>
       <span>Profile</span>
     </button>
+    <button class="bottom-nav-btn" id="feedbackNavBtn" title="Give Feedback">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="9" y2="10" stroke-width="2.5"/><line x1="12" y1="10" x2="12" y2="10" stroke-width="2.5"/><line x1="15" y1="10" x2="15" y2="10" stroke-width="2.5"/></svg>
+      <span>Feedback</span>
+    </button>
   </nav>
 
 </div>
@@ -961,6 +965,78 @@
   </div>
 </div>
 
+<!-- ══ FEEDBACK MODAL ════════════════════════════════════════ -->
+<div class="overlay center" id="feedbackOverlay" style="display:none">
+  <div class="sheet" id="feedbackModal" style="max-width:480px">
+    <button class="sheet-close" id="feedbackClose">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+    </button>
+    <div class="sheet-title">💬 Share Your Feedback</div>
+    <p style="font-size:12px;color:var(--ink4);font-family:var(--sans);margin:0 0 18px;line-height:1.6">Your thoughts help us make <em>Unsent Stories</em> better. You can submit multiple times — every response is saved.</p>
+
+    <!-- Q1: Star rating -->
+    <div class="field">
+      <label style="font-family:var(--sans);font-weight:600;font-size:13px">1. How much do you like the app? <span style="color:var(--red)">*</span></label>
+      <div id="feedbackStarRow" style="display:flex;gap:8px;margin-top:8px">
+        <button type="button" class="fb-star" data-v="1" title="1 — Poor" style="font-size:28px;background:none;border:none;cursor:pointer;padding:2px;opacity:.35;transition:opacity .12s,transform .12s">★</button>
+        <button type="button" class="fb-star" data-v="2" title="2 — Fair" style="font-size:28px;background:none;border:none;cursor:pointer;padding:2px;opacity:.35;transition:opacity .12s,transform .12s">★</button>
+        <button type="button" class="fb-star" data-v="3" title="3 — Good" style="font-size:28px;background:none;border:none;cursor:pointer;padding:2px;opacity:.35;transition:opacity .12s,transform .12s">★</button>
+        <button type="button" class="fb-star" data-v="4" title="4 — Great" style="font-size:28px;background:none;border:none;cursor:pointer;padding:2px;opacity:.35;transition:opacity .12s,transform .12s">★</button>
+        <button type="button" class="fb-star" data-v="5" title="5 — Excellent" style="font-size:28px;background:none;border:none;cursor:pointer;padding:2px;opacity:.35;transition:opacity .12s,transform .12s">★</button>
+      </div>
+      <div id="feedbackStarLabel" style="font-size:11px;color:var(--accent);font-family:var(--sans);margin-top:4px;min-height:16px"></div>
+    </div>
+
+    <!-- Q2: Helps share feelings -->
+    <div class="field" style="margin-top:4px">
+      <label style="font-family:var(--sans);font-weight:600;font-size:13px">2. Does writing here help you share / express your feelings?</label>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:var(--sans);cursor:pointer">
+          <input type="radio" name="fbHelps" id="fbHelpsYes" value="yes" style="accent-color:var(--accent)"> Yes, definitely
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:var(--sans);cursor:pointer">
+          <input type="radio" name="fbHelps" id="fbHelpsNo" value="no" style="accent-color:var(--accent)"> Not really
+        </label>
+      </div>
+    </div>
+
+    <!-- Q3: Challenges -->
+    <div class="field" style="margin-top:4px">
+      <label style="font-family:var(--sans);font-weight:600;font-size:13px">3. What challenges have you faced using the app?</label>
+      <textarea id="fbChallenges" placeholder="e.g. loading issues, confusing UI, missing feature…" style="width:100%;min-height:72px;margin-top:6px;font-size:13px;padding:9px 12px;border:1.5px solid var(--border2);border-radius:8px;resize:vertical;font-family:var(--sans);color:var(--ink);outline:none;background:var(--bg)"></textarea>
+    </div>
+
+    <!-- Q4: Improvements -->
+    <div class="field">
+      <label style="font-family:var(--sans);font-weight:600;font-size:13px">4. What can we improve?</label>
+      <textarea id="fbImprovements" placeholder="Any feature you wish existed, or something we should change…" style="width:100%;min-height:72px;margin-top:6px;font-size:13px;padding:9px 12px;border:1.5px solid var(--border2);border-radius:8px;resize:vertical;font-family:var(--sans);color:var(--ink);outline:none;background:var(--bg)"></textarea>
+    </div>
+
+    <!-- Q5: Recommend -->
+    <div class="field">
+      <label style="font-family:var(--sans);font-weight:600;font-size:13px">5. Would you recommend Unsent Stories to a friend?</label>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:var(--sans);cursor:pointer">
+          <input type="radio" name="fbRecommend" id="fbRecommendYes" value="yes" style="accent-color:var(--accent)"> Yes, absolutely!
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:var(--sans);cursor:pointer">
+          <input type="radio" name="fbRecommend" id="fbRecommendNo" value="no" style="accent-color:var(--accent)"> Probably not yet
+        </label>
+      </div>
+    </div>
+
+    <!-- Guest name (shown only when not logged in) -->
+    <div class="field" id="fbGuestNameField" style="display:none">
+      <label style="font-family:var(--sans);font-weight:600;font-size:13px">Your name <span style="color:var(--ink4);font-weight:400">(optional)</span></label>
+      <input type="text" id="fbGuestName" placeholder="Anonymous" maxlength="40" style="width:100%;background:var(--bg);border:1.5px solid var(--border2);border-radius:8px;padding:9px 12px;font-size:13px;color:var(--ink);outline:none;font-family:var(--sans)">
+    </div>
+
+    <p id="fbErr" style="font-size:12px;color:var(--red);font-family:var(--sans);min-height:16px;margin:4px 0 0"></p>
+    <button class="btn btn-primary" id="fbSubmitBtn" style="width:100%;justify-content:center;margin-top:10px">Submit Feedback</button>
+    <p style="text-align:center;font-size:11px;color:var(--ink4);font-family:var(--sans);margin-top:8px">You can come back and leave feedback again anytime.</p>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <!-- ══ CHAT PANEL ═══════════════════════════════════════════════ -->
@@ -1256,5 +1332,134 @@
 <script src="/js/chat.js"></script>
 <script src="/js/feed.js?v=2"></script>
 <script src="/js/app.js?v=41"></script>
+
+<script>
+// ── FEEDBACK MODAL ──────────────────────────────────────────────────────────
+(function () {
+  const STAR_LABELS = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent!'];
+  let fbRating = 0;
+
+  function openFeedbackModal() {
+    // Reset form
+    fbRating = 0;
+    document.querySelectorAll('.fb-star').forEach(s => {
+      s.style.color = '#f59e0b';
+      s.style.opacity = '.35';
+      s.style.transform = '';
+    });
+    document.getElementById('feedbackStarLabel').textContent = '';
+    document.querySelectorAll('input[name="fbHelps"]').forEach(r => r.checked = false);
+    document.querySelectorAll('input[name="fbRecommend"]').forEach(r => r.checked = false);
+    document.getElementById('fbChallenges').value = '';
+    document.getElementById('fbImprovements').value = '';
+    document.getElementById('fbErr').textContent = '';
+    // Show guest name field only when not logged in
+    const token = localStorage.getItem('diary_token') || sessionStorage.getItem('diary_token');
+    document.getElementById('fbGuestNameField').style.display = token ? 'none' : '';
+    if (document.getElementById('fbGuestName')) document.getElementById('fbGuestName').value = '';
+    // Show overlay
+    document.getElementById('feedbackOverlay').style.display = '';
+  }
+
+  function closeFeedbackModal() {
+    document.getElementById('feedbackOverlay').style.display = 'none';
+  }
+
+  // Star hover + click
+  document.querySelectorAll('.fb-star').forEach(btn => {
+    btn.addEventListener('mouseenter', () => {
+      const v = parseInt(btn.dataset.v);
+      document.querySelectorAll('.fb-star').forEach(s => {
+        const sv = parseInt(s.dataset.v);
+        s.style.color = '#f59e0b';
+        s.style.opacity = sv <= v ? '1' : '.35';
+        s.style.transform = sv <= v ? 'scale(1.1)' : '';
+      });
+      document.getElementById('feedbackStarLabel').textContent = v + ' — ' + STAR_LABELS[v];
+    });
+    btn.addEventListener('mouseleave', () => {
+      document.querySelectorAll('.fb-star').forEach(s => {
+        const sv = parseInt(s.dataset.v);
+        s.style.color = '#f59e0b';
+        s.style.opacity = sv <= fbRating ? '1' : '.35';
+        s.style.transform = sv <= fbRating ? 'scale(1.1)' : '';
+      });
+      document.getElementById('feedbackStarLabel').textContent = fbRating ? fbRating + ' — ' + STAR_LABELS[fbRating] : '';
+    });
+    btn.addEventListener('click', () => {
+      fbRating = parseInt(btn.dataset.v);
+      document.querySelectorAll('.fb-star').forEach(s => {
+        const sv = parseInt(s.dataset.v);
+        s.style.opacity = sv <= fbRating ? '1' : '.35';
+        s.style.transform = sv <= fbRating ? 'scale(1.1)' : '';
+      });
+      document.getElementById('feedbackStarLabel').textContent = fbRating + ' — ' + STAR_LABELS[fbRating];
+    });
+  });
+
+  // Submit
+  document.getElementById('fbSubmitBtn').addEventListener('click', async () => {
+    const errEl = document.getElementById('fbErr');
+    errEl.textContent = '';
+    if (!fbRating) { errEl.textContent = 'Please pick a star rating (Q1) before submitting.'; return; }
+
+    const helpsVal     = document.querySelector('input[name="fbHelps"]:checked')?.value;
+    const recommendVal = document.querySelector('input[name="fbRecommend"]:checked')?.value;
+    const challenges   = document.getElementById('fbChallenges').value.trim();
+    const improvements = document.getElementById('fbImprovements').value.trim();
+    const guestName    = document.getElementById('fbGuestName')?.value.trim() || '';
+
+    const token = localStorage.getItem('diary_token') || sessionStorage.getItem('diary_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      document.getElementById('fbSubmitBtn').disabled = true;
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          rating:       fbRating,
+          helpsShare:   helpsVal === 'yes',
+          challenges,
+          improvements,
+          recommend:    recommendVal === 'yes',
+          guestName,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to submit');
+      closeFeedbackModal();
+      // show toast if available, else alert
+      const toastEl = document.getElementById('toast');
+      if (toastEl) {
+        toastEl.textContent = '✅ Thanks for your feedback!';
+        toastEl.classList.add('show');
+        setTimeout(() => toastEl.classList.remove('show'), 3000);
+      } else {
+        alert('Thanks for your feedback!');
+      }
+    } catch (e) {
+      errEl.textContent = e.message;
+    } finally {
+      document.getElementById('fbSubmitBtn').disabled = false;
+    }
+  });
+
+  // Close button
+  document.getElementById('feedbackClose').addEventListener('click', closeFeedbackModal);
+  // Click outside overlay to close
+  document.getElementById('feedbackOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('feedbackOverlay')) closeFeedbackModal();
+  });
+
+  // Feedback nav button in bottom nav
+  const navBtn = document.getElementById('feedbackNavBtn');
+  if (navBtn) navBtn.addEventListener('click', openFeedbackModal);
+
+  // Expose globally so app.js can open it if needed
+  window.openFeedbackModal = openFeedbackModal;
+})();
+</script>
 </body>
 </html>
