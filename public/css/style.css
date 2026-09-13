@@ -3342,36 +3342,89 @@ body.draw-mode.tool-select #drawingCanvas {
 ══════════════════════════════════════════════════════ */
 
 /* ── Bottom Nav ─────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   BOTTOM NAV  — warm parchment theme
+   ══════════════════════════════════════════════════════════════════ */
 .bottom-nav {
   position: fixed; bottom: 0; left: 0; right: 0;
   z-index: 370;
   display: flex; align-items: center; justify-content: space-around;
-  background: rgba(255,255,255,.96);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid var(--border);
-  height: 62px;
-  padding: 0 8px;
-  box-shadow: 0 -2px 12px rgba(0,0,0,.06);
+  /* warm parchment base, matches --surface2 */
+  background: rgba(250,246,240,.97);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-top: 1px solid var(--border2);
+  height: 66px;
+  padding: 0 6px env(safe-area-inset-bottom, 0);
+  /* subtle warm shadow instead of cold grey */
+  box-shadow: 0 -1px 0 var(--border2), 0 -8px 28px rgba(120,95,60,.08);
 }
+
 .bottom-nav-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 3px; flex: 1; height: 100%;
+  gap: 4px; flex: 1; height: 100%;
   background: none; border: none; cursor: pointer;
-  color: var(--ink4); font-size: 10px; font-family: var(--sans); font-weight: 500;
-  position: relative; padding: 4px;
-  transition: color .15s;
+  color: var(--ink5);
+  font-size: 9.5px; font-family: var(--sans); font-weight: 600;
+  letter-spacing: .3px; text-transform: uppercase;
+  position: relative; padding: 6px 4px 4px;
+  transition: color .18s var(--ease);
+  -webkit-tap-highlight-color: transparent;
 }
-.bottom-nav-btn.active { color: var(--accent); }
-.bottom-nav-btn.active svg { stroke: var(--accent); }
+
+/* Active pill indicator */
+.bottom-nav-btn::before {
+  content: '';
+  position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+  width: 0; height: 3px; border-radius: 99px;
+  background: var(--accent);
+  transition: width .22s var(--spring), opacity .18s;
+  opacity: 0;
+}
+.bottom-nav-btn.active::before {
+  width: 28px; opacity: 1;
+}
+.bottom-nav-btn.active {
+  color: var(--accent);
+}
+.bottom-nav-btn.active svg {
+  stroke: var(--accent);
+}
+
+/* Hover — warm tint */
+.bottom-nav-btn:not(.bottom-nav-center):hover {
+  color: var(--ink3);
+}
+.bottom-nav-btn:not(.bottom-nav-center):hover svg {
+  stroke: var(--ink3);
+}
+
+/* ── Centre FAB: New Entry ── */
 .bottom-nav-btn.bottom-nav-center {
-  width: 48px; height: 48px; flex: 0 0 48px;
-  background: var(--accent); border-radius: 50%;
-  color: #fff; box-shadow: 0 4px 16px rgba(47,90,110,.4);
-  margin-bottom: 16px;
+  flex: 0 0 52px;
+  width: 52px; height: 52px;
+  background: var(--accent);
+  border-radius: 16px;
+  color: #fff;
+  font-size: 0; /* hide label */
+  /* elevated with warm-toned shadow */
+  box-shadow:
+    0 4px 0 var(--accent2),
+    0 6px 18px rgba(47,90,110,.38);
+  margin-bottom: 14px;
+  transition: background .15s, transform .12s var(--spring), box-shadow .15s;
 }
-.bottom-nav-btn.bottom-nav-center svg { stroke: #fff; }
-.bottom-nav-btn.bottom-nav-center:hover { background: var(--accent2); }
+.bottom-nav-btn.bottom-nav-center::before { display: none; }
+.bottom-nav-btn.bottom-nav-center svg { stroke: #fff; width: 22px; height: 22px; }
+.bottom-nav-btn.bottom-nav-center:hover {
+  background: var(--accent2);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--accent2), 0 10px 24px rgba(47,90,110,.45);
+}
+.bottom-nav-btn.bottom-nav-center:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 0 var(--accent2), 0 3px 10px rgba(47,90,110,.3);
+}
 
 /* Adjust page bottom padding when bottom nav is shown */
 #appScreen.has-bottom-nav #mainContent { padding-bottom: 72px; }
@@ -3380,11 +3433,12 @@ body.draw-mode.tool-select #drawingCanvas {
 
 /* ── Bottom-nav profile button avatar ──────────────────── */
 .bnav-avatar {
-  width: 28px; height: 28px; border-radius: 50%;
+  width: 26px; height: 26px; border-radius: 50%;
   overflow: hidden; flex-shrink: 0;
   background: var(--accent-bg);
-  border: 2px solid var(--accent-ring);
+  border: 1.5px solid var(--accent-ring);
   display: flex; align-items: center; justify-content: center;
+  transition: border-color .18s;
 }
 .bnav-avatar-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .bnav-avatar-img.hidden { display: none !important; }
@@ -3393,8 +3447,11 @@ body.draw-mode.tool-select #drawingCanvas {
   color: var(--ink3); width: 100%; height: 100%;
 }
 .bottom-nav-profile { gap: 3px; }
-/* When active, tint the avatar border */
-.bottom-nav-btn.active .bnav-avatar { border-color: var(--accent); }
+/* When active, tint the avatar border with accent */
+.bottom-nav-btn.active .bnav-avatar {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-bg);
+}
 .bottom-nav-btn.active .bnav-avatar-initial svg { stroke: var(--accent); }
 
 /* ── Notification Bell ──────────────────────────────── */
