@@ -625,7 +625,20 @@
     <button class="sheet-close" id="profileClose">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
     </button>
-    <div class="sheet-title">👤 User Profile</div>
+    <div class="sheet-title">👤 My Profile</div>
+
+    <!-- Follow stats for current user -->
+    <div class="prof-follow-strip" id="myFollowStrip">
+      <button class="prof-follow-stat" id="myFollowersBtn">
+        <span class="prof-follow-num" id="myFollowersCount">–</span>
+        <span class="prof-follow-label">Followers</span>
+      </button>
+      <div class="prof-follow-divider"></div>
+      <button class="prof-follow-stat" id="myFollowingBtn">
+        <span class="prof-follow-num" id="myFollowingCount">–</span>
+        <span class="prof-follow-label">Following</span>
+      </button>
+    </div>
 
     <!-- DP / Avatar Upload & Preview -->
     <div class="prof-avatar-section">
@@ -695,6 +708,58 @@
         Sign Out
       </button>
     </div>
+  </div>
+</div>
+
+<!-- ══ USER PROFILE VIEWER ════════════════════════════════════ -->
+<div class="overlay center hidden" id="userProfileOverlay">
+  <div class="sheet" id="userProfileModal" style="max-width:420px">
+    <button class="sheet-close" id="userProfileClose">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+    </button>
+    <!-- Avatar + name -->
+    <div class="upm-head">
+      <div class="upm-avatar" id="upmAvatar"></div>
+      <div class="upm-info">
+        <div class="upm-name" id="upmName"></div>
+        <div class="upm-username" id="upmUsername"></div>
+        <div class="upm-bio" id="upmBio"></div>
+      </div>
+    </div>
+    <!-- Stats row: posts / followers / following -->
+    <div class="upm-stats">
+      <div class="upm-stat">
+        <span class="upm-stat-num" id="upmPosts">–</span>
+        <span class="upm-stat-lbl">Public Posts</span>
+      </div>
+      <div class="upm-stat-div"></div>
+      <div class="upm-stat">
+        <span class="upm-stat-num" id="upmFollowers">–</span>
+        <span class="upm-stat-lbl">Followers</span>
+      </div>
+      <div class="upm-stat-div"></div>
+      <div class="upm-stat">
+        <span class="upm-stat-num" id="upmFollowing">–</span>
+        <span class="upm-stat-lbl">Following</span>
+      </div>
+    </div>
+    <!-- Action buttons -->
+    <div class="upm-actions" id="upmActions">
+      <button class="btn-follow" id="upmFollowBtn">+ Follow</button>
+      <button class="btn-message" id="upmMsgBtn">✉️ Message</button>
+      <button class="btn-view-diary" id="upmDiaryBtn">📖 View Stories</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ USER LIST MODAL (followers / following) ═════════════════ -->
+<div class="overlay center hidden" id="userListOverlay">
+  <div class="sheet" id="userListModal" style="max-width:400px">
+    <button class="sheet-close" id="userListClose">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+    </button>
+    <div class="sheet-title" id="userListTitle">Followers</div>
+    <div id="userListItems" class="user-list-items"></div>
   </div>
 </div>
 

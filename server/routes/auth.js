@@ -342,6 +342,25 @@ router.get('/resolve/:token', (req, res) => {
   res.json({ username: user.username });
 });
 
+// GET /api/auth/profile/:userId  — public profile info for any user
+router.get('/profile/:userId', (req, res) => {
+  const user = db.prepare(
+    'SELECT id, username, display_name, avatar_url, bio FROM users WHERE id = ?'
+  ).get(req.params.userId);
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  const publicPosts = db.prepare(
+    'SELECT COUNT(*) as c FROM notes WHERE user_id = ? AND is_public = 1'
+  ).get(req.params.userId).c;
+  res.json({
+    id:          user.id,
+    username:    user.username,
+    displayName: user.display_name || user.username,
+    avatarUrl:   user.avatar_url || '',
+    bio:         user.bio || '',
+    publicPosts,
+  });
+});
+
 // PUT /api/auth/profile  — update display name, bio, email, phone, avatar_url
 router.put('/profile', verifyToken, (req, res) => {
   runMigrationOnce();

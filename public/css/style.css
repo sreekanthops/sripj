@@ -3515,6 +3515,85 @@ body.draw-mode.tool-select #drawingCanvas {
 .follow-count-item { display: flex; flex-direction: column; align-items: center; gap: 1px; }
 .follow-count-num { font-size: 16px; font-weight: 700; color: var(--ink); }
 
+/* ── Current-user follow strip inside My Profile modal ── */
+.prof-follow-strip {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0; margin: 0 0 18px;
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 14px; overflow: hidden;
+}
+.prof-follow-stat {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 2px; padding: 12px 10px; background: none; border: none;
+  cursor: pointer; font-family: var(--sans);
+  transition: background .14s;
+}
+.prof-follow-stat:hover { background: var(--bg3); }
+.prof-follow-num  { font-size: 20px; font-weight: 700; color: var(--ink); line-height: 1; }
+.prof-follow-label{ font-size: 11px; font-weight: 500; color: var(--ink4); letter-spacing: .4px; text-transform: uppercase; }
+.prof-follow-divider { width: 1px; height: 36px; background: var(--border2); flex-shrink: 0; }
+
+/* ── User Profile Viewer modal ── */
+.upm-head {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+}
+.upm-avatar {
+  width: 68px; height: 68px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent-bg); border: 2.5px solid var(--accent-ring);
+  overflow: hidden; display: flex; align-items: center; justify-content: center;
+  font-size: 26px; font-weight: 700; color: var(--accent); font-family: var(--serif);
+}
+.upm-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.upm-info { flex: 1; min-width: 0; }
+.upm-name     { font-size: 17px; font-weight: 700; color: var(--ink); line-height: 1.2; }
+.upm-username { font-size: 12px; color: var(--ink4); margin-top: 2px; }
+.upm-bio      { font-size: 12.5px; color: var(--ink3); margin-top: 5px; line-height: 1.5; }
+
+.upm-stats {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 14px; overflow: hidden; margin-bottom: 18px;
+}
+.upm-stat {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 2px; padding: 12px 8px;
+}
+.upm-stat-num { font-size: 18px; font-weight: 700; color: var(--ink); line-height: 1; }
+.upm-stat-lbl { font-size: 10px; font-weight: 500; color: var(--ink4); letter-spacing: .4px; text-transform: uppercase; }
+.upm-stat-div { width: 1px; height: 32px; background: var(--border2); flex-shrink: 0; }
+
+.upm-actions {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+}
+.btn-view-diary {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600; padding: 7px 16px; border-radius: 20px;
+  border: 1.5px solid var(--border3); background: var(--surface); color: var(--ink2);
+  cursor: pointer; font-family: var(--sans); transition: background .15s;
+}
+.btn-view-diary:hover { background: var(--bg3); }
+
+/* ── User list modal ── */
+.user-list-items { display: flex; flex-direction: column; gap: 0; max-height: 420px; overflow-y: auto; }
+.user-list-item {
+  display: flex; align-items: center; gap: 12px; padding: 11px 4px;
+  border-bottom: 1px solid var(--border); cursor: pointer;
+  transition: background .12s; border-radius: 8px;
+}
+.user-list-item:hover { background: var(--surface); }
+.user-list-item:last-child { border-bottom: none; }
+.user-list-av {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent-bg); border: 2px solid var(--accent-ring);
+  overflow: hidden; display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: var(--accent); font-family: var(--serif);
+}
+.user-list-av img { width: 100%; height: 100%; object-fit: cover; }
+.user-list-info { flex: 1; min-width: 0; }
+.user-list-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+.user-list-handle { font-size: 11px; color: var(--ink4); }
+.user-list-empty { padding: 32px; text-align: center; color: var(--ink4); font-size: 13px; }
+
 @media (max-width: 640px) {
   .chat-panel { width: 100%; }
   .chat-window { right: 8px; bottom: 72px; width: calc(100vw - 16px); }

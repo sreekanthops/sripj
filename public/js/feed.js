@@ -54,11 +54,11 @@
           <div class="feed-card-author">
             <div class="feed-av" data-uid="${escHtml(a.id)}" data-uname="${escHtml(a.username)}" style="cursor:pointer">${av}</div>
             <div class="feed-author-info">
-              <div class="feed-author-name feed-author-link" data-uname="${escHtml(a.username)}" style="cursor:pointer">${escHtml(a.displayName || a.username)}</div>
+              <div class="feed-author-name feed-author-link" data-uid="${escHtml(a.id)}" data-uname="${escHtml(a.username)}" style="cursor:pointer">${escHtml(a.displayName || a.username)}</div>
               <div class="feed-author-handle">@${escHtml(a.username)} · ${relTime(note.createdAt)}</div>
             </div>
             ${!isOwnNote && myId ? `<button class="feed-follow-btn${isFollowing ? ' following' : ''}" data-uid="${escHtml(a.id)}">${isFollowing ? '✓ Following' : '+ Follow'}</button>` : ''}
-            ${!isOwnNote ? `<button class="feed-profile-btn" data-uname="${escHtml(a.username)}" title="View public notes">View Profile</button>` : ''}
+            ${!isOwnNote ? `<button class="feed-profile-btn" data-uid="${escHtml(a.id)}" data-uname="${escHtml(a.username)}" title="View profile">View Profile</button>` : ''}
           </div>
           ${note.title ? `<h3 class="feed-card-title" style="font-family:${escHtml(note.font)}">${escHtml(note.title)}</h3>` : ''}
           <p class="feed-card-text">${escHtml((note.body || '').slice(0, 280))}${(note.body || '').length > 280 ? '…' : ''}</p>
@@ -147,30 +147,29 @@
       };
     });
 
-    // Author avatar → visit diary (public notes only for non-owners)
-    container.querySelectorAll('.feed-av[data-uname]').forEach(el => {
+    // Author avatar → open user profile modal
+    container.querySelectorAll('.feed-av[data-uid]').forEach(el => {
       el.onclick = (e) => {
         e.stopPropagation();
-        const uname = el.dataset.uname;
-        if (uname) window.location.href = '/@' + encodeURIComponent(uname);
+        if (el.dataset.uid) window.openUserProfile?.(el.dataset.uid);
       };
     });
 
-    // Author display-name link → visit profile public notes
+    // Author display-name link → open user profile modal
     container.querySelectorAll('.feed-author-link[data-uname]').forEach(el => {
       el.onclick = (e) => {
         e.stopPropagation();
-        const uname = el.dataset.uname;
-        if (uname) window.location.href = '/@' + encodeURIComponent(uname);
+        if (el.dataset.uid) window.openUserProfile?.(el.dataset.uid);
+        else if (el.dataset.uname) window.location.href = '/@' + encodeURIComponent(el.dataset.uname);
       };
     });
 
-    // "View Profile" button → visit profile public notes
+    // "View Profile" button → open user profile modal
     container.querySelectorAll('.feed-profile-btn[data-uname]').forEach(btn => {
       btn.onclick = (e) => {
         e.stopPropagation();
-        const uname = btn.dataset.uname;
-        if (uname) window.location.href = '/@' + encodeURIComponent(uname);
+        if (btn.dataset.uid) window.openUserProfile?.(btn.dataset.uid);
+        else if (btn.dataset.uname) window.location.href = '/@' + encodeURIComponent(btn.dataset.uname);
       };
     });
 

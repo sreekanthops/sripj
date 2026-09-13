@@ -65,7 +65,7 @@
       return;
     }
     list.innerHTML = _items.map(n => `
-      <div class="notif-item${n.read ? '' : ' notif-unread'}" data-notif-id="${n.id}" data-type="${n.type}" data-note-id="${n.noteId || ''}" data-msg-id="${n.messageId || ''}">
+      <div class="notif-item${n.read ? '' : ' notif-unread'}" data-notif-id="${n.id}" data-type="${n.type}" data-note-id="${n.noteId || ''}" data-msg-id="${n.messageId || ''}" data-actor-id="${n.actor?.id || ''}">
         <span class="notif-icon">${typeIcon(n.type)}</span>
         <div class="notif-body">
           <div class="notif-text">${typeText(n)}</div>
@@ -76,15 +76,22 @@
 
     list.querySelectorAll('.notif-item').forEach(el => {
       el.addEventListener('click', () => {
-        const type   = el.dataset.type;
-        const noteId = el.dataset.noteId;
-        const msgId  = el.dataset.msgId;
+        const type    = el.dataset.type;
+        const noteId  = el.dataset.noteId;
+        const msgId   = el.dataset.msgId;
+        const actorId = el.dataset.actorId;
         closeDropdown();
-        if (type === 'message' && msgId) {
-          window.Chat?.openByMessageId?.(msgId);
+        if (type === 'message' && actorId) {
+          // Open chat with this user directly
+          window.Chat?.startConversation?.(actorId);
+        } else if (type === 'follow' && actorId) {
+          // Open the follower's profile
+          window.openUserProfile?.(actorId);
         } else if (noteId) {
           window.openNoteById?.(noteId);
         }
+        // mark this notification read
+        fetch(API + '/read', { method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeader() }, body: JSON.stringify({ id: el.dataset.notifId }) }).catch(() => {});
       });
     });
   }

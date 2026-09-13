@@ -820,9 +820,12 @@ async function openProfileModal() {
 
   renderProfileAvatar(currentUser.avatarUrl);
 
-  // Fetch latest user details
+  // Fetch latest user details + follow counts
   try {
-    const data = await api('GET', '/auth/verify');
+    const [data, followData] = await Promise.all([
+      api('GET', '/auth/verify'),
+      fetch(`/api/follows/${currentUser.userId}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json())
+    ]);
     if (data.email       !== undefined) currentUser.email       = data.email;
     if (data.phone       !== undefined) currentUser.phone       = data.phone;
     if (data.avatarUrl   !== undefined) currentUser.avatarUrl   = data.avatarUrl;
@@ -834,10 +837,181 @@ async function openProfileModal() {
     document.getElementById('profBio').value   = currentUser.bio || '';
     renderProfileAvatar(currentUser.avatarUrl);
     renderTopbarUserChip(); renderBottomNavAvatar();
+    // Update follow strip
+    const fcEl = document.getElementById('myFollowersCount');
+    const fgEl = document.getElementById('myFollowingCount');
+    if (fcEl) fcEl.textContent = followData.followerCount ?? '–';
+    if (fgEl) fgEl.textContent = followData.followingCount ?? '–';
   } catch {}
 
   openOv('profileOverlay');
 }
+
+// ── My followers/following list buttons ─────────────────────────────────────
+document.getElementById('myFollowersBtn')?.addEventListener('click', () => {
+  openUserList(currentUser.userId, 'followers');
+});
+document.getElementById('myFollowingBtn')?.addEventListener('click', () => {
+  openUserList(currentUser.userId, 'following');
+});
+
+// ── User List Modal ──────────────────────────────────────────────────────────
+async function openUserList(userId, type) {
+  const overlay = document.getElementById('userListOverlay');
+  const title   = document.getElementById('userListTitle');
+  const items   = document.getElementById('userListItems');
+  if (!overlay || !items) return;
+  title.textContent = type === 'followers' ? 'Followers' : 'Following';
+  items.innerHTML   = '<div class="user-list-empty">Loading…</div>';
+  overlay.classList.remove('hidden');
+  try {
+    const data = await fetch(`/api/follows/${userId}/${type}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    }).then(r => r.json());
+    const users = data.users || [];
+    if (!users.length) {
+      items.innerHTML = `<div class="user-list-empty">No ${type} yet.</div>`;
+      return;
+    }
+    items.innerHTML = users.map(u => {
+      const name = u.displayName || u.username;
+      const av   = u.avatarUrl
+        ? `<img src="${esc(u.avatarUrl)}" alt="">`
+        : name.charAt(0).toUpperCase();
+      return `<div class="user-list-item" data-uid="${esc(u.id)}" data-uname="${esc(u.username)}">
+        <div class="user-list-av">${typeof av === 'string' && av.startsWith('<') ? av : av}</div>
+        <div class="user-list-info">
+          <div class="user-list-name">${esc(name)}</div>
+          <div class="user-list-handle">@${esc(u.username)}</div>
+        </div>
+      </div>`;
+    }).join('');
+    items.querySelectorAll('.user-list-item').forEach(el => {
+      el.addEventListener('click', () => {
+        closeUserList();
+        openUserProfile(el.dataset.uid);
+      });
+    });
+  } catch {
+    items.innerHTML = '<div class="user-list-empty">Could not load.</div>';
+  }
+}
+
+function closeUserList() {
+  document.getElementById('userListOverlay')?.classList.add('hidden');
+}
+document.getElementById('userListClose')?.addEventListener('click', closeUserList);
+document.getElementById('userListOverlay')?.addEventListener('click', e => {
+  if (e.target === document.getElementById('userListOverlay')) closeUserList();
+});
+
+// ── User Profile Viewer (for OTHER users) ────────────────────────────────────
+async function openUserProfile(userId) {
+  if (!userId) return;
+  // If it's the current user, open own profile modal instead
+  if (currentUser && userId === currentUser.userId) { openProfileModal(); return; }
+
+  const overlay  = document.getElementById('userProfileOverlay');
+  const avatar   = document.getElementById('upmAvatar');
+  const nameEl   = document.getElementById('upmName');
+  const userEl   = document.getElementById('upmUsername');
+  const bioEl    = document.getElementById('upmBio');
+  const postsEl  = document.getElementById('upmPosts');
+  const fersEl   = document.getElementById('upmFollowers');
+  const fingEl   = document.getElementById('upmFollowing');
+  const actions  = document.getElementById('upmActions');
+  const followBtn= document.getElementById('upmFollowBtn');
+  const msgBtn   = document.getElementById('upmMsgBtn');
+  const diaryBtn = document.getElementById('upmDiaryBtn');
+  if (!overlay) return;
+
+  // Reset
+  nameEl.textContent = 'Loading…';
+  userEl.textContent = '';
+  bioEl.textContent  = '';
+  postsEl.textContent = '–';
+  fersEl.textContent  = '–';
+  fingEl.textContent  = '–';
+  avatar.innerHTML    = '…';
+  actions.style.display = currentUser ? '' : 'none';
+  overlay.classList.remove('hidden');
+
+  try {
+    const [profile, followData] = await Promise.all([
+      fetch(`/api/auth/profile/${userId}`).then(r => r.json()),
+      fetch(`/api/follows/${userId}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }).then(r => r.json())
+    ]);
+
+    const name = profile.displayName || profile.username;
+    nameEl.textContent  = name;
+    userEl.textContent  = '@' + profile.username;
+    bioEl.textContent   = profile.bio || '';
+    postsEl.textContent = profile.publicPosts ?? 0;
+    fersEl.textContent  = followData.followerCount ?? 0;
+    fingEl.textContent  = followData.followingCount ?? 0;
+
+    // Avatar
+    if (profile.avatarUrl) {
+      avatar.innerHTML = `<img src="${esc(profile.avatarUrl)}" alt="">`;
+    } else {
+      avatar.textContent = name.charAt(0).toUpperCase();
+    }
+
+    // Follow/unfollow button
+    let _isFollowing = followData.isFollowing;
+    if (followBtn) {
+      followBtn.className = `btn-follow${_isFollowing ? ' following' : ''}`;
+      followBtn.textContent = _isFollowing ? '✓ Following' : '+ Follow';
+      followBtn.onclick = async () => {
+        if (!currentUser) { showAuth(); return; }
+        try {
+          if (_isFollowing) {
+            await fetch(`/api/follows/${userId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+            _isFollowing = false;
+          } else {
+            await fetch(`/api/follows/${userId}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
+            _isFollowing = true;
+            // update count
+            fersEl.textContent = (parseInt(fersEl.textContent) || 0) + 1;
+          }
+          followBtn.className = `btn-follow${_isFollowing ? ' following' : ''}`;
+          followBtn.textContent = _isFollowing ? '✓ Following' : '+ Follow';
+        } catch {}
+      };
+    }
+
+    // Message button
+    if (msgBtn) {
+      msgBtn.onclick = () => {
+        if (!currentUser) { showAuth(); return; }
+        closeUserProfile();
+        window.Chat?.startConversation?.(userId);
+      };
+    }
+
+    // View diary button
+    if (diaryBtn) {
+      diaryBtn.onclick = () => {
+        closeUserProfile();
+        window.location.href = '/@' + encodeURIComponent(profile.username);
+      };
+    }
+
+  } catch {
+    nameEl.textContent = 'Could not load profile.';
+  }
+}
+
+function closeUserProfile() {
+  document.getElementById('userProfileOverlay')?.classList.add('hidden');
+}
+document.getElementById('userProfileClose')?.addEventListener('click', closeUserProfile);
+document.getElementById('userProfileOverlay')?.addEventListener('click', e => {
+  if (e.target === document.getElementById('userProfileOverlay')) closeUserProfile();
+});
+
+// Expose globally so notifications.js and feed.js can call it
+window.openUserProfile = openUserProfile;
 
 // DP File Upload
 document.getElementById('profAvatarInput')?.addEventListener('change', async e => {
