@@ -1,0 +1,23 @@
+{
+  "name": "Unsent Stories",
+  "short_name": "Unsent",
+  "description": "A private diary and social journaling app. Write what you can't say, share when you're ready.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1025",
+  "theme_color": "#1a1025",
+  "orientation": "portrait-primary",
+  "lang": "en-IN",
+  "categories": ["lifestyle", "social", "productivity"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1025'/><text y='.9em' font-size='80' x='10'>✦</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

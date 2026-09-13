@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Allow: /pricing
+Disallow: /api/
+Disallow: /admin/
+Disallow: /uploads/
+
+# Sitemaps
+Sitemap: https://unsentstories.in/sitemap.xml

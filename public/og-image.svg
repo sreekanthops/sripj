@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1025"/>
+      <stop offset="100%" style="stop-color:#0d1f2d"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Decorative accent lines -->
+  <rect x="0" y="0" width="6" height="630" fill="#c084fc" opacity="0.7"/>
+  <rect x="1194" y="0" width="6" height="630" fill="#60a5fa" opacity="0.4"/>
+
+  <!-- Star icon -->
+  <text x="600" y="200" font-family="Georgia,serif" font-size="80" fill="#c084fc" text-anchor="middle" opacity="0.9">✦</text>
+
+  <!-- Brand name -->
+  <text x="600" y="310" font-family="Georgia,serif" font-size="86" fill="#f8f4ff" text-anchor="middle" font-style="italic" letter-spacing="-1">Unsent Stories</text>
+
+  <!-- Tagline -->
+  <text x="600" y="385" font-family="Arial,sans-serif" font-size="30" fill="#c084fc" text-anchor="middle" letter-spacing="2" opacity="0.85">WRITE WHAT YOU CAN'T SAY</text>
+
+  <!-- Feature pills -->
+  <g transform="translate(220, 440)">
+    <rect width="180" height="42" rx="21" fill="#c084fc" opacity="0.15"/>
+    <text x="90" y="27" font-family="Arial,sans-serif" font-size="18" fill="#c084fc" text-anchor="middle">📖 Private Diary</text>
+  </g>
+  <g transform="translate(420, 440)">
+    <rect width="170" height="42" rx="21" fill="#60a5fa" opacity="0.15"/>
+    <text x="85" y="27" font-family="Arial,sans-serif" font-size="18" fill="#60a5fa" text-anchor="middle">🌍 Public Feed</text>
+  </g>
+  <g transform="translate(610, 440)">
+    <rect width="170" height="42" rx="21" fill="#34d399" opacity="0.15"/>
+    <text x="85" y="27" font-family="Arial,sans-serif" font-size="18" fill="#34d399" text-anchor="middle">💬 Real-time Chat</text>
+  </g>
+  <g transform="translate(800, 440)">
+    <rect width="180" height="42" rx="21" fill="#f87171" opacity="0.15"/>
+    <text x="90" y="27" font-family="Arial,sans-serif" font-size="18" fill="#f87171" text-anchor="middle">✨ Free to Start</text>
+  </g>
+
+  <!-- Domain -->
+  <text x="600" y="590" font-family="Arial,sans-serif" font-size="22" fill="#888" text-anchor="middle" letter-spacing="1">unsentstories.in</text>
+</svg>
