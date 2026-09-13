@@ -3,24 +3,11 @@ const db     = require('../db');
 const { optionalAuth } = require('../auth');
 
 // GET /api/feed?page=1&limit=20
-// Logged-in users: their own notes + all other users' public notes
-// Guests: all public notes only
+// Returns all public notes only, newest first, with author info + counts
 router.get('/', optionalAuth, (req, res) => {
   const page  = Math.max(1, parseInt(req.query.page)  || 1);
   const limit = Math.min(50, parseInt(req.query.limit) || 20);
   const offset = (page - 1) * limit;
-
-  const viewerId = req.user?.userId || null;
-
-  const whereClause = viewerId
-    ? '(n.is_public = 1 OR n.user_id = ?)'
-    : 'n.is_public = 1';
-
-  const queryArgs = viewerId
-    ? [viewerId, limit, offset]
-    : [limit, offset];
-
-  const countArgs = viewerId ? [viewerId] : [];
 
   const rows = db.prepare(`
     SELECT n.id, n.title, n.body, n.font, n.font_size, n.bg_url, n.tags,
@@ -28,15 +15,14 @@ router.get('/', optionalAuth, (req, res) => {
            u.id as author_id, u.username, u.display_name, u.avatar_url
     FROM notes n
     JOIN users u ON u.id = n.user_id
-    WHERE ${whereClause}
+    WHERE n.is_public = 1
     ORDER BY n.created_at DESC
     LIMIT ? OFFSET ?
-  `).all(...queryArgs);
+  `).all(limit, offset);
 
-  const total = db.prepare(
-    `SELECT COUNT(*) as c FROM notes n WHERE ${whereClause}`
-  ).get(...countArgs).c;
+  const total = db.prepare('SELECT COUNT(*) as c FROM notes WHERE is_public=1').get().c;
 
+  const viewerId = req.user?.userId || null;
 
   const notes = rows.map(r => {
     const reactions = db.prepare(
