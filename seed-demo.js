@@ -42,28 +42,34 @@ function getUser(username) {
 // ── 1. Dummy users ─────────────────────────────────────────────────────────
 
 const USERS = [
-  { username: 'aarav.writes', display: 'Aarav Sharma', bio: 'Architecture student · writes at midnight', email: 'aarav.writes@demo.in' },
-  { username: 'priya_journals', display: 'Priya Nair',   bio: 'Bangalore · coffee addict · feelings hoarder', email: 'priya.journals@demo.in' },
-  { username: 'kiran.m',        display: 'Kiran Murthy', bio: 'Former engineer, full-time overthinker', email: 'kiran.m@demo.in' },
-  { username: 'meera.thoughts', display: 'Meera Iyer',   bio: 'Reads too much · says too little · writes the rest', email: 'meera.thoughts@demo.in' },
-  { username: 'ravi.diaries',   display: 'Ravi Kumar',   bio: 'Chennai · 3 AM thoughts · music & words', email: 'ravi.diaries@demo.in' },
+  { username: 'aarav.writes',    display: 'Aarav Sharma', bio: 'Architecture student · writes at midnight', email: 'aarav.writes@demo.in',    avatar: '/global-images/avatar-aarav.svg' },
+  { username: 'priya_journals',  display: 'Priya Nair',   bio: 'Bangalore · coffee addict · feelings hoarder', email: 'priya.journals@demo.in', avatar: '/global-images/avatar-priya.svg' },
+  { username: 'kiran.m',         display: 'Kiran Murthy', bio: 'Former engineer, full-time overthinker', email: 'kiran.m@demo.in',              avatar: '/global-images/avatar-kiran.svg' },
+  { username: 'meera.thoughts',  display: 'Meera Iyer',   bio: 'Reads too much · says too little · writes the rest', email: 'meera.thoughts@demo.in', avatar: '/global-images/avatar-meera.svg' },
+  { username: 'ravi.diaries',    display: 'Ravi Kumar',   bio: 'Chennai · 3 AM thoughts · music & words', email: 'ravi.diaries@demo.in',       avatar: '/global-images/avatar-ravi.svg' },
 ];
 
 const PASS_HASH = bcrypt.hashSync('demo1234', 10);
 
 const insertUser = db.prepare(`
   INSERT OR IGNORE INTO users
-    (id, username, display_name, bio, password_hash, email, share_token, created_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    (id, username, display_name, bio, password_hash, email, share_token, avatar_url, created_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
+const updateAvatar = db.prepare(`UPDATE users SET avatar_url = ? WHERE username = ? AND (avatar_url = '' OR avatar_url IS NULL)`);
 
 const insertedIds = {};
 for (const u of USERS) {
   const existing = getUser(u.username);
-  if (existing) { insertedIds[u.username] = existing.id; console.log(`skip user ${u.username}`); continue; }
+  if (existing) {
+    insertedIds[u.username] = existing.id;
+    updateAvatar.run(u.avatar, u.username);  // back-fill avatar if missing
+    console.log(`skip user ${u.username}`);
+    continue;
+  }
   const id = uid();
   insertUser.run(id, u.username, u.display, u.bio, PASS_HASH, u.email,
-    uid().replace(/-/g,'').slice(0,14), daysAgo(Math.floor(Math.random()*30)+5));
+    uid().replace(/-/g,'').slice(0,14), u.avatar, daysAgo(Math.floor(Math.random()*30)+5));
   insertedIds[u.username] = id;
   console.log(`created user @${u.username}`);
 }
@@ -114,12 +120,19 @@ for (let i = 0; i < GS_POSTS.length; i++) {
   console.log(`created gs post: ${p.title}`);
 }
 
-// story posts (expire in 20 hours from now so they're still active)
+// story posts for gspaces2025 — insert OR refresh expiry if already exists
 for (const s of GS_STORIES) {
-  const id      = uid();
-  const expires = new Date(Date.now() + 20 * 3600 * 1000).toISOString();
-  insertNote.run(id, GS, s.title, s.body, "'Kalam',cursive", 14, 'normal', 3, 1, 1, expires, daysAgo(0.05));
-  console.log(`created gs story: ${s.title}`);
+  const existing = db.prepare('SELECT id FROM notes WHERE user_id=? AND title=? AND is_story=1').get(GS, s.title);
+  if (existing) {
+    db.prepare("UPDATE notes SET story_expires_at=? WHERE id=?")
+      .run(new Date(Date.now() + 24 * 3600 * 1000).toISOString(), existing.id);
+    console.log(`refreshed gs story: ${s.title}`);
+  } else {
+    const id      = uid();
+    const expires = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+    insertNote.run(id, GS, s.title, s.body, "'Kalam',cursive", 14, 'normal', 3, 1, 1, expires, daysAgo(0.05));
+    console.log(`created gs story: ${s.title}`);
+  }
 }
 
 // ── 3. Dummy user posts ──────────────────────────────────────────────────────
@@ -268,10 +281,17 @@ const STORY_BODIES = [
 for (const s of STORY_BODIES) {
   const uid_val = insertedIds[s.username] || getUser(s.username)?.id;
   if (!uid_val) continue;
-  const id      = uid();
-  const expires = new Date(Date.now() + (18 + Math.random() * 6) * 3600 * 1000).toISOString();
-  insertNote.run(id, uid_val, s.title, s.body, "'Kalam',cursive", 14, 'normal', 4, 1, 1, expires, daysAgo(0.02));
-  console.log(`story by @${s.username}: ${s.title}`);
+  const existing = db.prepare('SELECT id FROM notes WHERE user_id=? AND title=? AND is_story=1').get(uid_val, s.title);
+  if (existing) {
+    db.prepare("UPDATE notes SET story_expires_at=? WHERE id=?")
+      .run(new Date(Date.now() + 24 * 3600 * 1000).toISOString(), existing.id);
+    console.log(`refreshed story @${s.username}: ${s.title}`);
+  } else {
+    const id      = uid();
+    const expires = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+    insertNote.run(id, uid_val, s.title, s.body, "'Kalam',cursive", 14, 'normal', 4, 1, 1, expires, daysAgo(0.02));
+    console.log(`story by @${s.username}: ${s.title}`);
+  }
 }
 
 console.log('\n✅ Seed complete!');

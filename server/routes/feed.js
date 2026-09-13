@@ -16,11 +16,15 @@ router.get('/', optionalAuth, (req, res) => {
     FROM notes n
     JOIN users u ON u.id = n.user_id
     WHERE n.is_public = 1
+      AND (n.is_story = 0 OR n.is_story IS NULL)
     ORDER BY n.created_at DESC
     LIMIT ? OFFSET ?
   `).all(limit, offset);
 
-  const total = db.prepare('SELECT COUNT(*) as c FROM notes WHERE is_public=1').get().c;
+  const total = db.prepare(`
+    SELECT COUNT(*) as c FROM notes
+    WHERE is_public=1 AND (is_story=0 OR is_story IS NULL)
+  `).get().c;
 
   const viewerId = req.user?.userId || null;
 
