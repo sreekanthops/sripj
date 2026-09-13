@@ -397,6 +397,22 @@ if (!hasColumn('users', 'notes_limit_override')) {
   db.exec(`ALTER TABLE users ADD COLUMN notes_limit_override INTEGER`);
 }
 
+// notes: AI content moderation
+if (!hasColumn('notes', 'moderation_status')) {
+  db.exec(`ALTER TABLE notes ADD COLUMN moderation_status TEXT NOT NULL DEFAULT 'approved'`);
+  // 'approved' | 'rejected' | 'pending'
+}
+if (!hasColumn('notes', 'moderation_reason')) {
+  db.exec(`ALTER TABLE notes ADD COLUMN moderation_reason TEXT NOT NULL DEFAULT ''`);
+}
+
+// messages: edit, soft-delete, media attachments
+if (!hasColumn('messages', 'edited_at'))   db.exec(`ALTER TABLE messages ADD COLUMN edited_at  TEXT`);
+if (!hasColumn('messages', 'is_deleted'))  db.exec(`ALTER TABLE messages ADD COLUMN is_deleted  INTEGER NOT NULL DEFAULT 0`);
+if (!hasColumn('messages', 'media_url'))   db.exec(`ALTER TABLE messages ADD COLUMN media_url   TEXT NOT NULL DEFAULT ''`);
+if (!hasColumn('messages', 'media_type'))  db.exec(`ALTER TABLE messages ADD COLUMN media_type  TEXT NOT NULL DEFAULT ''`);
+// media_type: '' | 'image' | 'audio' | 'video'
+
 // Re-enable FK enforcement
 db.pragma('foreign_keys = ON');
 

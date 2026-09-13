@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 const { verifyToken, optionalAuth, checkPassword } = require('../auth');
 const { getUserPlan } = require('../subscription');
+const { moderateText } = require('../moderation');
 let _emitToUser = null;
 try { _emitToUser = require('../ws').emitToUser; } catch {}
 const emitToUser = (uid, type, payload) => { try { _emitToUser?.(uid, type, payload); } catch {} };
@@ -312,11 +313,32 @@ router.delete('/:id', verifyToken, (req, res) => {
 });
 
 // PUT /api/notes/:id/public  (owner only — toggle is_public)
-router.put('/:id/public', verifyToken, (req, res) => {
-  const row = db.prepare('SELECT id, user_id, is_public FROM notes WHERE id=?').get(req.params.id);
+// When publishing (isPublic → true): runs AI moderation first.
+// If rejected: keeps the note private and returns 422 with the reason.
+router.put('/:id/public', verifyToken, async (req, res) => {
+  const row = db.prepare('SELECT id, user_id, is_public, title, body FROM notes WHERE id=?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Not found' });
   if (row.user_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
+
   const newVal = req.body.isPublic !== undefined ? (req.body.isPublic ? 1 : 0) : (row.is_public ? 0 : 1);
+
+  // Run AI moderation only when publishing (0 → 1)
+  if (newVal === 1) {
+    const { allowed, reason } = await moderateText(row.title, row.body);
+    if (!allowed) {
+      // Store the rejection so we can surface it if needed
+      db.prepare('UPDATE notes SET moderation_status=?, moderation_reason=? WHERE id=?')
+        .run('rejected', reason, row.id);
+      return res.status(422).json({
+        error: `Your entry can't be published: ${reason}`,
+        moderated: true,
+        reason,
+      });
+    }
+    db.prepare('UPDATE notes SET moderation_status=?, moderation_reason=? WHERE id=?')
+      .run('approved', '', row.id);
+  }
+
   db.prepare('UPDATE notes SET is_public=? WHERE id=?').run(newVal, row.id);
   res.json({ isPublic: !!newVal });
 });

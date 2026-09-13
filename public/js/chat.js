@@ -7,6 +7,7 @@
   let _panelOpen     = false;
   let _windowOpen    = false;
   let _unread        = 0;
+  let _editingMsgId  = null;  // id of message being edited, or null
 
   function authHeader() {
     const t = localStorage.getItem('diary_token');
@@ -22,7 +23,14 @@
     return data;
   }
 
-  // ── Unread badge on bottom nav chat icon ─────────────────────────────────────
+  async function apiForm(path, formData) {
+    const res = await fetch(path, { method: 'POST', headers: { ...authHeader() }, body: formData });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Upload error');
+    return data;
+  }
+
+  // ── Unread badge ─────────────────────────────────────────────────────────────
   function updateChatBadge() {
     const badge = document.getElementById('chatNavBadge');
     if (!badge) return;
@@ -37,11 +45,9 @@
   // ── Panel ─────────────────────────────────────────────────────────────────────
   async function openChatPanel() {
     _panelOpen = true;
-    const panel = document.getElementById('chatPanel');
-    if (panel) panel.classList.add('open');
+    document.getElementById('chatPanel')?.classList.add('open');
     await loadConversations();
   }
-
   function closeChatPanel() {
     _panelOpen = false;
     document.getElementById('chatPanel')?.classList.remove('open');
@@ -56,17 +62,16 @@
       _conversations = data.conversations || [];
       _unread = _conversations.reduce((s, c) => s + (c.unreadCount || 0), 0);
       updateChatBadge();
-
       if (!_conversations.length) {
         list.innerHTML = '<div class="chat-empty">No conversations yet.<br>Open a profile and tap Message.</div>';
         return;
       }
       list.innerHTML = _conversations.map(c => {
-        const name = c.other?.displayName || c.other?.username || 'Unknown';
-        const uid  = c.other?.id || '';
-        const last = c.lastMessage?.body || '';
+        const name  = c.other?.displayName || c.other?.username || 'Unknown';
+        const uid   = c.other?.id || '';
+        const last  = c.lastMessage?.body || (c.lastMessage?.mediaType ? '📎 Media' : '');
         const unread = c.unreadCount > 0 ? `<span class="chat-unread-badge">${c.unreadCount}</span>` : '';
-        const av = c.other?.avatarUrl
+        const av    = c.other?.avatarUrl
           ? `<img src="${c.other.avatarUrl}" class="chat-av-img">`
           : `<div class="chat-av-init">${name.charAt(0).toUpperCase()}</div>`;
         return `
@@ -74,15 +79,12 @@
             <div class="chat-av chat-av-profile" data-uid="${uid}" style="cursor:pointer" title="View profile">${av}</div>
             <div class="chat-conv-info">
               <div class="chat-conv-name chat-name-profile" data-uid="${uid}" style="cursor:pointer">${name}${unread}</div>
-              <div class="chat-conv-last">${last.slice(0, 40)}${last.length > 40 ? '…' : ''}</div>
+              <div class="chat-conv-last">${escHtml(last.slice(0, 40))}${last.length > 40 ? '…' : ''}</div>
             </div>
           </div>`;
       }).join('');
-
       list.querySelectorAll('[data-conv]').forEach(el => {
-        // clicking anywhere on the row opens the conversation
         el.addEventListener('click', (e) => {
-          // but if they clicked the avatar or name, open profile instead
           if (e.target.closest('.chat-av-profile') || e.target.closest('.chat-name-profile')) {
             const uid = e.target.closest('[data-uid]')?.dataset.uid;
             if (uid) { e.stopPropagation(); window.openUserProfile?.(uid); return; }
@@ -99,50 +101,59 @@
   async function openConversation(convId) {
     _activeConvId = convId;
     _windowOpen   = true;
-    const win = document.getElementById('chatWindow');
-    if (win) win.classList.add('open');
-
+    document.getElementById('chatWindow')?.classList.add('open');
     const conv  = _conversations.find(c => c.id === convId);
     const other = conv?.other;
     const title = other?.displayName || other?.username || 'Chat';
     const titleEl = document.getElementById('chatWindowTitle');
     const avEl    = document.getElementById('chatWindowAv');
-    if (titleEl) {
-      titleEl.textContent = title;
-      titleEl.dataset.uid = other?.id || '';
-    }
+    if (titleEl) { titleEl.textContent = title; titleEl.dataset.uid = other?.id || ''; }
     if (avEl) {
       avEl.innerHTML = other?.avatarUrl
         ? `<img src="${other.avatarUrl}" style="width:100%;height:100%;object-fit:cover;">`
         : title.charAt(0).toUpperCase();
     }
-
     await loadMessages(convId);
-    // Mark as read
     try { await api('PUT', `/api/messages/${convId}/read`); } catch {}
     if (conv) conv.unreadCount = 0;
     _unread = _conversations.reduce((s, c) => s + (c.unreadCount || 0), 0);
     updateChatBadge();
-    loadConversations(); // refresh list
+    loadConversations();
   }
 
   async function loadMessages(convId) {
     const body = document.getElementById('chatMsgBody');
     if (!body) return;
     body.innerHTML = '<div class="chat-loading">Loading…</div>';
-    const myId = window._currentUserId;
     try {
       const data = await api('GET', `/api/messages/${convId}?limit=50`);
       _messages = data.messages || [];
-      renderMessages(myId);
+      renderMessages();
     } catch (e) {
       body.innerHTML = `<div class="chat-empty">Error: ${e.message}</div>`;
     }
   }
 
-  function renderMessages(myId) {
+  // ── Render ────────────────────────────────────────────────────────────────────
+  function renderMediaBubble(m) {
+    if (!m.mediaUrl) return '';
+    if (m.mediaType === 'image') {
+      return `<img src="${m.mediaUrl}" style="max-width:200px;max-height:200px;border-radius:8px;display:block;margin-bottom:4px;cursor:pointer"
+                onclick="window.open('${m.mediaUrl}','_blank')">`;
+    }
+    if (m.mediaType === 'audio') {
+      return `<audio controls src="${m.mediaUrl}" style="max-width:220px;margin-bottom:4px"></audio>`;
+    }
+    if (m.mediaType === 'video') {
+      return `<video controls src="${m.mediaUrl}" style="max-width:220px;border-radius:8px;margin-bottom:4px"></video>`;
+    }
+    return `<a href="${m.mediaUrl}" target="_blank" style="color:inherit;font-size:12px">📎 Attachment</a>`;
+  }
+
+  function renderMessages() {
     const body = document.getElementById('chatMsgBody');
     if (!body) return;
+    const myId = window._currentUserId;
     if (!_messages.length) {
       body.innerHTML = '<div class="chat-empty">No messages yet. Say hello! 👋</div>';
       return;
@@ -150,42 +161,118 @@
     body.innerHTML = _messages.map(m => {
       const mine = m.senderId === myId;
       const time = new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      return `<div class="chat-msg${mine ? ' chat-msg-mine' : ' chat-msg-theirs'}">
-        <div class="chat-bubble">${escHtml(m.body)}</div>
+      const editedMark = m.editedAt ? ' <span style="font-size:10px;opacity:.6">edited</span>' : '';
+      const mediaPart  = m.isDeleted ? '' : renderMediaBubble(m);
+      const textPart   = m.isDeleted
+        ? `<span style="font-style:italic;opacity:.5">This message was deleted</span>`
+        : (m.body ? escHtml(m.body) : '');
+
+      const actions = (mine && !m.isDeleted) ? `
+        <div class="chat-msg-actions" data-id="${m.id}">
+          ${m.body ? `<button class="chat-act-btn" data-edit="${m.id}" title="Edit">✏️</button>` : ''}
+          <button class="chat-act-btn" data-del="${m.id}" title="Delete">🗑</button>
+        </div>` : '';
+
+      return `<div class="chat-msg${mine ? ' chat-msg-mine' : ' chat-msg-theirs'}" data-msgid="${m.id}">
+        ${actions}
+        <div class="chat-bubble">
+          ${mediaPart}
+          ${textPart ? `<div>${textPart}${editedMark}</div>` : ''}
+        </div>
         <div class="chat-msg-time">${time}</div>
       </div>`;
     }).join('');
+
+    // Bind edit/delete buttons
+    body.querySelectorAll('[data-edit]').forEach(btn => {
+      btn.onclick = (e) => { e.stopPropagation(); startEdit(btn.dataset.edit); };
+    });
+    body.querySelectorAll('[data-del]').forEach(btn => {
+      btn.onclick = (e) => { e.stopPropagation(); deleteMsg(btn.dataset.del); };
+    });
+
     body.scrollTop = body.scrollHeight;
   }
 
-  function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  // ── Edit ──────────────────────────────────────────────────────────────────────
+  function startEdit(msgId) {
+    const msg = _messages.find(m => m.id === msgId);
+    if (!msg) return;
+    _editingMsgId = msgId;
+    const input = document.getElementById('chatInput');
+    if (input) { input.value = msg.body; input.focus(); }
+    const bar = document.getElementById('chatEditBar');
+    if (bar) { bar.style.display = ''; bar.querySelector('.chat-edit-text').textContent = 'Editing message…'; }
   }
 
+  function cancelEdit() {
+    _editingMsgId = null;
+    const input = document.getElementById('chatInput');
+    if (input) input.value = '';
+    const bar = document.getElementById('chatEditBar');
+    if (bar) bar.style.display = 'none';
+  }
+
+  async function deleteMsg(msgId) {
+    if (!confirm('Delete this message?')) return;
+    try {
+      await api('DELETE', `/api/messages/${_activeConvId}/${msgId}`);
+      const m = _messages.find(x => x.id === msgId);
+      if (m) { m.isDeleted = true; m.body = ''; m.mediaUrl = ''; m.mediaType = ''; }
+      renderMessages();
+    } catch (e) { alert('Delete failed: ' + e.message); }
+  }
+
+  // ── Send / Edit submit ────────────────────────────────────────────────────────
   async function sendMessage() {
     const input = document.getElementById('chatInput');
     const body  = input?.value.trim();
     if (!body || !_activeConvId) return;
+
+    // If editing an existing message
+    if (_editingMsgId) {
+      try {
+        const data = await api('PUT', `/api/messages/${_activeConvId}/${_editingMsgId}`, { body });
+        const idx = _messages.findIndex(m => m.id === _editingMsgId);
+        if (idx !== -1) _messages[idx] = data.message;
+        cancelEdit();
+        renderMessages();
+      } catch (e) { alert('Edit failed: ' + e.message); }
+      return;
+    }
+
     input.value = '';
-    // Prefer WS for instant delivery
     if (window.WS) {
       window.WS.wsSend('message', { conversationId: _activeConvId, body });
     } else {
       try {
         const data = await api('POST', `/api/messages/${_activeConvId}`, { body });
         _messages.push(data.message);
-        renderMessages(window._currentUserId);
+        renderMessages();
       } catch (e) { input.value = body; alert('Send failed: ' + e.message); }
     }
   }
 
+  // ── Media upload ─────────────────────────────────────────────────────────────
+  async function sendMedia(file) {
+    if (!_activeConvId) return;
+    const form = new FormData();
+    form.append('file', file);
+    try {
+      const data = await apiForm(`/api/messages/${_activeConvId}/media`, form);
+      _messages.push(data.message);
+      renderMessages();
+    } catch (e) { alert('Upload failed: ' + e.message); }
+  }
+
   function closeChatWindow() {
-    _windowOpen    = false;
-    _activeConvId  = null;
+    _windowOpen   = false;
+    _activeConvId = null;
+    cancelEdit();
     document.getElementById('chatWindow')?.classList.remove('open');
   }
 
-  // ── Start conversation from profile/feed ─────────────────────────────────────
+  // ── Start conversation ────────────────────────────────────────────────────────
   async function startConversation(userId) {
     try {
       const data = await api('POST', '/api/conversations', { userId });
@@ -194,11 +281,11 @@
     } catch (e) { alert('Could not open chat: ' + e.message); }
   }
 
-  // ── Notification sound (tiny synth beep via Web Audio API) ───────────────────
+  // ── Notification sound ────────────────────────────────────────────────────────
   function playMsgSound() {
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
+      const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+      const osc  = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
       osc.type = 'sine';
@@ -211,13 +298,13 @@
     } catch {}
   }
 
-  // ── Incoming WS message ───────────────────────────────────────────────────────
+  // ── Incoming WS events ────────────────────────────────────────────────────────
   function handleIncoming(event) {
     if (event.type === 'new_message') {
-      const msg = event.message;
+      const msg  = event.message;
       const conv = _conversations.find(c => c.id === msg.conversationId);
       if (conv) {
-        conv.lastMessage = { body: msg.body, senderId: msg.senderId };
+        conv.lastMessage = { body: msg.body, mediaType: msg.mediaType, senderId: msg.senderId };
         if (msg.conversationId !== _activeConvId || !_windowOpen) {
           conv.unreadCount = (conv.unreadCount || 0) + 1;
           _unread++;
@@ -227,8 +314,7 @@
       }
       if (msg.conversationId === _activeConvId && _windowOpen) {
         _messages.push(msg);
-        renderMessages(window._currentUserId);
-        // auto-mark read
+        renderMessages();
         api('PUT', `/api/messages/${_activeConvId}/read`).catch(() => {});
       }
       if (_panelOpen) loadConversations();
@@ -237,13 +323,27 @@
       const msg = event.message;
       if (msg.conversationId === _activeConvId) {
         _messages.push(msg);
-        renderMessages(window._currentUserId);
+        renderMessages();
+      }
+    }
+    if (event.type === 'message_edited') {
+      const msg = event.message;
+      if (msg.conversationId === _activeConvId) {
+        const idx = _messages.findIndex(m => m.id === msg.id);
+        if (idx !== -1) _messages[idx] = msg;
+        renderMessages();
+      }
+    }
+    if (event.type === 'message_deleted') {
+      if (event.conversationId === _activeConvId) {
+        const m = _messages.find(x => x.id === event.messageId);
+        if (m) { m.isDeleted = true; m.body = ''; m.mediaUrl = ''; m.mediaType = ''; }
+        renderMessages();
       }
     }
   }
 
   async function openByMessageId(msgId) {
-    // Find conversation that contains this message, then open it
     try {
       const data = await api('GET', '/api/conversations');
       _conversations = data.conversations || [];
@@ -255,19 +355,36 @@
     } catch {}
   }
 
-  // ── Wire up DOM events ────────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── DOM wiring ────────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('chatSendBtn')?.addEventListener('click', sendMessage);
     document.getElementById('chatInput')?.addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+      if (e.key === 'Escape' && _editingMsgId) cancelEdit();
     });
     document.getElementById('chatWindowClose')?.addEventListener('click', closeChatWindow);
     document.getElementById('chatPanelClose')?.addEventListener('click', closeChatPanel);
-    // Chat window header (av + title) → open user profile
     document.getElementById('chatWindowHeader')?.addEventListener('click', (e) => {
-      if (e.target.closest('#chatWindowClose')) return; // don't trigger on close btn
+      if (e.target.closest('#chatWindowClose')) return;
       const uid = document.getElementById('chatWindowTitle')?.dataset.uid;
       if (uid) window.openUserProfile?.(uid);
+    });
+
+    // Cancel edit bar
+    document.getElementById('chatEditCancel')?.addEventListener('click', cancelEdit);
+
+    // Media attach button
+    document.getElementById('chatAttachBtn')?.addEventListener('click', () => {
+      document.getElementById('chatFileInput')?.click();
+    });
+    document.getElementById('chatFileInput')?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (file) sendMedia(file);
+      e.target.value = '';
     });
   });
 

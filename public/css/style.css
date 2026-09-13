@@ -3616,6 +3616,29 @@ body.draw-mode.tool-select #drawingCanvas {
 }
 .chat-send-btn:hover { background: var(--accent2); }
 
+/* ── Chat attach button ─── */
+.chat-attach-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--border2);
+  background: transparent; color: var(--ink3); cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
+}
+.chat-attach-btn:hover { background: var(--bg3); color: var(--accent); }
+
+/* ── Edit/delete action buttons on chat bubbles ─── */
+.chat-msg-actions {
+  display: flex; gap: 2px; margin-bottom: 2px;
+  justify-content: flex-end; opacity: 0;
+  transition: opacity .15s;
+}
+.chat-msg:hover .chat-msg-actions { opacity: 1; }
+.chat-act-btn {
+  background: none; border: none; cursor: pointer; font-size: 13px;
+  padding: 1px 4px; border-radius: 4px; line-height: 1;
+  color: var(--ink3); transition: background .12s;
+}
+.chat-act-btn:hover { background: var(--bg3); }
+
 /* Public note badge on diary grid */
 .note-public-badge {
   position: absolute; top: 6px; right: 6px;
