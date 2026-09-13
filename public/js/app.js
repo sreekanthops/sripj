@@ -29,7 +29,7 @@ let activeTag    = null;
 let pendingTags  = [];
 
 // ── TIME FILTER STATE ──────────────────────────────────────────────────────
-let tfMode      = 'week';   // 'week' | 'month' | 'year' | 'all'
+let tfMode      = 'all';    // 'week' | 'month' | 'year' | 'all'
 let tfSubKey    = null;     // e.g. '2025-06' for month mode, or '2025-W23' for year drill-down
 let allPage     = 1;        // current page in 'all' mode
 const PER_PAGE  = 50;
