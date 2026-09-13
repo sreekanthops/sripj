@@ -160,12 +160,12 @@
 
   <footer class="landing-footer">
     &copy; 2026 Unsent Stories &nbsp;·&nbsp; <a href="/pricing">Pricing</a> &nbsp;·&nbsp; <a href="tel:+918790007228">+91 87900 07228</a>
-    <span id="landingInstaWrap" style="display:none">&nbsp;·&nbsp;
-      <a id="landingInstaLink" href="#" target="_blank" rel="noopener" class="insta-footer-link" aria-label="Follow us on Instagram">
-        <svg class="insta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+    <div id="landingInstaWrap" style="display:none;margin-top:14px">
+      <a id="landingInstaLink" href="#" target="_blank" rel="noopener" class="insta-btn" aria-label="Follow us on Instagram">
+        <svg class="insta-btn-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="ig1" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="5%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="url(#ig1)"/><rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="none" stroke="none"/><circle cx="12" cy="12" r="4" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="17.5" cy="6.5" r="1.2" fill="#fff"/></svg>
         <span>Follow on Instagram</span>
       </a>
-    </span>
+    </div>
   </footer>
 
 </div>
@@ -302,23 +302,23 @@
             <option value="most-views">👁 Views</option>
           </select>
           <span class="ctrl-divider"></span>
+          <svg class="ctrl-cal-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="1" y="3" width="14" height="12" rx="2"/><line x1="5" y1="1" x2="5" y2="5"/><line x1="11" y1="1" x2="11" y2="5"/><line x1="1" y1="7" x2="15" y2="7"/></svg>
           <div class="ctrl-date-wrap">
             <span class="ctrl-date-label">From</span>
             <input type="date" class="ctrl-date" id="filterFrom" title="From date">
           </div>
-          <span class="ctrl-dash">—</span>
+          <span class="ctrl-dash">–</span>
           <div class="ctrl-date-wrap">
             <span class="ctrl-date-label">To</span>
             <input type="date" class="ctrl-date" id="filterTo" title="To date">
           </div>
-          <button id="btnClearFilter" class="ctrl-clear" style="display:none">✕</button>
+          <button id="btnClearFilter" class="ctrl-clear" style="display:none" title="Clear date filter">✕</button>
         </div>
       </div>
       <!-- Right: New + Canvas + Ask AI + Notifications -->
       <div class="topbar-right">
         <button class="btn btn-primary btn-sm" id="quickNewBtn" style="display:none">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
-          New
+          New Entry
         </button>
         <button id="stickerToggle" class="topbar-canvas-btn hidden" title="Place images &amp; text on canvas">
           <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -420,7 +420,15 @@
       <!-- pagination (Show All mode) -->
       <div id="notesPager" class="notes-pager" style="display:none"></div>
     </section>
-    <footer>Unsent Stories · your private space to write, reflect &amp; remember &nbsp;·&nbsp; <a href="tel:+918790007228" style="color:var(--ink4);text-decoration:none">+91 87900 07228</a><span id="appInstaWrap" style="display:none"> &nbsp;·&nbsp; <a id="appInstaLink" href="#" target="_blank" rel="noopener" class="insta-footer-link" aria-label="Follow on Instagram"><svg class="insta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg><span>Instagram</span></a></span></footer>
+    <footer style="display:flex;flex-direction:column;align-items:center;gap:10px">
+      <span>Unsent Stories · your private space to write, reflect &amp; remember &nbsp;·&nbsp; <a href="tel:+918790007228" style="color:var(--ink4);text-decoration:none">+91 87900 07228</a></span>
+      <span id="appInstaWrap" style="display:none">
+        <a id="appInstaLink" href="#" target="_blank" rel="noopener" class="insta-btn insta-btn-sm" aria-label="Follow on Instagram">
+          <svg class="insta-btn-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="ig2" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="5%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="url(#ig2)"/><circle cx="12" cy="12" r="4" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="17.5" cy="6.5" r="1.2" fill="#fff"/></svg>
+          <span>Follow on Instagram</span>
+        </a>
+      </span>
+    </footer>
   </main>
 
   <!-- ══ FEED SCREEN ══════════════════════════════════════════════ -->

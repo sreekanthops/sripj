@@ -300,18 +300,22 @@ a.brand-link:hover { opacity: .78; }
 .topbar-canvas-btn.hidden { display: none !important; }
 
 .ctrl-group {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 5px;
   background: var(--surface); border: 1px solid var(--border2);
-  border-radius: 10px; padding: 6px 12px;
+  border-radius: 10px; padding: 5px 10px;
 }
 .ctrl-select, .ctrl-date {
   border: none; background: transparent;
-  font-family: var(--sans); font-size: 12.5px;
+  font-family: var(--sans); font-size: 12px;
   color: var(--ink2); outline: none; cursor: pointer;
 }
 .ctrl-select:focus, .ctrl-date:focus { color: var(--accent); }
-.ctrl-divider { width: 1px; height: 16px; background: var(--border2); flex-shrink: 0; }
-.ctrl-dash { font-size: 12px; color: var(--ink4); padding: 0 2px; }
+.ctrl-divider { width: 1px; height: 14px; background: var(--border2); flex-shrink: 0; }
+.ctrl-dash { font-size: 11px; color: var(--ink4); padding: 0 1px; flex-shrink: 0; }
+.ctrl-cal-icon {
+  width: 13px; height: 13px; flex-shrink: 0;
+  color: var(--ink4); margin-right: 1px;
+}
 
 /* Date picker wrapper — shows label text when no date is selected */
 .ctrl-date-wrap {
@@ -4023,17 +4027,34 @@ body.draw-mode.tool-select #drawingCanvas {
   outline: 2.5px solid var(--bg);
 }
 
-/* ── Instagram footer link ───────────────────────────────────────────────── */
-.insta-footer-link {
-  display: inline-flex; align-items: center; gap: 5px;
-  color: var(--ink4); text-decoration: none;
-  font-size: inherit;
-  transition: color .15s;
+/* ── Instagram branded button ─────────────────────────────────────────────── */
+.insta-btn {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 9px 18px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fdf497 0%, #fd5949 35%, #d6249f 65%, #285AEB 100%);
+  color: #fff; text-decoration: none;
+  font-family: var(--sans); font-size: 13px; font-weight: 700;
+  letter-spacing: .2px;
+  border: none; cursor: pointer;
+  box-shadow: 0 3px 14px rgba(214,36,159,.35);
+  transition: opacity .15s, transform .12s var(--spring), box-shadow .15s;
+  white-space: nowrap;
 }
-.insta-footer-link:hover { color: #E1306C; }
-.insta-icon {
-  width: 14px; height: 14px; flex-shrink: 0;
-  vertical-align: middle;
-  transition: stroke .15s;
+.insta-btn:hover {
+  opacity: .92; transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(214,36,159,.45);
+  text-decoration: none; color: #fff;
 }
-.insta-footer-link:hover .insta-icon { stroke: #E1306C; }
+.insta-btn:active { transform: translateY(0); }
+
+/* Smaller variant for app diary footer */
+.insta-btn.insta-btn-sm {
+  padding: 7px 14px; font-size: 12px; border-radius: 8px;
+}
+
+.insta-btn-icon {
+  width: 20px; height: 20px; flex-shrink: 0;
+  border-radius: 5px;
+}
+.insta-btn-sm .insta-btn-icon { width: 17px; height: 17px; }
