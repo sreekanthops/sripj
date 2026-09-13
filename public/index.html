@@ -6,7 +6,7 @@
   <title>Unsent Stories</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/css/style.css?v=22">
+  <link rel="stylesheet" href="/css/style.css?v=23">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -1080,13 +1080,13 @@
 
   <!-- Stroke Widths / Presets: Light, Medium, Thick -->
   <div class="canvas-stroke-section" id="canvasStrokeSection">
-    <span class="canvas-section-label">Intensity</span>
-    <div class="canvas-intensity-bar" id="canvasIntensityBar" title="Stroke intensity">
-      <button class="cib-bar" data-level="1"></button>
-      <button class="cib-bar" data-level="2"></button>
-      <button class="cib-bar" data-level="3" aria-pressed="true"></button>
-      <button class="cib-bar" data-level="4"></button>
-      <button class="cib-bar" data-level="5"></button>
+    <span class="canvas-section-label">Weight</span>
+    <div class="canvas-weight-row" id="canvasIntensityBar">
+      <button class="cwb" data-level="1" title="Hairline"><span class="cwb-line"></span></button>
+      <button class="cwb" data-level="2" title="Fine"><span class="cwb-line"></span></button>
+      <button class="cwb" data-level="3" title="Medium"><span class="cwb-line"></span></button>
+      <button class="cwb" data-level="4" title="Bold"><span class="cwb-line"></span></button>
+      <button class="cwb" data-level="5" title="Heavy"><span class="cwb-line"></span></button>
     </div>
   </div>
 
@@ -1255,6 +1255,6 @@
 <script src="/js/notifications.js"></script>
 <script src="/js/chat.js"></script>
 <script src="/js/feed.js?v=2"></script>
-<script src="/js/app.js?v=39"></script>
+<script src="/js/app.js?v=40"></script>
 </body>
 </html>

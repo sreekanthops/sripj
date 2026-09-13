@@ -3559,10 +3559,10 @@ function _jwtPayload(t) {
     return SIZES[tool][strokeIntensity - 1] || 4;
   }
 
-  // Render soundbar — all bars up to and including selected level get .active
+  // Render weight toggle — only the selected button gets .active
   function renderIntensityBar(level) {
-    document.querySelectorAll('.cib-bar').forEach(bar => {
-      bar.classList.toggle('active', parseInt(bar.dataset.level) <= level);
+    document.querySelectorAll('.cwb').forEach(bar => {
+      bar.classList.toggle('active', parseInt(bar.dataset.level) === level);
       bar.setAttribute('aria-pressed', bar.dataset.level === String(level));
     });
   }
