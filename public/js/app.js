@@ -4297,3 +4297,28 @@ document.getElementById('resetSubmitBtn')?.addEventListener('click', async () =>
     history.replaceState({}, '', '/');
   }
 })();
+
+// ── Load & inject Instagram link from server settings ────────────────────────
+;(async function loadSocialLinks() {
+  try {
+    const res = await fetch('/api/payments/public/settings');
+    if (!res.ok) return;
+    const { settings } = await res.json().catch(() => ({}));
+    const url = settings?.instagram_url?.trim();
+    if (!url) return;
+    // Landing footer
+    const landingWrap = document.getElementById('landingInstaWrap');
+    const landingLink = document.getElementById('landingInstaLink');
+    if (landingWrap && landingLink) {
+      landingLink.href = url;
+      landingWrap.style.display = '';
+    }
+    // App diary footer
+    const appWrap = document.getElementById('appInstaWrap');
+    const appLink = document.getElementById('appInstaLink');
+    if (appWrap && appLink) {
+      appLink.href = url;
+      appWrap.style.display = '';
+    }
+  } catch {}
+})();

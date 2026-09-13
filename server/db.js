@@ -442,4 +442,10 @@ seedPlan.run('lifetime', 'Lifetime',     99.00,  8249,   -1,  1, 1, 'Unlimited e
 // (INSERT OR IGNORE above won't update existing rows, so we patch it here)
 db.prepare(`UPDATE subscription_plans SET uploads = 1, description = 'Up to 5 diary entries. Photos & videos allowed. No canvas stickers.' WHERE id = 'free' AND uploads = 0`).run();
 
+// ── Seed default app_settings (idempotent) ────────────────────────────────────
+const seedSetting = db.prepare(`
+  INSERT OR IGNORE INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)
+`);
+seedSetting.run('instagram_url', 'https://www.instagram.com/unsentstories.in/', new Date().toISOString());
+
 module.exports = db;

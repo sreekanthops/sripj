@@ -203,6 +203,18 @@ router.get('/admin/orders', verifyAdminToken, (req, res) => {
   res.json({ orders });
 });
 
+// ── GET /api/payments/public/settings  — read safe public settings (no auth) ──
+// Only exposes whitelisted keys that are safe to show publicly.
+const PUBLIC_SETTING_KEYS = ['instagram_url'];
+router.get('/public/settings', (req, res) => {
+  const settings = {};
+  PUBLIC_SETTING_KEYS.forEach(k => {
+    const row = db.prepare('SELECT value FROM app_settings WHERE key=?').get(k);
+    if (row) settings[k] = row.value;
+  });
+  res.json({ settings });
+});
+
 // ── GET /api/payments/admin/settings  — get current settings ─────────────────
 router.get('/admin/settings', verifyAdminToken, (req, res) => {
   const rows = db.prepare('SELECT key, value FROM app_settings').all();
@@ -218,7 +230,7 @@ router.get('/admin/settings', verifyAdminToken, (req, res) => {
 
 // ── POST /api/payments/admin/settings  — save settings ───────────────────────
 router.post('/admin/settings', verifyAdminToken, (req, res) => {
-  const allowed = ['razorpay_key_id', 'razorpay_key_secret', 'google_client_id'];
+  const allowed = ['razorpay_key_id', 'razorpay_key_secret', 'google_client_id', 'instagram_url'];
   const stmt = db.prepare(`
     INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)
     ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at

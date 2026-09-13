@@ -4022,3 +4022,18 @@ body.draw-mode.tool-select #drawingCanvas {
   /* inner white border to separate ring from avatar */
   outline: 2.5px solid var(--bg);
 }
+
+/* ── Instagram footer link ───────────────────────────────────────────────── */
+.insta-footer-link {
+  display: inline-flex; align-items: center; gap: 5px;
+  color: var(--ink4); text-decoration: none;
+  font-size: inherit;
+  transition: color .15s;
+}
+.insta-footer-link:hover { color: #E1306C; }
+.insta-icon {
+  width: 14px; height: 14px; flex-shrink: 0;
+  vertical-align: middle;
+  transition: stroke .15s;
+}
+.insta-footer-link:hover .insta-icon { stroke: #E1306C; }
