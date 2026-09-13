@@ -2825,11 +2825,9 @@ function renderDetail(note) {
   }).join('') || `<p style="color:var(--ink4);font-size:12px;font-style:italic;font-family:var(--sans)">No replies yet.</p>`;
 
   // ── render tinder detail body ──
-  // Top cover: background image > media > coloured title bg
+  // Top cover: only show when there's actual media (photos/videos); skip pure background images
   let coverHtml = '';
-  if (note.bgUrl && !note.media?.length) {
-    coverHtml = `<img src="${note.bgUrl}" class="td-cover-bg-img" alt="note background">`;
-  } else if (note.media && note.media.length) {
+  if (note.media && note.media.length) {
     coverHtml = `<div id="tdMediaMount" class="td-cover-media"></div>`;
   } else {
     coverHtml = `<div class="td-cover-textbg" style="background:${p.bg}">
@@ -2837,7 +2835,7 @@ function renderDetail(note) {
     </div>`;
   }
 
-  // Body bg style if note has bgUrl
+  // Body bg style: only apply if note has a bgUrl (subtle texture behind text)
   const tdBodyStyle = note.bgUrl
     ? `background-image:url('${note.bgUrl}')`
     : '';
