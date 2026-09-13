@@ -1,0 +1,79 @@
+{
+  "expo": {
+    "name": "Unsent Stories",
+    "slug": "unsent-stories",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "entryPoint": "./index.js",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#e8e0d0"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.unsentstories.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to take photos for your diary entries.",
+        "NSPhotoLibraryUsageDescription": "Used to pick photos and videos for your diary entries.",
+        "NSMicrophoneUsageDescription": "Used to record audio for diary entries.",
+        "UIBackgroundModes": ["audio", "fetch", "remote-notification"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#e8e0d0"
+      },
+      "package": "com.unsentstories.app",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#e8e0d0"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#2f5a6e"
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow Unsent Stories to access the microphone."
+        }
+      ]
+    ],
+    "scheme": "unsentstories",
+    "extra": {
+      "eas": {
+        "projectId": "unsent-stories"
+      }
+    }
+  }
+}
