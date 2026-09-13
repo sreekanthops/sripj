@@ -1702,6 +1702,20 @@ let _globalMusicLib    = null; // cached global tracks [{id,url,title,artist,sou
 let _userMusicLib      = null; // cached user tracks [{id,url,title,artist,source:'user'}]
 
 // ── Audio upload helpers ───────────────────────────────────────────────────
+function _setAudioPreview(src) {
+  const el = document.getElementById('fAudioPreview');
+  if (!el) return;
+  if (src) {
+    el.src = src;
+    el.style.display = '';
+  } else {
+    el.pause();
+    el.removeAttribute('src');
+    el.load();
+    el.style.display = 'none';
+  }
+}
+
 function updateAudioLabel() {
   const lbl     = document.getElementById('fAudioFileLabel');
   const clearBtn = document.getElementById('fAudioClearBtn');
@@ -1729,6 +1743,8 @@ document.getElementById('fAudioFile')?.addEventListener('change', e => {
   clearMusicTrackSelection();
   updateAudioLabel();
   updateDefaultMusicNotice();
+  // show preview for the chosen file
+  _setAudioPreview(URL.createObjectURL(file));
 });
 
 document.getElementById('fAudioClearBtn')?.addEventListener('click', () => {
@@ -1738,6 +1754,13 @@ document.getElementById('fAudioClearBtn')?.addEventListener('click', () => {
   if (inp) inp.value = '';
   updateAudioLabel();
   updateDefaultMusicNotice();
+  _setAudioPreview(null);
+});
+
+// URL input — show preview after user finishes typing a URL
+document.getElementById('fMusic')?.addEventListener('change', e => {
+  const url = e.target.value.trim();
+  _setAudioPreview(url || null);
 });
 
 // ── User library upload ────────────────────────────────────────────────────
@@ -1971,6 +1994,7 @@ function resetAudioState() {
   const inp = document.getElementById('fAudioFile');
   if (inp) inp.value = '';
   updateAudioLabel();
+  _setAudioPreview(null);
 }
 
 async function openNewForm() {
@@ -2009,6 +2033,10 @@ async function openEditForm(note) {
   _pendingAudioFile = null;
   _uploadedAudioUrl = (note.musicUrl && !note.noteMusicId && note.musicUrl.startsWith('/uploads/')) ? note.musicUrl : '';
   updateAudioLabel();
+  // show preview of existing music (uploaded file or URL)
+  const _existingPreviewSrc = _uploadedAudioUrl ||
+    ((note.musicUrl && !note.noteMusicId && !note.musicUrl.startsWith('/uploads/')) ? note.musicUrl : null);
+  _setAudioPreview(_existingPreviewSrc || null);
   document.getElementById('formTitle').textContent = '✒ Edit Entry';
   document.getElementById('fTitle').value  = note.title;
   document.getElementById('fBody').value   = note.body;

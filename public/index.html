@@ -687,6 +687,9 @@
               </label>
               <span id="fAudioFileLabel" style="font-size:11px;color:var(--ink4);font-family:var(--sans);display:block;margin-top:5px;word-break:break-all"></span>
               <button type="button" id="fAudioClearBtn" class="btn btn-ghost btn-xs" style="display:none;margin-top:4px">✕ Clear</button>
+              <!-- inline preview player — shown once a file or URL is set -->
+              <audio id="fAudioPreview" controls preload="none"
+                style="display:none;width:100%;margin-top:8px;height:32px;accent-color:var(--accent)"></audio>
               <div style="margin-top:6px">
                 <input type="text" id="fMusic" placeholder="…or paste URL (.mp3/.ogg)" style="font-size:11px;width:100%">
               </div>
@@ -1256,6 +1259,6 @@
 <script src="/js/notifications.js"></script>
 <script src="/js/chat.js"></script>
 <script src="/js/feed.js?v=2"></script>
-<script src="/js/app.js?v=37"></script>
+<script src="/js/app.js?v=38"></script>
 </body>
 </html>
