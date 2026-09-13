@@ -4268,3 +4268,11 @@ body.draw-mode.tool-select #drawingCanvas {
   letter-spacing: .3px;
   z-index: 2;
 }
+
+/* ── Time-filter default pill star badge ──────────────────────────────────── */
+.tf-pill.is-default::after {
+  content: ' ★';
+  font-size: 9px;
+  opacity: .65;
+  vertical-align: super;
+}

@@ -29,7 +29,8 @@ let activeTag    = null;
 let pendingTags  = [];
 
 // ── TIME FILTER STATE ──────────────────────────────────────────────────────
-let tfMode      = 'all';    // 'week' | 'month' | 'year' | 'all'
+const LS_TF_DEFAULT = 'diary_default_tf';
+let tfMode      = localStorage.getItem(LS_TF_DEFAULT) || 'all'; // restore saved default
 let tfSubKey    = null;     // e.g. '2025-06' for month mode, or '2025-W23' for year drill-down
 let allPage     = 1;        // current page in 'all' mode
 const PER_PAGE  = 50;
@@ -2672,7 +2673,11 @@ function getTimeFilteredNotes() {
 }
 
 function renderTimeFilterBar() {
-  document.querySelectorAll('.tf-pill').forEach(b => b.classList.toggle('active', b.dataset.tf === tfMode));
+  const savedDefault = localStorage.getItem(LS_TF_DEFAULT) || 'all';
+  document.querySelectorAll('.tf-pill').forEach(b => {
+    b.classList.toggle('active',     b.dataset.tf === tfMode);
+    b.classList.toggle('is-default', b.dataset.tf === savedDefault);
+  });
   const subRow = document.getElementById('tfSubRow');
   subRow.innerHTML = ''; subRow.style.display = 'none'; subRow.style.flexDirection = '';
   const allSorted = [...notes].sort((a,b) => a.createdAt.localeCompare(b.createdAt));
@@ -2750,6 +2755,19 @@ document.getElementById('timeFilterBar').addEventListener('click', e => {
   if (!pill) return;
   tfMode = pill.dataset.tf; tfSubKey = null; allPage = 1;
   renderTimeFilterBar(); renderGrid();
+});
+
+// ── Set-as-Default button for time filter ────────────────────────────────────
+document.getElementById('tfSetDefaultBtn')?.addEventListener('click', () => {
+  localStorage.setItem(LS_TF_DEFAULT, tfMode);
+  const btn = document.getElementById('tfSetDefaultBtn');
+  const labels = { week: 'This Week', month: 'Monthly', year: 'Yearly', all: 'Show All' };
+  btn.textContent = '✓ Saved!';
+  btn.classList.add('saved');
+  setTimeout(() => { btn.textContent = '★ Set as Default'; btn.classList.remove('saved'); }, 1800);
+  toast(`Default view set to "${labels[tfMode] || tfMode}" ★`);
+  // Update star badge on pills
+  document.querySelectorAll('.tf-pill').forEach(p => p.classList.toggle('is-default', p.dataset.tf === tfMode));
 });
 
 // ── TAG FILTER BAR ─────────────────────────────────────────────────────────
