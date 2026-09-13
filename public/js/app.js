@@ -3153,6 +3153,13 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
 })();
 
 // ── INIT ───────────────────────────────────────────────────────────────────
+// Decode a JWT payload without verifying signature — used as offline fallback
+// so a network blip on /auth/verify never signs the user out.
+function _jwtPayload(t) {
+  try { return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
+  catch { return null; }
+}
+
 (async () => {
   // URL patterns
   const atMatch    = location.pathname.match(/^\/@([^/]+)/);   // /@username (own diary)
@@ -3169,29 +3176,50 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
   // Restore session from localStorage token
   if (token) {
     try {
-      const data = await api('GET', '/auth/verify');
-      const sToken = data.shareToken || _storedShareToken || '';
-      if (sToken) {
-        _storedShareToken = sToken;
-        localStorage.setItem('diary_share_token', sToken);
+      const res  = await fetch(`${API}/auth/verify`, { headers: { Authorization: 'Bearer ' + token } });
+      if (res.status === 401) {
+        // Genuinely invalid / revoked token — clear it
+        token = null;
+        localStorage.removeItem('diary_token');
+      } else {
+        // 200 or any non-401 (network error returns opaque response or throws)
+        const data = res.ok ? await res.json() : null;
+        const payload = data || _jwtPayload(token); // fall back to JWT payload on network error
+        if (payload) {
+          const sToken = data?.shareToken || _storedShareToken || '';
+          if (sToken) {
+            _storedShareToken = sToken;
+            localStorage.setItem('diary_share_token', sToken);
+          }
+          currentUser = {
+            userId:      payload.userId,
+            username:    payload.username,
+            displayName: data?.displayName || payload.username || '',
+            email:       data?.email       || '',
+            phone:       data?.phone       || '',
+            bio:         data?.bio         || '',
+            avatarUrl:   data?.avatarUrl   || '',
+            shareToken:  sToken
+          };
+          window._currentUserId = currentUser.userId;
+          window.WS?.wsConnect?.(token);
+          setTimeout(() => window.Notif?.init?.(), 200);
+        }
       }
-      currentUser = {
-        userId: data.userId, username: data.username,
-        displayName: data.displayName, email: data.email || '',
-        phone: data.phone || '',
-        bio: data.bio || '', avatarUrl: data.avatarUrl || '',
-        shareToken: sToken
-      };
-      // Expose userId for chat.js, connect WS, init notifications
-      window._currentUserId = currentUser.userId;
-      window.WS?.wsConnect?.(token);
-      setTimeout(() => window.Notif?.init?.(), 200);
     } catch {
-      // Token invalid/expired — clear JWT but keep shareToken so we can
-      // still recognise the user on /s/:token reload
-      token = null;
-      localStorage.removeItem('diary_token');
-      // Do NOT clear diary_share_token here — used for /s/ URL recognition
+      // Network completely down — decode token locally so user stays logged in
+      const payload = _jwtPayload(token);
+      if (payload) {
+        currentUser = {
+          userId:      payload.userId,
+          username:    payload.username,
+          displayName: payload.username || '',
+          email: '', phone: '', bio: '', avatarUrl: '',
+          shareToken: _storedShareToken || ''
+        };
+        window._currentUserId = currentUser.userId;
+      }
+      // Do NOT clear token — keep session alive for when network returns
     }
   }
 
@@ -3199,9 +3227,8 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
     await enterSingleNote(entryId);
 
   } else if (shareToken) {
-    // /s/:token — always open diary publicly, no login required
+    // /s/:token — check ownership first if logged in
     if (currentUser) {
-      // Logged-in user — check if this is their own diary
       const isOwnToken = currentUser.shareToken === shareToken
                       || _storedShareToken === shareToken;
       if (isOwnToken) {
@@ -3212,21 +3239,22 @@ document.getElementById('musicVol').oninput = e => { audio.volume = parseFloat(e
         catch { await enterOwnDiary(); }
       }
     } else {
-      // No session — load diary publicly, no login required
       try { await enterPublicDiary(shareToken, '', true); }
       catch { showLanding(); }
     }
 
   } else if (urlUsername) {
-    // /@username or /u/username
-    if (currentUser && currentUser.username === urlUsername) {
-      await enterOwnDiary(); // it's their own diary — restore session
+    // /@username or /u/username — if it matches the logged-in user, restore their session
+    if (currentUser && currentUser.username.toLowerCase() === urlUsername) {
+      await enterOwnDiary();
+    } else if (currentUser && !urlUsername) {
+      await enterOwnDiary();
     } else {
       await enterPublicDiary(urlUsername);
     }
 
   } else if (currentUser) {
-    // Logged-in user landing on / — go straight to their diary
+    // Logged-in user on / — go straight to their diary
     await enterOwnDiary();
   } else {
     showLanding();

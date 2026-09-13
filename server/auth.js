@@ -6,7 +6,7 @@ const SECRET       = process.env.JWT_SECRET       || 'diary_secret_v2';
 const ADMIN_SECRET = process.env.ADMIN_JWT_SECRET || 'admin_secret_v1';
 
 function signToken(userId, username) {
-  return jwt.sign({ userId, username }, SECRET, { expiresIn: '30d' });
+  return jwt.sign({ userId, username }, SECRET, { expiresIn: '365d' });
 }
 
 function verifyToken(req, res, next) {
