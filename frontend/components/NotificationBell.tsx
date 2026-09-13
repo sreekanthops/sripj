@@ -15,13 +15,12 @@ interface Notif {
 }
 
 const TYPE_LABEL: Record<string, string> = {
-  tagged_post:      "tagged you in a post",
-  tagged_seen:      "saw your post",
+  tagged_seen:        "saw your post",
   tagged_no_response: "scrolled past your post",
-  like:             "reacted to your entry",
-  reply:            "replied to your entry",
-  follow:           "started following you",
-  message:          "sent you a message",
+  like:               "reacted to your entry",
+  reply:              "replied to your entry",
+  follow:             "started following you",
+  message:            "sent you a message",
 };
 
 function timeAgo(iso: string) {

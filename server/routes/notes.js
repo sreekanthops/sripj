@@ -292,13 +292,9 @@ router.post('/', verifyToken, (req, res) => {
          fontSize || 14, fontWeight || 'normal', colorIdx ?? 0, musicUrl || '', tagsJson,
          bgUrl || '', noteMusicId || '', ttsVoice || 'female', ttsTone || 'auto', taggedId, now);
 
-  // notify tagged user
-  if (taggedId) {
-    const notifId = uuidv4();
-    db.prepare('INSERT INTO notifications (id, recipient_id, type, actor_id, note_id, created_at) VALUES (?,?,?,?,?,?)')
-      .run(notifId, taggedId, 'tagged_post', req.user.userId, id, now);
-    emitToUser(taggedId, 'notification', { notification: { id: notifId, type: 'tagged_post', actorId: req.user.userId, noteId: id, createdAt: now } });
-  }
+  // Do NOT notify the tagged user — the post is intentionally hidden.
+  // They'll find it naturally in their feed. Only the owner gets notified
+  // later via tagged_seen / tagged_no_response when the tagged user views it.
 
   res.status(201).json(buildNote(db.prepare('SELECT * FROM notes WHERE id = ?').get(id), req));
 });
