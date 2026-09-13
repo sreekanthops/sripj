@@ -966,7 +966,7 @@
 </div>
 
 <!-- ══ FEEDBACK MODAL ════════════════════════════════════════ -->
-<div class="overlay center" id="feedbackOverlay" style="display:none">
+<div class="overlay center" id="feedbackOverlay">
   <div class="sheet" id="feedbackModal" style="max-width:480px">
     <button class="sheet-close" id="feedbackClose">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
@@ -1358,11 +1358,11 @@
     document.getElementById('fbGuestNameField').style.display = token ? 'none' : '';
     if (document.getElementById('fbGuestName')) document.getElementById('fbGuestName').value = '';
     // Show overlay
-    document.getElementById('feedbackOverlay').style.display = '';
+    document.getElementById('feedbackOverlay').classList.add('open');
   }
 
   function closeFeedbackModal() {
-    document.getElementById('feedbackOverlay').style.display = 'none';
+    document.getElementById('feedbackOverlay').classList.remove('open');
   }
 
   // Star hover + click
