@@ -38,17 +38,6 @@ export function Card({ children, style }) {
 }
 
 // ── Input ─────────────────────────────────────────────────────────────────────
-export function Input({ style, ...props }) {
-  return (
-    <View style={[styles.inputWrap, style]}>
-      <Text style={styles.inputLabel}>{props.label}</Text>
-      <View style={styles.inputBox}>
-        <props.Component ?? View />
-      </View>
-    </View>
-  );
-}
-
 export function TextField({ label, style, inputStyle, ...props }) {
   const { TextInput } = require('react-native');
   return (
