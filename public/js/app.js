@@ -4306,19 +4306,20 @@ document.getElementById('resetSubmitBtn')?.addEventListener('click', async () =>
     const data = await res.json().catch(() => ({}));
     const url  = (data?.settings?.instagram_url || '').trim();
     if (!url) return;
-    // Landing footer
-    const landingWrap = document.getElementById('landingInstaWrap');
-    const landingLink = document.getElementById('landingInstaLink');
-    if (landingWrap && landingLink) {
-      landingLink.href = url;
-      landingWrap.classList.remove('hidden');
+
+    // Helper: set href + show element
+    function showInsta(linkId, wrapId) {
+      const link = document.getElementById(linkId);
+      const wrap = document.getElementById(wrapId);
+      if (link) link.href = url;
+      if (wrap) wrap.classList.remove('hidden');
+      // same-element link (no separate wrap)
+      if (link && !wrap) link.classList.remove('hidden');
     }
-    // App diary footer
-    const appWrap = document.getElementById('appInstaWrap');
-    const appLink = document.getElementById('appInstaLink');
-    if (appWrap && appLink) {
-      appLink.href = url;
-      appWrap.classList.remove('hidden');
-    }
+
+    showInsta('navInstaLink',      null);          // landing nav button
+    showInsta('topbarInstaLink',   null);          // app topbar button
+    showInsta('landingInstaLink',  'landingInstaWrap'); // landing footer
+    showInsta('appInstaLink',      'appInstaWrap');     // app footer
   } catch(e) { console.warn('[insta]', e); }
 })();
