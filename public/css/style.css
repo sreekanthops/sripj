@@ -1748,6 +1748,43 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 }
 .landing-signin-btn:active { transform: translateY(0); }
 
+/* ── Guest Feed Screen ───────────────────────────────────── */
+#guestFeedScreen {
+  position: fixed; inset: 0; z-index: 300;
+  background: var(--bg); display: flex; flex-direction: column;
+  overflow: hidden;
+}
+#guestFeedScreen.hidden { display: none !important; }
+.gf-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 16px; height: 56px; flex-shrink: 0;
+  background: rgba(232,224,208,.96);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border2);
+}
+.gf-back-btn {
+  background: none; border: none; cursor: pointer; padding: 6px;
+  color: var(--ink3); border-radius: 8px; display: flex; align-items: center;
+  transition: background .15s;
+}
+.gf-back-btn:hover { background: var(--bg3); }
+.gf-title {
+  font-family: var(--serif); font-size: 16px; font-weight: 700;
+  color: var(--ink); flex: 1;
+}
+.gf-signin-btn {
+  background: var(--accent); color: #fff; border: none; border-radius: 20px;
+  font-family: var(--sans); font-size: 13px; font-weight: 600;
+  padding: 6px 16px; cursor: pointer;
+  transition: background .15s;
+}
+.gf-signin-btn:hover { background: var(--accent2); }
+.gf-body {
+  flex: 1; overflow-y: auto;
+  padding: 16px 16px 32px;
+  max-width: 640px; width: 100%; margin: 0 auto;
+}
+
 /* ── Fixed bottom action bar on landing (Feed + Sign In) ─── */
 .landing-fixed-bar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;

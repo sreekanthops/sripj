@@ -98,28 +98,28 @@
       You have something to say. <span class="ls-signin-link" id="landingStartBtn">Sign in to begin →</span>
     </p>
 
-    <hr class="ls-rule">
-
-    <!-- ── PUBLIC FEED PREVIEW on landing ── -->
-    <div class="ls-feed-section">
-      <div class="ls-feed-header">
-        <span class="ls-feed-title">🌍 Public Stories</span>
-        <span class="ls-feed-sub">What people are sharing</span>
-      </div>
-      <div id="landingFeedCards" class="ls-feed-cards">
-        <div class="ls-feed-loading">Loading stories…</div>
-      </div>
-      <div id="landingFeedMore" style="text-align:center;margin-top:12px;display:none">
-        <button class="ls-feed-more-btn" id="landingFeedMoreBtn">Load more</button>
-      </div>
-    </div>
-
   </main>
 
   <footer class="landing-footer">
     &copy; 2026 Unsent Stories &nbsp;·&nbsp; <a href="/pricing">Pricing</a> &nbsp;·&nbsp; <a href="tel:+918790007228">+91 87900 07228</a>
   </footer>
 
+</div>
+
+<!-- ══ GUEST FEED SCREEN ═════════════════════════════════════ -->
+<div id="guestFeedScreen" class="hidden">
+  <header class="gf-header">
+    <button class="gf-back-btn" id="guestFeedBack">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="gf-title">🌍 Public Feed</span>
+    <button class="gf-signin-btn" id="guestFeedSignIn">Sign In</button>
+  </header>
+  <div class="gf-body">
+    <div id="guestFeedCards"></div>
+    <div id="guestFeedSpinner" style="display:none;text-align:center;padding:24px;color:var(--ink4)">Loading…</div>
+    <div id="guestFeedEmpty" style="display:none;text-align:center;padding:48px 24px;color:var(--ink4);font-size:14px">No public stories yet. Be the first to share! 🌍</div>
+  </div>
 </div>
 
 <!-- ══ AUTH MODAL ════════════════════════════════════════════ -->

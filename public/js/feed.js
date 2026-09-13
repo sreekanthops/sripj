@@ -265,62 +265,155 @@
     showFeed();
   }
 
-  // ── Landing-page public feed — reuses the same renderFeedCard + bindCardEvents
-  // so the landing preview and the in-app feed tab are 100% identical.
-  let _landingPage    = 1;
-  let _landingDone    = false;
-  let _landingLoading = false;
+  window.Feed = { initFeed, showFeed, hideFeed };
+})();
 
-  async function loadLandingFeed(reset) {
-    if (_landingLoading || (_landingDone && !reset)) return;
-    const container = document.getElementById('landingFeedCards');
-    if (!container) return;
-    _landingLoading = true;
-    if (reset) {
-      _landingPage = 1; _landingDone = false;
-      container.innerHTML = '<div class="ls-feed-loading">Loading stories…</div>';
-    }
+// ── Guest Feed Screen — standalone, no login required ─────────────────────
+(function () {
+  let _page    = 1;
+  let _loading = false;
+  let _done    = false;
+
+  function authHeader() {
+    const t = localStorage.getItem('diary_token');
+    return t ? { Authorization: 'Bearer ' + t } : {};
+  }
+  function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function relTime(iso) {
+    const diff = (Date.now() - new Date(iso)) / 1000;
+    if (diff < 60)    return 'just now';
+    if (diff < 3600)  return Math.floor(diff/60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+    return Math.floor(diff/86400) + 'd ago';
+  }
+
+  function promptLogin() {
+    document.getElementById('authModal')?.classList.remove('hidden');
+    document.getElementById('authScreen')?.classList.remove('hidden');
+    document.getElementById('guestFeedScreen')?.classList.add('hidden');
+    document.getElementById('landingFixedBar') && (document.getElementById('landingFixedBar').style.display = '');
+  }
+
+  function renderCard(note) {
+    const a = note.author;
+    const av = a.avatarUrl
+      ? `<img src="${escHtml(a.avatarUrl)}" class="feed-av-img">`
+      : `<div class="feed-av-init">${(a.displayName||a.username||'?').charAt(0).toUpperCase()}</div>`;
+    const reactionTotal = note.reactions.reduce((s,r) => s + r.c, 0);
+    const topEmoji = [...note.reactions].sort((a,b)=>b.c-a.c).slice(0,3).map(r=>r.emoji).join('');
+    const loggedIn = !!localStorage.getItem('diary_token');
+    const myId = window._currentUserId;
+    const isOwnNote = myId && myId === a.id;
+    const bgStyle = note.bgUrl ? `style="background-image:url('${escHtml(note.bgUrl)}');background-size:cover;background-position:center"` : '';
+
+    return `
+      <article class="feed-card" data-note-id="${escHtml(note.id)}">
+        ${note.bgUrl ? `<div class="feed-card-bg" ${bgStyle}></div>` : ''}
+        <div class="feed-card-body">
+          <div class="feed-card-author">
+            <div class="feed-av gf-av-link" data-uname="${escHtml(a.username)}" style="cursor:pointer">${av}</div>
+            <div class="feed-author-info">
+              <div class="feed-author-name gf-av-link" data-uname="${escHtml(a.username)}" style="cursor:pointer">${escHtml(a.displayName||a.username)}</div>
+              <div class="feed-author-handle">@${escHtml(a.username)} · ${relTime(note.createdAt)}</div>
+            </div>
+          </div>
+          ${note.title ? `<h3 class="feed-card-title">${escHtml(note.title)}</h3>` : ''}
+          <p class="feed-card-text">${escHtml((note.body||'').slice(0,280))}${(note.body||'').length>280?'…':''}</p>
+          <div class="feed-card-actions">
+            <button class="feed-react-btn gf-action" data-note-id="${escHtml(note.id)}" title="${loggedIn?'React':'Sign in to react'}">
+              ${topEmoji||'♡'} <span>${reactionTotal||''}</span>
+            </button>
+            <button class="feed-comment-btn gf-action" data-note-id="${escHtml(note.id)}" title="${loggedIn?'Comments':'Sign in to comment'}">
+              💬 <span>${note.replyCount||0}</span>
+            </button>
+            <button class="feed-share-btn gf-share" data-note-id="${escHtml(note.id)}" title="Share">↗</button>
+            ${!loggedIn ? `<button class="feed-signin-nudge-btn gf-login">Sign in to react →</button>` : ''}
+          </div>
+        </div>
+      </article>`;
+  }
+
+  function bindEvents(container) {
+    container.querySelectorAll('.gf-av-link[data-uname]').forEach(el => {
+      el.onclick = e => { e.stopPropagation(); window.location.href = '/@' + encodeURIComponent(el.dataset.uname); };
+    });
+    container.querySelectorAll('.gf-action[data-note-id]').forEach(btn => {
+      btn.onclick = e => {
+        e.stopPropagation();
+        if (!localStorage.getItem('diary_token')) { promptLogin(); return; }
+        window.openNoteById?.(btn.dataset.noteId);
+      };
+    });
+    container.querySelectorAll('.gf-share[data-note-id]').forEach(btn => {
+      btn.onclick = async e => {
+        e.stopPropagation();
+        const url = `${location.origin}/entry/${btn.dataset.noteId}`;
+        try { await navigator.clipboard.writeText(url); btn.textContent = '✓'; setTimeout(()=>{ btn.textContent='↗'; },1500); } catch {}
+      };
+    });
+    container.querySelectorAll('.gf-login').forEach(btn => {
+      btn.onclick = e => { e.stopPropagation(); promptLogin(); };
+    });
+  }
+
+  async function loadMore() {
+    if (_loading || _done) return;
+    _loading = true;
+    const container = document.getElementById('guestFeedCards');
+    const spinner   = document.getElementById('guestFeedSpinner');
+    const empty     = document.getElementById('guestFeedEmpty');
+    if (spinner) spinner.style.display = '';
     try {
-      const data = await fetch(`/api/feed?page=${_landingPage}&limit=10`, {
-        headers: { 'Content-Type': 'application/json', ...authHeader() }
-      }).then(r => r.json()).catch(() => ({ notes: [] }));
-
+      const res  = await fetch(`/api/feed?page=${_page}&limit=20`, { headers: { 'Content-Type':'application/json', ...authHeader() } });
+      const data = await res.json().catch(()=>({notes:[]}));
       if (!data.notes?.length) {
-        _landingDone = true;
-        if (_landingPage === 1) container.innerHTML = '<div class="ls-feed-empty">No public stories yet. Be the first to share! 🌍</div>';
-        document.getElementById('landingFeedMore').style.display = 'none';
+        _done = true;
+        if (_page === 1 && empty) empty.style.display = '';
         return;
       }
-      if (_landingPage === 1) container.innerHTML = '';
-
-      // Use the exact same card renderer as the in-app feed tab
       const frag = document.createDocumentFragment();
       data.notes.forEach(note => {
         const div = document.createElement('div');
-        div.innerHTML = renderFeedCard(note);
+        div.innerHTML = renderCard(note);
         frag.appendChild(div.firstElementChild);
       });
+      bindEvents(frag);
       container.appendChild(frag);
-
-      // Bind events — same handlers as the in-app feed tab
-      bindCardEvents(container);
-
-      _landingPage++;
-      const moreEl = document.getElementById('landingFeedMore');
-      if (data.notes.length < 10) { _landingDone = true; if (moreEl) moreEl.style.display = 'none'; }
-      else if (moreEl) moreEl.style.display = '';
-    } catch (err) {
-      console.error('[landingFeed]', err);
-    } finally {
-      _landingLoading = false;
-    }
+      _page++;
+      if (data.notes.length < 20) _done = true;
+    } catch (err) { console.error('[guestFeed]', err); }
+    finally { _loading = false; if (spinner) spinner.style.display = 'none'; }
   }
 
-  // Load on page open; reload when user logs in so follow-state is fresh
-  document.addEventListener('DOMContentLoaded', () => {
-    loadLandingFeed(true);
-    document.getElementById('landingFeedMoreBtn')?.addEventListener('click', () => loadLandingFeed(false));
-  });
+  // Infinite scroll inside the guest feed screen
+  const observer = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) loadMore();
+  }, { threshold: 0.1 });
 
-  window.Feed = { initFeed, showFeed, hideFeed, reloadLanding: () => loadLandingFeed(true) };
+  function load() {
+    // reset
+    _page = 1; _loading = false; _done = false;
+    const container = document.getElementById('guestFeedCards');
+    const empty     = document.getElementById('guestFeedEmpty');
+    if (container) container.innerHTML = '';
+    if (empty) empty.style.display = 'none';
+    // observe bottom sentinel
+    const sentinel = document.getElementById('guestFeedSpinner');
+    if (sentinel) observer.observe(sentinel);
+    loadMore();
+  }
+
+  // Back button
+  document.getElementById('guestFeedBack')?.addEventListener('click', () => {
+    document.getElementById('guestFeedScreen').classList.add('hidden');
+    document.getElementById('authScreen').classList.remove('hidden');
+    const bar = document.getElementById('landingFixedBar');
+    if (bar) bar.style.display = '';
+  });
+  // Sign In button inside feed screen
+  document.getElementById('guestFeedSignIn')?.addEventListener('click', () => promptLogin());
+
+  window.GuestFeed = { load };
 })();
