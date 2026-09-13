@@ -2894,25 +2894,28 @@ body.is-owner .sticker.active .sticker-resize-handle {
   .chatbot-fab { bottom: 20px; right: 12px; width: 54px; height: 54px; }
 }
 
-/* ── Topbar mobile: stack filter below brand ── */
+/* ── Topbar mobile: single row, never wrap ── */
 @media(max-width:640px){
   .topbar-inner {
-    height: auto;
-    flex-wrap: wrap;
-    padding: 10px 14px 0;
-    gap: 8px;
+    height: 56px;
+    flex-wrap: nowrap;
+    padding: 0 10px;
+    gap: 6px;
+    overflow: hidden;
   }
-  .topbar-left  { flex: 1; }
-  .topbar-filters {
-    order: 3;
-    width: 100%;
-    padding: 0 0 10px;
-  }
-  .topbar-right { margin-left: 0; flex-shrink: 0; }
+  .topbar-left  { flex: 0 0 auto; min-width: 0; }
+  .topbar-filters { display: none; }
+  .topbar-right { margin-left: auto; flex-shrink: 0; gap: 4px; }
   .brand-caption { display: none; }
   .topbar-canvas-btn span { display: none; }
-  .topbar-canvas-btn { width: 36px; height: 36px; }
-  .topbar-avatar-btn { width: 38px; height: 38px; }
+  .topbar-canvas-btn { width: 32px; height: 32px; }
+  .topbar-avatar-btn { width: 34px; height: 34px; }
+  /* AI button compact on mobile */
+  .topbar-askai-btn { height: 28px; padding: 0 9px; font-size: 11px; }
+  /* Share button compact */
+  .topbar-share-btn { padding: 5px 10px; font-size: 12px; }
+  /* New button compact */
+  .btn.btn-primary.btn-sm { padding: 5px 9px; font-size: 11px; }
 }
 
 /* ── IMAGE LIBRARY PICKER ──────────────────────────────────────────────────── */

@@ -389,7 +389,7 @@ function closeOv(id) {
   document.getElementById(id).classList.remove('open');
 }
 
-['detailOverlay','formOverlay','profileOverlay','upgradeOverlay','libraryOverlay','shareOverlay','passOverlay'].forEach(id => {
+['detailOverlay','formOverlay','profileOverlay','upgradeOverlay','libraryOverlay','shareOverlay','passOverlay','userProfileOverlay','userListOverlay'].forEach(id => {
   document.getElementById(id)?.addEventListener('click', e => {
     if (e.target === document.getElementById(id)) closeOv(id);
   });
@@ -863,7 +863,7 @@ async function openUserList(userId, type) {
   if (!overlay || !items) return;
   title.textContent = type === 'followers' ? 'Followers' : 'Following';
   items.innerHTML   = '<div class="user-list-empty">Loading…</div>';
-  overlay.classList.remove('hidden');
+  openOv('userListOverlay');
   try {
     const data = await fetch(`/api/follows/${userId}/${type}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {}
@@ -897,13 +897,8 @@ async function openUserList(userId, type) {
   }
 }
 
-function closeUserList() {
-  document.getElementById('userListOverlay')?.classList.add('hidden');
-}
+function closeUserList() { closeOv('userListOverlay'); }
 document.getElementById('userListClose')?.addEventListener('click', closeUserList);
-document.getElementById('userListOverlay')?.addEventListener('click', e => {
-  if (e.target === document.getElementById('userListOverlay')) closeUserList();
-});
 
 // ── User Profile Viewer (for OTHER users) ────────────────────────────────────
 async function openUserProfile(userId) {
@@ -934,7 +929,7 @@ async function openUserProfile(userId) {
   fingEl.textContent  = '–';
   avatar.innerHTML    = '…';
   actions.style.display = currentUser ? '' : 'none';
-  overlay.classList.remove('hidden');
+  openOv('userProfileOverlay');
 
   try {
     const [profile, followData] = await Promise.all([
@@ -1002,13 +997,8 @@ async function openUserProfile(userId) {
   }
 }
 
-function closeUserProfile() {
-  document.getElementById('userProfileOverlay')?.classList.add('hidden');
-}
+function closeUserProfile() { closeOv('userProfileOverlay'); }
 document.getElementById('userProfileClose')?.addEventListener('click', closeUserProfile);
-document.getElementById('userProfileOverlay')?.addEventListener('click', e => {
-  if (e.target === document.getElementById('userProfileOverlay')) closeUserProfile();
-});
 
 // Expose globally so notifications.js and feed.js can call it
 window.openUserProfile = openUserProfile;
