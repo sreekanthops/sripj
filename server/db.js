@@ -418,6 +418,41 @@ if (!hasColumn('notes', 'is_story'))         db.exec(`ALTER TABLE notes ADD COLU
 if (!hasColumn('notes', 'story_expires_at')) db.exec(`ALTER TABLE notes ADD COLUMN story_expires_at TEXT`);
 // story_expires_at is set to created_at + 24h when is_story = 1
 
+// ── diary access grants (user grants specific people access to their diary) ──
+if (!hasTable('diary_access')) {
+  db.exec(`
+    CREATE TABLE diary_access (
+      id         TEXT PRIMARY KEY,
+      owner_id   TEXT NOT NULL,   -- diary owner
+      grantee_id TEXT NOT NULL,   -- person who gets access
+      created_at TEXT NOT NULL,
+      UNIQUE(owner_id, grantee_id)
+    )
+  `);
+}
+
+// ── notes: tagged user (post directed to one specific person) ─────────────────
+if (!hasColumn('notes', 'tagged_user_id')) {
+  db.exec(`ALTER TABLE notes ADD COLUMN tagged_user_id TEXT NOT NULL DEFAULT ''`);
+}
+
+// ── note_tag_views: track how long tagged user viewed the post ────────────────
+if (!hasTable('note_tag_views')) {
+  db.exec(`
+    CREATE TABLE note_tag_views (
+      id          TEXT PRIMARY KEY,
+      note_id     TEXT NOT NULL,
+      viewer_id   TEXT NOT NULL,     -- the tagged user
+      duration_s  REAL NOT NULL DEFAULT 0,
+      view_count  INTEGER NOT NULL DEFAULT 0,  -- how many times they've scrolled over it
+      notified    INTEGER NOT NULL DEFAULT 0,  -- 1 = already sent seen/no-response notif
+      created_at  TEXT NOT NULL,
+      updated_at  TEXT NOT NULL,
+      UNIQUE(note_id, viewer_id)
+    )
+  `);
+}
+
 // ── per-user default note background ─────────────────────────────────────────
 // NULL = use admin global default; '' = explicitly "no background"
 if (!hasColumn('users', 'default_note_bg_id')) {

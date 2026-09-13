@@ -46,6 +46,7 @@
     const isFollowing = a.isFollowing;
     const myId = window._currentUserId;
     const isOwnNote = myId && myId === a.id;
+    const isPinned = !!note.isPinnedTag;
 
     // Check if this user has an active story (available in StoryBar cache)
     const hasStory = window._storyUserIds?.has(a.id);
@@ -54,7 +55,7 @@
       : 'cursor:pointer';
 
     return `
-      <article class="feed-card" data-note-id="${note.id}">
+      <article class="feed-card${isPinned ? ' tagged-pinned' : ''}" data-note-id="${note.id}"${isPinned ? ' data-tagged-pinned="1"' : ''}>
         ${note.bgUrl ? `<div class="feed-card-bg" ${bgStyle}></div>` : ''}
         <div class="feed-card-body">
           <div class="feed-card-author">
@@ -84,6 +85,53 @@
       </article>`;
   }
 
+  // ── Tag-view tracking ─────────────────────────────────────────────────────
+  // IntersectionObserver: records how long a tagged-pinned card is visible.
+  // Rules: ≥5s total = seen; ≥2 views each <5s (total <5s after 2nd) = no_response
+  const _tagViewMap = new Map(); // noteId → { enterTime, totalDur, viewCount, reported }
+  let _tagViewObserver = null;
+
+  function initTagViewObserver() {
+    if (_tagViewObserver) return;
+    _tagViewObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const card = entry.target;
+        const noteId = card.dataset.noteId;
+        if (!noteId) return;
+        if (!_tagViewMap.has(noteId)) _tagViewMap.set(noteId, { enterTime: null, totalDur: 0, viewCount: 0, reported: false });
+        const rec = _tagViewMap.get(noteId);
+        if (rec.reported) return;
+        if (entry.isIntersecting) {
+          rec.enterTime = Date.now();
+        } else if (rec.enterTime) {
+          const dur = (Date.now() - rec.enterTime) / 1000;
+          rec.totalDur  += dur;
+          rec.viewCount += 1;
+          rec.enterTime  = null;
+          reportTagView(noteId, dur);
+        }
+      });
+    }, { threshold: 0.5 });
+  }
+
+  function reportTagView(noteId, durationSec) {
+    const t = localStorage.getItem('diary_token');
+    if (!t) return;
+    fetch(`/api/notes/${noteId}/tag-view`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t },
+      body: JSON.stringify({ durationSec }),
+    }).catch(() => {});
+  }
+
+  function attachTagViewObserver(container) {
+    if (!window._currentUserId) return; // not logged in
+    initTagViewObserver();
+    container.querySelectorAll('.feed-card[data-tagged-pinned="1"]').forEach(card => {
+      _tagViewObserver.observe(card);
+    });
+  }
+
   async function loadMore() {
     if (_loading || _done) return;
     _loading = true;
@@ -110,6 +158,7 @@
       _page++;
       if (data.notes.length < 20) _done = true;
       bindCardEvents(container);
+      attachTagViewObserver(container);
     } catch (e) {
       if (container) container.insertAdjacentHTML('beforeend', `<div class="feed-empty">Error loading feed: ${e.message}</div>`);
     } finally {
@@ -284,6 +333,17 @@
   document.getElementById('feedRefreshBtn')?.addEventListener('click', () => {
     resetFeed();
     loadMore();
+  });
+
+  // Flush any in-flight tag views when page hides (user navigates away)
+  window.addEventListener('pagehide', () => {
+    if (!_tagViewObserver) return;
+    _tagViewMap.forEach((rec, noteId) => {
+      if (rec.enterTime && !rec.reported) {
+        const dur = (Date.now() - rec.enterTime) / 1000;
+        reportTagView(noteId, dur);
+      }
+    });
   });
 
   window.Feed = { initFeed, showFeed, hideFeed, reloadLanding };

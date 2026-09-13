@@ -865,7 +865,108 @@ async function openProfileModal() {
   } catch {}
 
   openOv('profileOverlay');
+  // Load diary access grantees
+  loadDiaryAccessList();
 }
+
+// ── DIARY ACCESS ─────────────────────────────────────────────────────────────
+let _daSearchTimer = null;
+
+async function loadDiaryAccessList() {
+  const listEl = document.getElementById('daGranteeList');
+  if (!listEl || !token) return;
+  try {
+    const data = await fetch('/api/diary-access', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+    const grantees = data.grantees || [];
+    if (!grantees.length) {
+      listEl.innerHTML = '<div class="da-grantee-empty">No one has been granted access yet.</div>';
+      return;
+    }
+    listEl.innerHTML = grantees.map(u => {
+      const av = u.avatarUrl
+        ? `<img src="${esc(u.avatarUrl)}" alt="">`
+        : (u.displayName||u.username||'?').charAt(0).toUpperCase();
+      return `<div class="da-grantee-item" data-uid="${esc(u.id)}">
+        <div class="da-grantee-av">${typeof av === 'string' && av.startsWith('<') ? av : av}</div>
+        <div class="da-grantee-info">
+          <div class="da-grantee-name">${esc(u.displayName||u.username)}</div>
+          <div class="da-grantee-handle">@${esc(u.username)}</div>
+        </div>
+        <button class="da-revoke-btn" data-uid="${esc(u.id)}" data-name="${esc(u.displayName||u.username)}">Revoke</button>
+      </div>`;
+    }).join('');
+    listEl.querySelectorAll('.da-revoke-btn').forEach(btn => {
+      btn.onclick = async () => {
+        const uid = btn.dataset.uid;
+        const name = btn.dataset.name;
+        if (!confirm(`Revoke diary access for ${name}?`)) return;
+        try {
+          await fetch(`/api/diary-access/${uid}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+          toast(`Access revoked for ${name}`);
+          loadDiaryAccessList();
+        } catch { toast('Error revoking access'); }
+      };
+    });
+  } catch { listEl.innerHTML = '<div class="da-grantee-empty">Could not load.</div>'; }
+}
+
+;(function wireDiaryAccessSearch() {
+  const searchEl  = document.getElementById('daSearch');
+  const resultsEl = document.getElementById('daSearchResults');
+  if (!searchEl) return;
+
+  function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  searchEl.addEventListener('input', () => {
+    const q = searchEl.value.trim();
+    clearTimeout(_daSearchTimer);
+    if (q.length < 2) { resultsEl.style.display = 'none'; return; }
+    _daSearchTimer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/diary-access/search?q=${encodeURIComponent(q)}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        const data = await res.json().catch(() => ({ users: [] }));
+        const users = data.users || [];
+        if (!users.length) {
+          resultsEl.innerHTML = '<div class="tag-person-results-empty">No users found</div>';
+        } else {
+          resultsEl.innerHTML = users.map(u => {
+            const av = u.avatarUrl
+              ? `<img src="${escH(u.avatarUrl)}" alt="">`
+              : `<span>${(u.displayName||u.username||'?').charAt(0).toUpperCase()}</span>`;
+            return `<div class="tag-person-result-item" data-uid="${escH(u.id)}" data-name="${escH(u.displayName||u.username)}">
+              <div class="tag-person-result-av">${av}</div>
+              <div><div class="tag-person-result-name">${escH(u.displayName||u.username)}</div><div class="tag-person-result-handle">@${escH(u.username)}</div></div>
+            </div>`;
+          }).join('');
+          resultsEl.querySelectorAll('.tag-person-result-item').forEach(el => {
+            el.onclick = async () => {
+              const uid  = el.dataset.uid;
+              const name = el.dataset.name;
+              resultsEl.style.display = 'none';
+              searchEl.value = '';
+              try {
+                await fetch('/api/diary-access', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({ granteeId: uid }),
+                });
+                toast(`✅ ${name} can now read all your diary notes`);
+                loadDiaryAccessList();
+              } catch { toast('Error granting access'); }
+            };
+          });
+        }
+        resultsEl.style.display = '';
+      } catch { resultsEl.style.display = 'none'; }
+    }, 350);
+  });
+
+  searchEl.addEventListener('blur', () => {
+    setTimeout(() => { resultsEl.style.display = 'none'; }, 200);
+  });
+})();
 
 // ── My followers/following list buttons ─────────────────────────────────────
 document.getElementById('myFollowersBtn')?.addEventListener('click', () => {
@@ -2095,11 +2196,99 @@ function resetAudioState() {
   _setAudioPreview(null);
 }
 
+// ── TAG PERSON SEARCH (used in note form) ─────────────────────────────────────
+let _tagPersonTimer = null;
+;(function wireTagPersonSearch() {
+  const searchEl   = document.getElementById('fTagPersonSearch');
+  const resultsEl  = document.getElementById('fTagPersonResults');
+  const chosenEl   = document.getElementById('fTagPersonChosen');
+  const chosenName = document.getElementById('fTagPersonChosenName');
+  const clearBtn   = document.getElementById('fTagPersonClear');
+  const hiddenEl   = document.getElementById('fTaggedUserId');
+  if (!searchEl) return;
+
+  function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function showResults(users) {
+    if (!users.length) {
+      resultsEl.innerHTML = `<div class="tag-person-results-empty">No users found</div>`;
+    } else {
+      resultsEl.innerHTML = users.map(u => {
+        const av = u.avatarUrl
+          ? `<img src="${escH(u.avatarUrl)}" alt="">`
+          : `<span>${(u.displayName||u.username||'?').charAt(0).toUpperCase()}</span>`;
+        return `<div class="tag-person-result-item" data-uid="${escH(u.id)}" data-name="${escH(u.displayName||u.username)}" data-handle="${escH(u.username)}">
+          <div class="tag-person-result-av">${av}</div>
+          <div><div class="tag-person-result-name">${escH(u.displayName||u.username)}</div><div class="tag-person-result-handle">@${escH(u.username)}</div></div>
+        </div>`;
+      }).join('');
+      resultsEl.querySelectorAll('.tag-person-result-item').forEach(el => {
+        el.onclick = () => {
+          hiddenEl.value = el.dataset.uid;
+          chosenName.textContent = `🏷️ ${el.dataset.name} (@${el.dataset.handle})`;
+          chosenEl.style.display = 'flex';
+          searchEl.value = '';
+          resultsEl.style.display = 'none';
+        };
+      });
+    }
+    resultsEl.style.display = '';
+  }
+
+  searchEl.addEventListener('input', () => {
+    const q = searchEl.value.trim();
+    clearTimeout(_tagPersonTimer);
+    if (q.length < 2) { resultsEl.style.display = 'none'; return; }
+    _tagPersonTimer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/diary-access/search?q=${encodeURIComponent(q)}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        const data = await res.json().catch(() => ({ users: [] }));
+        showResults(data.users || []);
+      } catch { resultsEl.style.display = 'none'; }
+    }, 350);
+  });
+
+  searchEl.addEventListener('blur', () => {
+    setTimeout(() => { resultsEl.style.display = 'none'; }, 200);
+  });
+
+  clearBtn?.addEventListener('click', () => {
+    hiddenEl.value = '';
+    chosenEl.style.display = 'none';
+    searchEl.value = '';
+  });
+})();
+
+function resetTagPersonField() {
+  const searchEl  = document.getElementById('fTagPersonSearch');
+  const resultsEl = document.getElementById('fTagPersonResults');
+  const chosenEl  = document.getElementById('fTagPersonChosen');
+  const hiddenEl  = document.getElementById('fTaggedUserId');
+  if (searchEl)  searchEl.value = '';
+  if (resultsEl) resultsEl.style.display = 'none';
+  if (chosenEl)  chosenEl.style.display = 'none';
+  if (hiddenEl)  hiddenEl.value = '';
+}
+
+function setTagPersonField(taggedUserId, taggedUser) {
+  resetTagPersonField();
+  if (!taggedUserId || !taggedUser) return;
+  const hiddenEl   = document.getElementById('fTaggedUserId');
+  const chosenEl   = document.getElementById('fTagPersonChosen');
+  const chosenName = document.getElementById('fTagPersonChosenName');
+  if (hiddenEl)   hiddenEl.value = taggedUserId;
+  if (chosenName) chosenName.textContent = `🏷️ ${taggedUser.displayName||taggedUser.username} (@${taggedUser.username})`;
+  if (chosenEl)   chosenEl.style.display = 'flex';
+}
+
 async function openNewForm() {
   editId = null; pendingTags = [];
   _selectedBgUrl = ''; _selectedBgId = ''; _selectedMusicId = ''; _pendingBgFile = null;
   _noteBgLibrary = null;   // always re-fetch so default changes take effect immediately
   resetAudioState();
+  resetTagPersonField();
   document.getElementById('formTitle').textContent = '✒ New Entry';
   document.getElementById('fTitle').value  = '';
   document.getElementById('fBody').value   = '';
@@ -2149,6 +2338,8 @@ async function openEditForm(note) {
   if (isPublicCheckbox) isPublicCheckbox.checked = !!note.isPublic;
   const isStoryCheckbox = document.getElementById('fIsStory');
   if (isStoryCheckbox) isStoryCheckbox.checked = !!note.isStory;
+  // Pre-populate tagged person field
+  setTagPersonField(note.taggedUserId || '', note.taggedUser || null);
   syncFontPicker('titleFontPicker', 'fTitleFont', note.titleFont || '');
   syncFontPicker('bodyFontPicker',  'fFont',      note.font || "'Kalam',cursive");
   renderTagsChips();
@@ -2180,15 +2371,16 @@ async function openEditForm(note) {
 
 document.getElementById('fSave').onclick = async () => {
   if (document.getElementById('fTags').value.trim()) addPendingTag(document.getElementById('fTags').value);
-  const title      = document.getElementById('fTitle').value.trim();
-  const body       = document.getElementById('fBody').value.trim();
-  const titleFont  = document.getElementById('fTitleFont').value;
-  const font       = document.getElementById('fFont').value;
-  const fontSize   = parseInt(document.getElementById('fSize').value) || 14;
-  const fontWeight = document.getElementById('fWeight').value;
-  const colorIdx   = activeCI();
-  const musicUrl   = document.getElementById('fMusic').value.trim();
-  const tags       = [...pendingTags];
+  const title        = document.getElementById('fTitle').value.trim();
+  const body         = document.getElementById('fBody').value.trim();
+  const titleFont    = document.getElementById('fTitleFont').value;
+  const font         = document.getElementById('fFont').value;
+  const fontSize     = parseInt(document.getElementById('fSize').value) || 14;
+  const fontWeight   = document.getElementById('fWeight').value;
+  const colorIdx     = activeCI();
+  const musicUrl     = document.getElementById('fMusic').value.trim();
+  const tags         = [...pendingTags];
+  const taggedUserId = document.getElementById('fTaggedUserId')?.value || '';
   if (!title && !body) { toast('Write something first ✍'); return; }
 
   // Upload custom background via the sticker image endpoint (multipart, returns a real URL)
@@ -2232,7 +2424,7 @@ document.getElementById('fSave').onclick = async () => {
   const payload = { title: title||'Untitled', body, font, titleFont, fontSize, fontWeight, colorIdx,
                     musicUrl: finalMusicUrl,
                     noteMusicId: finalNoteMusicId,
-                    bgUrl, tags };
+                    bgUrl, tags, taggedUserId };
   try {
     let saved;
     if (editId) {

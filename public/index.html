@@ -720,6 +720,19 @@
       </div>
       <div class="upload-previews" id="uploadPreviews"></div>
     </div>
+    <!-- ── Tag a Person ── -->
+    <div class="field" id="tagPersonField">
+      <label>🏷️ Tag a Person <span class="auth-hint">only that person sees this post at the top of their feed</span></label>
+      <div class="tag-person-wrap">
+        <input type="text" id="fTagPersonSearch" placeholder="Search by username or name…" autocomplete="off">
+        <div id="fTagPersonResults" class="tag-person-results" style="display:none"></div>
+        <div id="fTagPersonChosen" class="tag-person-chosen" style="display:none">
+          <span id="fTagPersonChosenName"></span>
+          <button type="button" id="fTagPersonClear" class="tag-chip-del">✕</button>
+        </div>
+      </div>
+      <input type="hidden" id="fTaggedUserId" value="">
+    </div>
     <!-- ── Visibility toggles ── -->
     <div class="entry-toggle-row">
       <div class="entry-toggle-item">
@@ -833,6 +846,19 @@
       </div>
       <p id="profPwdErr" class="auth-err" style="margin-bottom:8px"></p>
       <button class="btn btn-outline" id="profPwdBtn" style="width:100%;justify-content:center">Update Password</button>
+    </div>
+
+    <!-- Diary Access -->
+    <div class="prof-diary-access-box" id="diaryAccessBox">
+      <div class="prof-diary-access-title">🔓 Diary Access</div>
+      <p style="font-size:12px;color:var(--ink4);font-family:var(--sans);margin:0 0 10px;line-height:1.6">Grant specific users access to read all your notes (public &amp; private).</p>
+      <div class="tag-person-wrap" style="margin-bottom:10px">
+        <input type="text" id="daSearch" placeholder="Search by username or name…" autocomplete="off">
+        <div id="daSearchResults" class="tag-person-results" style="display:none"></div>
+      </div>
+      <div id="daGranteeList" class="da-grantee-list">
+        <div class="da-grantee-empty">No one has been granted access yet.</div>
+      </div>
     </div>
 
     <!-- Sign Out -->

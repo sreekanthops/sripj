@@ -27,15 +27,20 @@
   }
 
   function typeIcon(type) {
-    return { follow: '👤', reaction: '❤️', reply: '💬', message: '✉️' }[type] || '🔔';
+    const icons = { follow: '👤', reaction: '❤️', reply: '💬', message: '✉️',
+                    tagged_post: '🏷️', tagged_seen: '👁️', tagged_no_response: '📭' };
+    return icons[type] || '🔔';
   }
 
   function typeText(n) {
     const name = n.actor?.displayName || n.actor?.username || 'Someone';
-    if (n.type === 'follow')   return `${name} started following you`;
-    if (n.type === 'reaction') return `${name} reacted to "${n.noteTitle || 'your note'}"`;
-    if (n.type === 'reply')    return `${name} replied to "${n.noteTitle || 'your note'}"`;
-    if (n.type === 'message')  return `${name} sent you a message`;
+    if (n.type === 'follow')             return `${name} started following you`;
+    if (n.type === 'reaction')           return `${name} reacted to "${n.noteTitle || 'your note'}"`;
+    if (n.type === 'reply')              return `${name} replied to "${n.noteTitle || 'your note'}"`;
+    if (n.type === 'message')            return `${name} sent you a message`;
+    if (n.type === 'tagged_post')        return `${name} posted something just for you 🏷️`;
+    if (n.type === 'tagged_seen')        return `${name} saw your tagged post ✅ (5+ seconds)`;
+    if (n.type === 'tagged_no_response') return `${name} skipped your tagged post twice without reading 📭`;
     return 'New notification';
   }
 

@@ -92,6 +92,13 @@ function buildNote(row, req, authorUser) {
     }
   }
 
+  // resolve tagged user info
+  let taggedUser = null;
+  if (row.tagged_user_id) {
+    const tu = db.prepare('SELECT id, username, display_name, avatar_url FROM users WHERE id=?').get(row.tagged_user_id);
+    if (tu) taggedUser = { id: tu.id, username: tu.username, displayName: tu.display_name || tu.username, avatarUrl: tu.avatar_url || '' };
+  }
+
   const noteObj = {
     id:            row.id,
     userId:        row.user_id,
@@ -111,6 +118,8 @@ function buildNote(row, req, authorUser) {
     isPublic:      !!row.is_public,
     isStory:       !!row.is_story,
     storyExpiresAt: row.story_expires_at || null,
+    taggedUserId:  row.tagged_user_id || '',
+    taggedUser,
     createdAt:     row.created_at,
     editedAt:      row.edited_at,
     reactions:     reactions,
@@ -156,11 +165,23 @@ async function loadPublicDiary(req, res, user) {
   }
 
   const { from, to } = req.query;
+  const viewerId = req.user?.userId || null;
 
-  // Visitors only see public notes; the owner sees all their own notes
-  let sql = isOwner
-    ? 'SELECT * FROM notes WHERE user_id = ?'
-    : 'SELECT * FROM notes WHERE user_id = ? AND is_public = 1';
+  // Determine if visitor has diary-access grant from owner
+  const hasAccessGrant = !isOwner && viewerId
+    ? !!db.prepare('SELECT id FROM diary_access WHERE owner_id=? AND grantee_id=?').get(user.id, viewerId)
+    : false;
+
+  // Visitors see: public notes + (if access-granted) private notes too
+  // Owner sees all notes
+  let sql;
+  if (isOwner) {
+    sql = 'SELECT * FROM notes WHERE user_id = ?';
+  } else if (hasAccessGrant) {
+    sql = 'SELECT * FROM notes WHERE user_id = ?';
+  } else {
+    sql = 'SELECT * FROM notes WHERE user_id = ? AND is_public = 1';
+  }
   const params = [user.id];
   if (from) { sql += ' AND DATE(created_at) >= ?'; params.push(from); }
   if (to)   { sql += ' AND DATE(created_at) <= ?'; params.push(to); }
@@ -175,6 +196,7 @@ async function loadPublicDiary(req, res, user) {
       avatarUrl: user.avatar_url || '',
       isProtected: !!user.share_protected,
       shareToken: user.share_token || '',
+      hasAccessGrant,
     },
     notes: rows.map(r => buildNote(r, req))
   });
@@ -242,7 +264,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
 // POST /api/notes  (owner only)
 router.post('/', verifyToken, (req, res) => {
-  const { title, body, font, titleFont, fontSize, fontWeight, colorIdx, musicUrl, tags, bgUrl, noteMusicId, ttsVoice, ttsTone } = req.body;
+  const { title, body, font, titleFont, fontSize, fontWeight, colorIdx, musicUrl, tags, bgUrl, noteMusicId, ttsVoice, ttsTone, taggedUserId } = req.body;
   if (!title && !body) return res.status(400).json({ error: 'Title or body required' });
 
   const plan = getUserPlan(req.user.userId);
@@ -255,14 +277,29 @@ router.post('/', verifyToken, (req, res) => {
       });
     }
   }
+  // validate taggedUserId
+  const taggedId = (taggedUserId && taggedUserId !== req.user.userId)
+    ? (db.prepare('SELECT id FROM users WHERE id=?').get(taggedUserId) ? taggedUserId : '')
+    : '';
+
   const id = uuidv4();
+  const now = new Date().toISOString();
   const tagsJson = JSON.stringify(Array.isArray(tags) ? tags : []);
   db.prepare(`
-    INSERT INTO notes (id, user_id, title, body, font, title_font, font_size, font_weight, color_idx, music_url, tags, bg_url, note_music_id, tts_voice, tts_tone, views, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+    INSERT INTO notes (id, user_id, title, body, font, title_font, font_size, font_weight, color_idx, music_url, tags, bg_url, note_music_id, tts_voice, tts_tone, tagged_user_id, views, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
   `).run(id, req.user.userId, title || '', body || '', font || "'Kalam',cursive", titleFont || '',
          fontSize || 14, fontWeight || 'normal', colorIdx ?? 0, musicUrl || '', tagsJson,
-         bgUrl || '', noteMusicId || '', ttsVoice || 'female', ttsTone || 'auto', new Date().toISOString());
+         bgUrl || '', noteMusicId || '', ttsVoice || 'female', ttsTone || 'auto', taggedId, now);
+
+  // notify tagged user
+  if (taggedId) {
+    const notifId = uuidv4();
+    db.prepare('INSERT INTO notifications (id, recipient_id, type, actor_id, note_id, created_at) VALUES (?,?,?,?,?,?)')
+      .run(notifId, taggedId, 'tagged_post', req.user.userId, id, now);
+    emitToUser(taggedId, 'notification', { notification: { id: notifId, type: 'tagged_post', actorId: req.user.userId, noteId: id, createdAt: now } });
+  }
+
   res.status(201).json(buildNote(db.prepare('SELECT * FROM notes WHERE id = ?').get(id), req));
 });
 
@@ -271,10 +308,19 @@ router.put('/:id', verifyToken, (req, res) => {
   const row = db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Not found' });
   if (row.user_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
-  const { title, body, font, titleFont, fontSize, fontWeight, colorIdx, musicUrl, tags, bgUrl, noteMusicId, ttsVoice, ttsTone } = req.body;
+  const { title, body, font, titleFont, fontSize, fontWeight, colorIdx, musicUrl, tags, bgUrl, noteMusicId, ttsVoice, ttsTone, taggedUserId } = req.body;
   const tagsJson = tags !== undefined ? JSON.stringify(Array.isArray(tags) ? tags : []) : row.tags;
+
+  // validate taggedUserId if provided
+  let taggedId = row.tagged_user_id || '';
+  if (taggedUserId !== undefined) {
+    taggedId = (taggedUserId && taggedUserId !== req.user.userId)
+      ? (db.prepare('SELECT id FROM users WHERE id=?').get(taggedUserId) ? taggedUserId : '')
+      : '';
+  }
+
   db.prepare(`
-    UPDATE notes SET title=?, body=?, font=?, title_font=?, font_size=?, font_weight=?, color_idx=?, music_url=?, tags=?, bg_url=?, note_music_id=?, tts_voice=?, tts_tone=?, edited_at=?
+    UPDATE notes SET title=?, body=?, font=?, title_font=?, font_size=?, font_weight=?, color_idx=?, music_url=?, tags=?, bg_url=?, note_music_id=?, tts_voice=?, tts_tone=?, tagged_user_id=?, edited_at=?
     WHERE id=?
   `).run(title ?? row.title, body ?? row.body, font ?? row.font,
          titleFont !== undefined ? titleFont : (row.title_font ?? ''),
@@ -282,8 +328,57 @@ router.put('/:id', verifyToken, (req, res) => {
          colorIdx ?? row.color_idx, musicUrl ?? row.music_url,
          tagsJson, bgUrl ?? row.bg_url ?? '', noteMusicId ?? row.note_music_id ?? '',
          ttsVoice ?? row.tts_voice ?? 'female', ttsTone ?? row.tts_tone ?? 'auto',
-         new Date().toISOString(), req.params.id);
+         taggedId, new Date().toISOString(), req.params.id);
   res.json(buildNote(db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id), req));
+});
+
+// ── POST /api/notes/:id/tag-view  — record tagged user viewing the post ───────
+// Called by the client with { durationSec } when the tagged user views/skips the post
+router.post('/:id/tag-view', verifyToken, (req, res) => {
+  const note = db.prepare('SELECT id, user_id, tagged_user_id FROM notes WHERE id=?').get(req.params.id);
+  if (!note) return res.status(404).json({ error: 'Not found' });
+  if (note.tagged_user_id !== req.user.userId) return res.status(403).json({ error: 'Not tagged user' });
+
+  const { durationSec } = req.body;
+  const dur = parseFloat(durationSec) || 0;
+  const now = new Date().toISOString();
+  const authorId = note.user_id;
+
+  // upsert view record
+  const existing = db.prepare('SELECT * FROM note_tag_views WHERE note_id=? AND viewer_id=?').get(note.id, req.user.userId);
+  if (existing) {
+    db.prepare('UPDATE note_tag_views SET duration_s=duration_s+?, view_count=view_count+1, updated_at=? WHERE id=?')
+      .run(dur, now, existing.id);
+  } else {
+    db.prepare('INSERT INTO note_tag_views (id,note_id,viewer_id,duration_s,view_count,notified,created_at,updated_at) VALUES (?,?,?,?,1,0,?,?)')
+      .run(uuidv4(), note.id, req.user.userId, dur, now, now);
+  }
+
+  // re-fetch updated record
+  const rec = db.prepare('SELECT * FROM note_tag_views WHERE note_id=? AND viewer_id=?').get(note.id, req.user.userId);
+  if (rec.notified) return res.json({ ok: true });  // already notified
+
+  const totalDur   = rec.duration_s;
+  const viewCount  = rec.view_count;
+
+  let notifType = null;
+  if (totalDur >= 5) {
+    // Seen — 5+ seconds total
+    notifType = 'tagged_seen';
+  } else if (viewCount >= 2 && totalDur < 4) {
+    // Scrolled past 2+ times without reading
+    notifType = 'tagged_no_response';
+  }
+
+  if (notifType) {
+    db.prepare('UPDATE note_tag_views SET notified=1 WHERE id=?').run(rec.id);
+    const notifId = uuidv4();
+    db.prepare('INSERT INTO notifications (id, recipient_id, type, actor_id, note_id, created_at) VALUES (?,?,?,?,?,?)')
+      .run(notifId, authorId, notifType, req.user.userId, note.id, now);
+    emitToUser(authorId, 'notification', { notification: { id: notifId, type: notifType, actorId: req.user.userId, noteId: note.id, createdAt: now } });
+  }
+
+  res.json({ ok: true, notifSent: notifType });
 });
 
 // PUT /api/notes/:id/pin  — toggle pin for owner (max 3 pinned per user)
