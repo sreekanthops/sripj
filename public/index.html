@@ -30,60 +30,133 @@
   <!-- ── MAIN ── -->
   <main class="ls-main">
 
-    <!-- Title block -->
-    <div class="ls-brand">
+    <!-- ── Hero ── -->
+    <div class="ls-hero">
+      <div class="ls-hero-badge">✦ Private Journal · Public Feed · Real-time Chat · Notifications</div>
       <h1 class="ls-title">
         <span class="brand-unsent">Unsent</span>
         <span class="ls-title-stories">Stories</span>
       </h1>
-      <p class="ls-subtitle">A place for the feelings you don't know how to say.</p>
+      <p class="ls-subtitle">Write what you can't say. Share when you're ready.<br>Follow, chat, and connect with people who feel the same.</p>
+      <div class="ls-hero-cta">
+        <button class="ls-cta-primary" id="landingStartBtn">Start Writing Free →</button>
+        <button class="ls-cta-ghost" id="landingFeedBtnHero">Browse Public Stories</button>
+      </div>
+    </div>
+
+    <!-- ── Feature grid ── -->
+    <div class="ls-features">
+      <div class="ls-feat">
+        <div class="ls-feat-icon">📖</div>
+        <div class="ls-feat-body">
+          <div class="ls-feat-title">Private Diary</div>
+          <div class="ls-feat-desc">Write freely — your thoughts stay yours. Password-protect your diary or keep it completely private.</div>
+        </div>
+      </div>
+      <div class="ls-feat">
+        <div class="ls-feat-icon">🌍</div>
+        <div class="ls-feat-body">
+          <div class="ls-feat-title">Public Feed</div>
+          <div class="ls-feat-desc">Toggle any entry to the public feed. React, comment, and connect with others who understand.</div>
+        </div>
+      </div>
+      <div class="ls-feat">
+        <div class="ls-feat-icon">👥</div>
+        <div class="ls-feat-body">
+          <div class="ls-feat-title">Follow &amp; Profiles</div>
+          <div class="ls-feat-desc">Follow writers whose stories move you. View follower counts, browse their public posts, and message them directly.</div>
+        </div>
+      </div>
+      <div class="ls-feat">
+        <div class="ls-feat-icon">💬</div>
+        <div class="ls-feat-body">
+          <div class="ls-feat-title">Real-time Chat</div>
+          <div class="ls-feat-desc">Floating DM panel with live WebSocket delivery. Start a conversation from any profile or feed card — no page reload.</div>
+        </div>
+      </div>
+      <div class="ls-feat">
+        <div class="ls-feat-icon">🔔</div>
+        <div class="ls-feat-body">
+          <div class="ls-feat-title">Live Notifications</div>
+          <div class="ls-feat-desc">Real-time bell badge for new followers, reactions on your posts, replies, and messages — delivered instantly over WebSockets.</div>
+        </div>
+      </div>
+      <div class="ls-feat">
+        <div class="ls-feat-icon">✦</div>
+        <div class="ls-feat-body">
+          <div class="ls-feat-title">AI Writing Assistant</div>
+          <div class="ls-feat-desc">Stuck on words? The built-in AI expands, rephrases, and finishes your story the way you meant it.</div>
+        </div>
+      </div>
+      <div class="ls-feat">
+        <div class="ls-feat-icon">🎨</div>
+        <div class="ls-feat-body">
+          <div class="ls-feat-title">Canvas Studio</div>
+          <div class="ls-feat-desc">Draw, sketch, place stickers and text boxes over your diary page. Pencil, brush, and eraser tools built in.</div>
+        </div>
+      </div>
+      <div class="ls-feat">
+        <div class="ls-feat-icon">🎵</div>
+        <div class="ls-feat-body">
+          <div class="ls-feat-title">Background Music</div>
+          <div class="ls-feat-desc">Attach a track to any entry — your own library, the global library, or a custom upload. Music plays as you read.</div>
+        </div>
+      </div>
+      <div class="ls-feat">
+        <div class="ls-feat-icon">🔗</div>
+        <div class="ls-feat-body">
+          <div class="ls-feat-title">Share Your Diary</div>
+          <div class="ls-feat-desc">Generate a shareable link — optionally password-protected — so the right people can read it.</div>
+        </div>
+      </div>
     </div>
 
     <hr class="ls-rule">
 
-    <!-- Emotional copy -->
-    <div class="ls-body">
-      <p class="ls-line ls-line-lead">Turn your feelings into a story.</p>
+    <!-- ── How it works ── -->
+    <div class="ls-how">
+      <div class="ls-how-title">How it works</div>
+      <div class="ls-how-steps">
+        <div class="ls-how-step">
+          <div class="ls-how-num">1</div>
+          <div class="ls-how-body">
+            <div class="ls-how-step-title">Write privately</div>
+            <div class="ls-how-step-desc">Your diary is yours alone by default. No one sees it unless you choose.</div>
+          </div>
+        </div>
+        <div class="ls-how-arrow">→</div>
+        <div class="ls-how-step">
+          <div class="ls-how-num">2</div>
+          <div class="ls-how-body">
+            <div class="ls-how-step-title">Share to the feed</div>
+            <div class="ls-how-step-desc">Toggle any entry public. It appears in the global feed for others to read and react to.</div>
+          </div>
+        </div>
+        <div class="ls-how-arrow">→</div>
+        <div class="ls-how-step">
+          <div class="ls-how-num">3</div>
+          <div class="ls-how-body">
+            <div class="ls-how-step-title">Connect for real</div>
+            <div class="ls-how-step-desc">Follow writers, get notified in real time, and chat directly — no algorithm in the way.</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-      <p class="ls-line">There are things you want someone to know —<br>
-      but you don't know how to say them.</p>
+    <hr class="ls-rule">
 
+    <!-- ── Emotional hook ── -->
+    <div class="ls-body ls-body-center">
+      <p class="ls-line ls-line-serif">It's not another social app. It's your story.</p>
       <p class="ls-line ls-line-quiet">
-        Sometimes we're afraid they'll misunderstand.<br>
-        Sometimes we don't want to make things awkward.<br>
-        Sometimes we simply don't know how to begin.
-      </p>
-
-      <p class="ls-line ls-line-serif">So write it first.</p>
-    </div>
-
-    <hr class="ls-rule">
-
-    <!-- What it's for -->
-    <div class="ls-body">
-      <p class="ls-line ls-line-label">Your story can be about</p>
-      <p class="ls-line ls-line-about">
-        Someone you love &nbsp;·&nbsp; Someone you miss &nbsp;·&nbsp; Something you never said<br>
-        A relationship that changed you &nbsp;·&nbsp; Someone who doesn't know how you feel
-      </p>
-    </div>
-
-    <hr class="ls-rule">
-
-    <!-- It's not a chat -->
-    <div class="ls-body">
-      <p class="ls-line ls-line-serif">It's not another chat. It's your story.</p>
-      <p class="ls-line ls-line-quiet">
-        WhatsApp is for conversations.<br>
-        Instagram is for moments.<br>
-        Notes are for yourself.<br>
+        WhatsApp is for conversations. Instagram is for moments.<br>
         <em>Unsent Stories is for the things you wish someone could know.</em>
       </p>
     </div>
 
-    <!-- Sign-in nudge — no button, just a gentle line -->
+    <!-- ── Bottom CTA ── -->
     <p class="ls-signin-nudge">
-      You have something to say. <span class="ls-signin-link" id="landingStartBtn">Sign in to begin →</span>
+      You have something to say. <span class="ls-signin-link" id="landingStartBtn2">Sign in to begin →</span>
     </p>
 
   </main>

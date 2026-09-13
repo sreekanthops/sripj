@@ -1875,6 +1875,106 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   color: var(--ink3); letter-spacing: .2px; margin-top: 10px;
 }
 
+/* ── Hero section ─────────────────────────────────────────── */
+.ls-hero {
+  text-align: center; margin-bottom: 48px;
+}
+.ls-hero-badge {
+  display: inline-block;
+  font-family: var(--sans); font-size: 11px; font-weight: 600;
+  letter-spacing: 1.6px; text-transform: uppercase;
+  color: var(--accent); background: var(--accent-bg);
+  border: 1px solid var(--accent-ring);
+  border-radius: 20px; padding: 5px 16px; margin-bottom: 18px;
+}
+.ls-hero-cta {
+  display: flex; gap: 10px; justify-content: center;
+  flex-wrap: wrap; margin-top: 20px;
+}
+.ls-cta-primary {
+  background: var(--accent); color: #fff; border: none;
+  font-family: var(--sans); font-size: 15px; font-weight: 700;
+  padding: 13px 28px; border-radius: 14px; cursor: pointer;
+  letter-spacing: .2px;
+  transition: background .15s, transform .12s;
+}
+.ls-cta-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+.ls-cta-ghost {
+  background: transparent; color: var(--accent);
+  border: 1.5px solid var(--accent-ring);
+  font-family: var(--sans); font-size: 15px; font-weight: 600;
+  padding: 12px 24px; border-radius: 14px; cursor: pointer;
+  letter-spacing: .2px;
+  transition: background .15s, transform .12s;
+}
+.ls-cta-ghost:hover { background: var(--accent-bg); transform: translateY(-1px); }
+
+/* ── Feature grid ─────────────────────────────────────────── */
+.ls-features {
+  display: flex; flex-direction: column; gap: 0;
+  margin-bottom: 8px;
+}
+.ls-feat {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.ls-feat:last-child { border-bottom: none; }
+.ls-feat-icon {
+  font-size: 22px; flex-shrink: 0; width: 32px; text-align: center;
+  margin-top: 2px;
+}
+.ls-feat-title {
+  font-family: var(--serif); font-size: 15px; font-weight: 700;
+  color: var(--ink); margin-bottom: 3px;
+}
+.ls-feat-desc {
+  font-family: var(--sans); font-size: 13px; color: var(--ink3); line-height: 1.6;
+}
+
+/* ── How it works ─────────────────────────────────────────── */
+.ls-how { margin-bottom: 8px; }
+.ls-how-title {
+  font-family: var(--sans); font-size: 10.5px; font-weight: 700;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 24px; text-align: center;
+}
+.ls-how-steps {
+  display: flex; align-items: flex-start; gap: 8px;
+  justify-content: center; flex-wrap: wrap;
+}
+.ls-how-step {
+  display: flex; align-items: flex-start; gap: 12px;
+  flex: 1; min-width: 140px; max-width: 180px;
+}
+.ls-how-num {
+  width: 28px; height: 28px; flex-shrink: 0;
+  border-radius: 50%; background: var(--accent-bg);
+  border: 1.5px solid var(--accent-ring);
+  font-family: var(--sans); font-size: 13px; font-weight: 700;
+  color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+}
+.ls-how-step-title {
+  font-family: var(--serif); font-size: 14px; font-weight: 700;
+  color: var(--ink); margin-bottom: 4px;
+}
+.ls-how-step-desc {
+  font-family: var(--sans); font-size: 12px; color: var(--ink3); line-height: 1.55;
+}
+.ls-how-arrow {
+  font-size: 20px; color: var(--ink5); align-self: center;
+  flex-shrink: 0; margin-top: -4px;
+}
+@media (max-width: 480px) {
+  .ls-how-arrow { display: none; }
+  .ls-how-steps { gap: 16px; }
+  .ls-how-step { min-width: 100%; max-width: 100%; }
+}
+
+/* ── Centred text block ───────────────────────────────────── */
+.ls-body-center { text-align: center; }
+
 /* ── Horizontal rule ──────────────────────────────────────── */
 .ls-rule {
   border: none; border-top: 1px solid var(--border2);
