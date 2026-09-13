@@ -3541,22 +3541,30 @@ function _jwtPayload(t) {
   window.addEventListener('resize', resizeCanvas);
 
   // ── Tool state ───────────────────────────────────────────────────────────
-  let currentTool  = 'select';   // 'select' | 'pencil' | 'brush' | 'eraser'
-  let strokeSize   = 'medium';   // 'light' | 'medium' | 'thick'
-  let inkColor     = '#d4a96a';
+  let currentTool      = 'select';  // 'select' | 'pencil' | 'brush' | 'eraser'
+  let strokeIntensity  = 3;         // 1–5
+  let inkColor         = '#d4a96a';
 
-  // Size map per tool
+  // Size map per tool — 5 intensity levels
   const SIZES = {
-    pencil: { light: 1.5, medium: 3,  thick: 7  },
-    brush:  { light: 4,   medium: 9,  thick: 20 },
-    eraser: { light: 10,  medium: 22, thick: 44 },
+    pencil: [1, 2, 4,  7,  13 ],
+    brush:  [3, 6, 11, 20, 34 ],
+    eraser: [8, 14, 22, 36, 54],
   };
 
   function getLineWidth() {
     const tool = (currentTool === 'eraser') ? 'eraser'
                : (currentTool === 'brush')  ? 'brush'
                : 'pencil';
-    return SIZES[tool][strokeSize] || 3;
+    return SIZES[tool][strokeIntensity - 1] || 4;
+  }
+
+  // Render soundbar — all bars up to and including selected level get .active
+  function renderIntensityBar(level) {
+    document.querySelectorAll('.cib-bar').forEach(bar => {
+      bar.classList.toggle('active', parseInt(bar.dataset.level) <= level);
+      bar.setAttribute('aria-pressed', bar.dataset.level === String(level));
+    });
   }
 
   // ── Undo history ─────────────────────────────────────────────────────────
@@ -3699,13 +3707,13 @@ function _jwtPayload(t) {
   // Initialise to select mode (don't start in drawing mode)
   setTool('select');
 
-  // ── Wire stroke size pills ───────────────────────────────────────────────
-  document.querySelectorAll('.canvas-size-pill').forEach(pill => {
-    pill.addEventListener('click', () => {
-      document.querySelectorAll('.canvas-size-pill').forEach(p => p.classList.remove('active'));
-      pill.classList.add('active');
-      strokeSize = pill.dataset.size;
-    });
+  // ── Wire soundbar intensity toggle ──────────────────────────────────────
+  renderIntensityBar(strokeIntensity); // paint initial state (level 3 lit)
+  document.getElementById('canvasIntensityBar')?.addEventListener('click', e => {
+    const bar = e.target.closest('.cib-bar');
+    if (!bar) return;
+    strokeIntensity = parseInt(bar.dataset.level);
+    renderIntensityBar(strokeIntensity);
   });
 
   // ── Wire colour palette ──────────────────────────────────────────────────

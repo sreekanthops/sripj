@@ -6,7 +6,7 @@
   <title>Unsent Stories</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/css/style.css?v=21">
+  <link rel="stylesheet" href="/css/style.css?v=22">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -1080,17 +1080,13 @@
 
   <!-- Stroke Widths / Presets: Light, Medium, Thick -->
   <div class="canvas-stroke-section" id="canvasStrokeSection">
-    <span class="canvas-section-label">Stroke Size</span>
-    <div class="canvas-size-pills">
-      <button class="canvas-size-pill" data-size="light" title="Light / Fine (2px)">
-        <span class="size-dot dot-light"></span> Light
-      </button>
-      <button class="canvas-size-pill active" data-size="medium" title="Medium (5px)">
-        <span class="size-dot dot-medium"></span> Med
-      </button>
-      <button class="canvas-size-pill" data-size="thick" title="Thick (12px)">
-        <span class="size-dot dot-thick"></span> Thick
-      </button>
+    <span class="canvas-section-label">Intensity</span>
+    <div class="canvas-intensity-bar" id="canvasIntensityBar" title="Stroke intensity">
+      <button class="cib-bar" data-level="1"></button>
+      <button class="cib-bar" data-level="2"></button>
+      <button class="cib-bar" data-level="3" aria-pressed="true"></button>
+      <button class="cib-bar" data-level="4"></button>
+      <button class="cib-bar" data-level="5"></button>
     </div>
   </div>
 
@@ -1259,6 +1255,6 @@
 <script src="/js/notifications.js"></script>
 <script src="/js/chat.js"></script>
 <script src="/js/feed.js?v=2"></script>
-<script src="/js/app.js?v=38"></script>
+<script src="/js/app.js?v=39"></script>
 </body>
 </html>
