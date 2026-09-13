@@ -170,7 +170,35 @@ body {
 }
 .note-pill:empty { display: none; }
 
-.topbar-right { display: flex; align-items: center; gap: 8px; margin-left: 16px; flex-shrink: 0; }
+.topbar-right { display: flex; align-items: center; gap: 6px; margin-left: 16px; flex-shrink: 0; }
+
+/* ── AI inline topbar button ── */
+.topbar-askai-btn {
+  display: flex; align-items: center; gap: 5px;
+  height: 32px; padding: 0 13px; border-radius: 20px;
+  border: 1.5px solid rgba(47,90,110,.35);
+  background: linear-gradient(135deg, #2f5a6e 0%, #1e3a4a 100%);
+  color: #fff;
+  font-family: var(--sans); font-size: 12px; font-weight: 700;
+  letter-spacing: .8px; text-transform: uppercase;
+  cursor: pointer; flex-shrink: 0;
+  transition: opacity .15s, transform .12s, box-shadow .15s;
+  box-shadow: 0 2px 8px rgba(47,90,110,.32), inset 0 1px 0 rgba(255,255,255,.12);
+  position: relative; overflow: hidden;
+}
+/* shimmer line */
+.topbar-askai-btn::before {
+  content: '';
+  position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
+  transform: skewX(-20deg);
+  transition: left .5s ease;
+}
+.topbar-askai-btn:hover::before { left: 130%; }
+.topbar-askai-btn svg { flex-shrink: 0; opacity: .9; }
+.topbar-askai-btn:hover { opacity: .88; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(47,90,110,.42); }
+.topbar-askai-btn:active { transform: translateY(0); }
+.topbar-askai-btn.hidden { display: none !important; }
 
 /* ── Topbar Share button ── */
 .topbar-share-btn {
