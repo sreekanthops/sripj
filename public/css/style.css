@@ -1748,10 +1748,46 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 }
 .landing-signin-btn:active { transform: translateY(0); }
 
+/* ── Fixed bottom action bar on landing (Feed + Sign In) ─── */
+.landing-fixed-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  display: flex; gap: 12px;
+  padding: 12px 20px 16px;
+  background: rgba(232,224,208,.97);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border-top: 1px solid var(--border2);
+  box-shadow: 0 -4px 20px rgba(44,36,22,.08);
+  /* only visible on the landing screen — hidden by JS when in app */
+}
+.landing-bar-btn {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  gap: 8px; height: 48px; border-radius: 14px; border: none;
+  font-family: var(--sans); font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: background .15s, transform .12s, box-shadow .15s;
+  letter-spacing: .2px;
+}
+.landing-bar-feed {
+  background: var(--surface2); color: var(--accent);
+  border: 1.5px solid var(--accent-ring);
+}
+.landing-bar-feed:hover {
+  background: var(--accent-bg); transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(47,90,110,.15);
+}
+.landing-bar-signin {
+  background: var(--accent); color: #fff;
+  box-shadow: 0 2px 12px rgba(47,90,110,.28);
+}
+.landing-bar-signin:hover {
+  background: var(--accent2); transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(47,90,110,.38);
+}
+.landing-bar-btn:active { transform: translateY(0) !important; }
+
 /* ── Main column ─────────────────────────────────────────── */
 .ls-main {
   max-width: 600px; width: 100%; margin: 0 auto;
-  padding: 64px 28px 80px;
+  padding: 64px 28px 100px; /* extra bottom for fixed bar */
   box-sizing: border-box;
 }
 

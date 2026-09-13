@@ -163,15 +163,20 @@ function showLanding() {
   document.getElementById('authScreen').classList.remove('hidden');
   document.getElementById('appScreen').classList.add('hidden');
   document.getElementById('authModal').classList.add('hidden');
+  document.getElementById('landingFixedBar')?.style && (document.getElementById('landingFixedBar').style.display = '');
 }
 function showAuth() {
   // Show landing page + open the sign-in modal
   document.getElementById('authScreen').classList.remove('hidden');
   document.getElementById('appScreen').classList.add('hidden');
   document.getElementById('authModal').classList.remove('hidden');
+  document.getElementById('landingFixedBar')?.style && (document.getElementById('landingFixedBar').style.display = '');
 }
 function showApp() {
   document.getElementById('authScreen').classList.add('hidden');
+  // hide landing fixed bar so it doesn't overlap the app's bottom nav
+  const bar = document.getElementById('landingFixedBar');
+  if (bar) bar.style.display = 'none';
   const appScreen = document.getElementById('appScreen');
   appScreen.classList.remove('hidden');
   document.getElementById('authModal').classList.add('hidden');
@@ -183,8 +188,14 @@ function showApp() {
 
 // ── LANDING PAGE BUTTONS ────────────────────────────────────────────────────
 document.getElementById('landingSignInBtn')?.addEventListener('click', () => showAuth());
+document.getElementById('landingSignInBtn2')?.addEventListener('click', () => showAuth());
 document.getElementById('landingStartBtn')?.addEventListener('click', () => showAuth());
 document.getElementById('landingStartBtn2')?.addEventListener('click', () => showAuth());
+// Feed button on landing — switch to app screen and show feed
+document.getElementById('landingFeedBtn')?.addEventListener('click', () => {
+  showApp();
+  window.Feed?.showFeed?.();
+});
 document.getElementById('landingLearnBtn')?.addEventListener('click', () => {
   document.getElementById('landingLearnSection')?.scrollIntoView({ behavior: 'smooth' });
 });
