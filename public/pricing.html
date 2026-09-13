@@ -322,8 +322,13 @@ function toast(msg, dur) {
 
 function getToken() { try { return localStorage.getItem('diary_token'); } catch { return null; } }
 
+function buildFreeFeatures(notesLimit) {
+  const limLabel = notesLimit === -1 ? '<b>Unlimited</b> diary entries' : 'Up to <b>' + notesLimit + ' diary entries</b>';
+  return [ limLabel, 'Photo & video uploads', 'Public shareable links', 'Emoji reactions & replies', ['Canvas stickers', false], notesLimit === -1 ? null : ['Unlimited entries', false] ].filter(Boolean);
+}
+
 const FEATURES = {
-  free:     [ 'Up to <b>5 diary entries</b>', 'Photo & video uploads', 'Public shareable links', 'Emoji reactions & replies', ['Canvas stickers', false], ['Unlimited entries', false] ],
+  free:     buildFreeFeatures(5),   // overwritten after API load
   monthly:  [ '<b>Unlimited</b> diary entries', 'Photo & video uploads', 'Canvas stickers', 'Public shareable links', 'Emoji reactions & replies', 'Priority support' ],
   yearly:   [ '<b>Unlimited</b> diary entries', 'Photo & video uploads', 'Canvas stickers', 'Public shareable links', 'Emoji reactions & replies', 'Priority support' ],
   lifetime: [ '<b>Unlimited</b> diary entries', 'Photo & video uploads', 'Canvas stickers', 'Public shareable links', 'Emoji reactions & replies', 'Lifetime updates — pay once, forever' ],
@@ -338,6 +343,21 @@ async function loadPlans() {
       fetch('/api/payments/geo-price').then(r => r.json()).catch(() => ({ region: 'IN', prices: {} })),
     ]);
     const plans     = plansRes.plans || [];
+    // Dynamically update free tier features & FAQ from live plan data
+    const freePlan  = plans.find(p => p.id === 'free');
+    if (freePlan) {
+      const lim = freePlan.notes_limit;
+      FEATURES.free = buildFreeFeatures(lim);
+      const limStr = lim === -1 ? 'unlimited' : lim;
+      // Update FAQ text
+      document.querySelectorAll('.p-faq-a').forEach(el => {
+        el.innerHTML = el.innerHTML
+          .replace(/up to \d+ diary entries/gi, 'up to ' + limStr + ' diary entries')
+          .replace(/limited to creating new entries once you reach \d+/gi,
+            lim === -1 ? 'free to keep creating entries'
+                       : 'limited to creating new entries once you reach ' + lim);
+      });
+    }
     const keyId     = cfgRes.keyId;
     const geoPrices = geoRes.prices || {};
     const geoRegion = geoRes.region || 'IN';

@@ -579,7 +579,7 @@ select.field-select:focus{border-color:var(--accent)}
           <div class="plan-price" id="sp-price-free">Free <span>/ forever</span></div>
           <div class="plan-stat" id="pc-free">—</div>
           <div class="plan-stat-label">users</div>
-          <div class="plan-desc" style="margin-top:8px">Up to 5 entries · uploads allowed · no canvas</div>
+          <div class="plan-desc" id="free-plan-card-desc" style="margin-top:8px">Up to 5 entries · uploads allowed · no canvas</div>
         </div>
         <div class="plan-card">
           <div class="plan-name">Pro Monthly</div>
@@ -1278,7 +1278,15 @@ async function loadFreeLimit() {
     const { notesLimit } = await api('GET', '/free-limit');
     document.getElementById('freeLimitInput').value = notesLimit;
     document.getElementById('subFreeLimitInput').value = notesLimit;
+    updateFreePlanCardDesc(notesLimit);
   } catch(e) { /* silently fail */ }
+}
+
+function updateFreePlanCardDesc(lim) {
+  const el = document.getElementById('free-plan-card-desc');
+  if (!el) return;
+  const limStr = lim === -1 ? 'Unlimited' : 'Up to ' + lim;
+  el.textContent = limStr + ' entries · uploads allowed · no canvas';
 }
 
 // Save button on the Subscriptions page
@@ -1297,6 +1305,7 @@ document.getElementById('subSaveFreeLimitBtn').onclick = async () => {
     status.textContent = '✅ Saved! Global limit: ' + (val === -1 ? 'Unlimited' : val);
     setTimeout(() => { status.textContent = ''; }, 4000);
     toast('Free plan limit updated → ' + (val === -1 ? 'Unlimited' : val + ' entries'));
+    updateFreePlanCardDesc(val);
     // Refresh the table so the Note Limit column reflects the new global default
     await loadSubscriptions();
   } catch(e) { status.style.color = 'var(--red)'; status.textContent = e.message; }
@@ -1310,12 +1319,15 @@ document.getElementById('saveFreeLimitBtn').onclick = async () => {
   const val = Number(raw);
   if (isNaN(val)) { status.style.color = 'var(--red)'; status.textContent = 'Invalid number'; return; }
   try {
-    // Reuse the existing PUT /api/payments/admin/plans/free endpoint
     await payApi('PUT', '/admin/plans/free', { notes_limit: val });
+    // sync the subscriptions-page input too
+    document.getElementById('subFreeLimitInput').value = val;
     status.style.color = 'var(--green)';
     status.textContent = '✅ Saved! New limit: ' + (val === -1 ? 'Unlimited' : val);
     setTimeout(() => { status.textContent = ''; }, 4000);
     toast('Free plan limit updated → ' + (val === -1 ? 'Unlimited' : val + ' entries'));
+    updateFreePlanCardDesc(val);
+    if (subTabLoaded) await loadSubscriptions();
   } catch(e) { status.style.color = 'var(--red)'; status.textContent = e.message; }
 };
 

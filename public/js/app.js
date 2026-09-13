@@ -429,6 +429,18 @@ document.getElementById('shareClose')?.addEventListener('click', () => closeOv('
       ]);
       const geoPrices = geoData.prices || {};
       const periodSuffix = { monthly:'/mo', yearly:'/yr', lifetime:' once' };
+      // Update free limit text everywhere on the page
+      const freePlan = (plansData.plans || []).find(p => p.id === 'free');
+      if (freePlan) {
+        const lim = freePlan.notes_limit;
+        const limText = lim === -1 ? 'unlimited' : lim;
+        const subEl = document.querySelector('.upgrade-sub strong');
+        if (subEl) subEl.textContent = limText + (lim === -1 ? '' : ' diary entries');
+        const subParent = document.querySelector('.upgrade-sub');
+        if (subParent && lim === -1) {
+          subParent.textContent = 'Upgrade to unlock canvas stickers and priority support.';
+        }
+      }
       (plansData.plans || []).forEach(p => {
         const el = document.getElementById('upg-price-' + p.id);
         if (!el) return;
@@ -448,6 +460,8 @@ document.getElementById('shareClose')?.addEventListener('click', () => closeOv('
       window._upgradeOverlayPricesLoaded = true;
     } catch {}
   };
+  // Run on page load too (not just overlay open) so the text is correct immediately
+  window._refreshUpgradePrices();
 })();
 
 // ── IMAGE LIBRARY PICKER ───────────────────────────────────────────────────
