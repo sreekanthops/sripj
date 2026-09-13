@@ -26,7 +26,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#e8e0d0"
       },
       "package": "com.unsentstories.app",
@@ -45,6 +45,7 @@
     },
     "plugins": [
       "expo-secure-store",
+      "expo-status-bar",
       "expo-font",
       [
         "expo-splash-screen",
