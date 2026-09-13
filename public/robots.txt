@@ -1,9 +1,25 @@
 User-agent: *
-Allow: /
-Allow: /pricing
+
+# ── Allow only real indexable pages ─────────────────────────────────────────
+Allow: /$
+Allow: /pricing$
+
+# ── Block everything that is dynamic / SPA-only / API ────────────────────────
+# User diaries — SPA renders these, no crawlable content for Google
+Disallow: /@
+Disallow: /s/
+Disallow: /entry/
+Disallow: /u/
+Disallow: /reset-password
+
+# API endpoints — never index
 Disallow: /api/
+
+# Admin panel
 Disallow: /admin/
+
+# User uploads (media files)
 Disallow: /uploads/
 
-# Sitemaps
+# Sitemap
 Sitemap: https://unsentstories.in/sitemap.xml

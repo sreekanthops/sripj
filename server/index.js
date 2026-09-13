@@ -79,31 +79,49 @@ app.use('/api/notifications',     require('./routes/notifications'));
 app.use('/api/feedback',          require('./routes/feedback'));
 app.use('/api/diary-access',      require('./routes/diary-access'));
 
-// Admin portal — explicit route before SPA fallback
+// Admin portal — noindex + explicit route before SPA fallback
 app.get('/admin', (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   res.sendFile(path.join(__dirname, '..', 'public', 'admin', 'index.html'));
 });
 app.get('/admin/*splat', (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   res.sendFile(path.join(__dirname, '..', 'public', 'admin', 'index.html'));
 });
 
-// Pricing page — explicit route before SPA fallback
+// Pricing page — indexable, canonical, cache-friendly
 app.get('/pricing', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=3600');
   res.sendFile(path.join(__dirname, '..', 'public', 'pricing.html'));
 });
 
-// /reset-password?token=... — serve SPA (JS handles the reset form)
+// /reset-password — noindex (private utility page)
 app.get('/reset-password', (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
-// /s/:token  — opaque diary share link → serves the SPA (JS handles resolution)
+// /s/:token — share links are private, noindex
 app.get('/s/:token', (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
-// SPA fallback
+// /@username — user diaries, noindex (SPA renders them, no static content)
+app.get('/@:username', (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+});
+
+// /entry/:id — individual note deep links, noindex
+app.get('/entry/:id', (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+});
+
+// SPA fallback — noindex for all other unknown paths
 app.get('/{*splat}', (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
