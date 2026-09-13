@@ -26,6 +26,8 @@ router.get('/', optionalAuth, (req, res) => {
   const viewerId = req.user?.userId || null;
 
   // ── 0. Pinned tagged posts — posts where this user is tagged, shown first ──
+  // NOTE: tagged posts appear in feed regardless of is_public — the tag itself
+  // makes them visible exclusively to the tagged user.
   let pinnedNotes = [];
   if (viewerId && page === 1) {
     const taggedRows = db.prepare(`
@@ -35,7 +37,7 @@ router.get('/', optionalAuth, (req, res) => {
              (SELECT COUNT(*) FROM note_reactions WHERE note_id=n.id) AS reaction_count,
              (SELECT COUNT(*) FROM replies WHERE note_id=n.id) AS reply_count
       FROM notes n JOIN users u ON u.id=n.user_id
-      WHERE n.is_public=1 AND n.tagged_user_id=?
+      WHERE n.tagged_user_id=?
         AND (n.is_story=0 OR n.is_story IS NULL)
       ORDER BY n.created_at DESC
       LIMIT 10

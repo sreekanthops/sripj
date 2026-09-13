@@ -358,15 +358,15 @@ router.post('/:id/tag-view', verifyToken, (req, res) => {
   const rec = db.prepare('SELECT * FROM note_tag_views WHERE note_id=? AND viewer_id=?').get(note.id, req.user.userId);
   if (rec.notified) return res.json({ ok: true });  // already notified
 
-  const totalDur   = rec.duration_s;
-  const viewCount  = rec.view_count;
+  const totalDur  = rec.duration_s;
+  const viewCount = rec.view_count;
 
   let notifType = null;
   if (totalDur >= 5) {
-    // Seen — 5+ seconds total
+    // Seen — 5+ seconds total across all views
     notifType = 'tagged_seen';
-  } else if (viewCount >= 2 && totalDur < 4) {
-    // Scrolled past 2+ times without reading
+  } else if (viewCount >= 2 && dur < 2) {
+    // Skipped at least twice — this view was also short (< 2s), so no engagement
     notifType = 'tagged_no_response';
   }
 

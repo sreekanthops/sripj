@@ -46,6 +46,7 @@
     const isFollowing = a.isFollowing;
     const myId = window._currentUserId;
     const isOwnNote = myId && myId === a.id;
+    // isPinnedTag = true means this user was tagged — track silently, no visual hint
     const isPinned = !!note.isPinnedTag;
 
     // Check if this user has an active story (available in StoryBar cache)
@@ -54,8 +55,9 @@
       ? 'cursor:pointer;padding:2.5px;border-radius:50%;background:linear-gradient(135deg,#f7971e,#f72585,#7209b7,#4cc9f0);display:inline-flex;flex-shrink:0'
       : 'cursor:pointer';
 
+    // data-tagged-pinned used for view tracking only — no visible banner shown to user
     return `
-      <article class="feed-card${isPinned ? ' tagged-pinned' : ''}" data-note-id="${note.id}"${isPinned ? ' data-tagged-pinned="1"' : ''}>
+      <article class="feed-card" data-note-id="${note.id}"${isPinned ? ' data-tagged-pinned="1"' : ''}>
         ${note.bgUrl ? `<div class="feed-card-bg" ${bgStyle}></div>` : ''}
         <div class="feed-card-body">
           <div class="feed-card-author">
@@ -86,33 +88,15 @@
   }
 
   // ── Tag-view tracking ─────────────────────────────────────────────────────
-  // IntersectionObserver: records how long a tagged-pinned card is visible.
-  // Rules: ≥5s total = seen; ≥2 views each <5s (total <5s after 2nd) = no_response
-  const _tagViewMap = new Map(); // noteId → { enterTime, totalDur, viewCount, reported }
-  let _tagViewObserver = null;
-
-  function initTagViewObserver() {
-    if (_tagViewObserver) return;
-    _tagViewObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        const card = entry.target;
-        const noteId = card.dataset.noteId;
-        if (!noteId) return;
-        if (!_tagViewMap.has(noteId)) _tagViewMap.set(noteId, { enterTime: null, totalDur: 0, viewCount: 0, reported: false });
-        const rec = _tagViewMap.get(noteId);
-        if (rec.reported) return;
-        if (entry.isIntersecting) {
-          rec.enterTime = Date.now();
-        } else if (rec.enterTime) {
-          const dur = (Date.now() - rec.enterTime) / 1000;
-          rec.totalDur  += dur;
-          rec.viewCount += 1;
-          rec.enterTime  = null;
-          reportTagView(noteId, dur);
-        }
-      });
-    }, { threshold: 0.5 });
-  }
+  // Silently tracks how long the tagged user views each tagged card.
+  // Rules:
+  //   ≥5s total across any views → report "seen"  (owner gets ✅ notification)
+  //   scrolled past ≥2 times, each time <2s       → report "no_response" (owner gets 📭)
+  //
+  // Two mechanisms combined:
+  //   1. IntersectionObserver fires when card enters/leaves viewport → captures scroll-past
+  //   2. setTimeout of 5s fires while card IS in viewport → captures "still reading"
+  const _tagViewMap = new Map(); // noteId → { enterTime, seenTimer, totalDur, viewCount }
 
   function reportTagView(noteId, durationSec) {
     const t = localStorage.getItem('diary_token');
@@ -124,8 +108,52 @@
     }).catch(() => {});
   }
 
+  let _tagViewObserver = null;
+
+  function initTagViewObserver() {
+    if (_tagViewObserver) return;
+    _tagViewObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const card   = entry.target;
+        const noteId = card.dataset.noteId;
+        if (!noteId) return;
+
+        if (!_tagViewMap.has(noteId)) {
+          _tagViewMap.set(noteId, { enterTime: null, seenTimer: null, totalDur: 0, viewCount: 0 });
+        }
+        const rec = _tagViewMap.get(noteId);
+
+        if (entry.isIntersecting) {
+          // Card entered viewport — start tracking
+          rec.enterTime = Date.now();
+
+          // Fire after 5s if user is still reading (hasn't scrolled away)
+          rec.seenTimer = setTimeout(() => {
+            if (rec.enterTime) {
+              const dur = (Date.now() - rec.enterTime) / 1000;
+              rec.totalDur += dur;
+              rec.viewCount += 1;
+              rec.enterTime = null; // prevent double-count when they scroll away later
+              reportTagView(noteId, dur);
+            }
+          }, 5100); // 5.1s — slightly over 5s threshold
+
+        } else if (rec.enterTime) {
+          // Card left viewport — record how long it was visible
+          clearTimeout(rec.seenTimer);
+          rec.seenTimer = null;
+          const dur = (Date.now() - rec.enterTime) / 1000;
+          rec.totalDur  += dur;
+          rec.viewCount += 1;
+          rec.enterTime  = null;
+          reportTagView(noteId, dur);
+        }
+      });
+    }, { threshold: 0.5 });
+  }
+
   function attachTagViewObserver(container) {
-    if (!window._currentUserId) return; // not logged in
+    if (!window._currentUserId) return;
     initTagViewObserver();
     container.querySelectorAll('.feed-card[data-tagged-pinned="1"]').forEach(card => {
       _tagViewObserver.observe(card);
@@ -339,7 +367,8 @@
   window.addEventListener('pagehide', () => {
     if (!_tagViewObserver) return;
     _tagViewMap.forEach((rec, noteId) => {
-      if (rec.enterTime && !rec.reported) {
+      clearTimeout(rec.seenTimer);
+      if (rec.enterTime) {
         const dur = (Date.now() - rec.enterTime) / 1000;
         reportTagView(noteId, dur);
       }
