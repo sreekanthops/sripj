@@ -90,7 +90,7 @@
         _done = true;
         if (spinner) spinner.style.display = 'none';
         if (_page === 1 && container) {
-          container.innerHTML = '<div class="feed-empty">No public stories yet. When you write a note, tick <strong>🌍 Share to Feed</strong> to show it here.</div>';
+          container.innerHTML = '<div class="feed-empty">No stories here yet. Write your first entry to get started! ✍️</div>';
         }
         return;
       }
