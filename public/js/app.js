@@ -233,8 +233,7 @@ document.getElementById('landingSignInBtn2')?.addEventListener('click', () => sh
 document.getElementById('landingStartBtn')?.addEventListener('click', () => showAuth('signup'));
 document.getElementById('landingStartBtn2')?.addEventListener('click', () => showAuth('signup'));
 document.getElementById('landingStartBtnFixed')?.addEventListener('click', () => showAuth('signup'));
-// Bottom CTA + fixed bar → open auth signup flow
-document.getElementById('landingFeedBtn')?.addEventListener('click', () => showAuth('signup'));
+// Fixed bottom bar → open auth signup flow
 document.getElementById('landingFeedBtnHero')?.addEventListener('click', () => showAuth('signup'));
 document.getElementById('landingLearnBtn')?.addEventListener('click', () => {
   document.getElementById('landingLearnSection')?.scrollIntoView({ behavior: 'smooth' });
