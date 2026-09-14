@@ -45,19 +45,14 @@
     "@type": "WebApplication",
     "name": "Unsent Stories",
     "url": "https://unsentstories.in/",
-    "description": "Unsent Stories is a private online diary and social journaling platform. Write what you can't say, share entries to a public feed, follow other writers, and chat in real time.",
-    "applicationCategory": "SocialNetworkingApplication",
+    "description": "Unsent Stories is a private writing space. Write the feelings, memories and words you never found the right moment to say. Create your story, keep adding to it, and share it privately when you're ready.",
+    "applicationCategory": "UtilitiesApplication",
     "operatingSystem": "Web, iOS, Android",
     "offers": {
       "@type": "Offer",
       "price": "0",
       "priceCurrency": "INR",
-      "description": "Free plan available. Pro plans from ₹149/month."
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "120"
+      "description": "Free to start. No credit card required."
     },
     "author": {
       "@type": "Organization",
@@ -76,7 +71,7 @@
         "name": "What is Unsent Stories?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Unsent Stories is a private diary and social journaling app where you can write your deepest thoughts, optionally share them to a public feed, follow other writers, and chat in real time."
+          "text": "Unsent Stories is a private writing space where you write the feelings, memories and words you never found the right moment to say. Create your story, keep adding to it over time, and share one private link with the person who matters — when you're ready."
         }
       },
       {
@@ -84,23 +79,23 @@
         "name": "Is Unsent Stories free?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes. A free plan lets you write up to 5 diary entries. Pro plans start from ₹149/month for unlimited entries, uploads, canvas studio, and more."
+          "text": "Yes, it's completely free to start. No credit card required."
         }
       },
       {
         "@type": "Question",
-        "name": "Is my diary private?",
+        "name": "Is my story private?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes. Your diary is completely private by default. You choose which entries to share publicly. You can also password-protect your diary for extra security."
+          "text": "Yes. Your story is completely private by default. Nothing is shared unless you choose to share it. You decide if and when to send your private link."
         }
       },
       {
         "@type": "Question",
-        "name": "Can I share my diary with someone specific?",
+        "name": "Can I share my story with one specific person?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes. You can grant specific users access to read all your entries, or tag a single person in a post so only they see it in their feed."
+          "text": "Yes. When you're ready, you generate one private link and share it directly with that person. Nobody else can see it."
         }
       }
     ]
@@ -136,31 +131,30 @@
   <!-- ── MAIN ── -->
   <main class="ls-main">
 
-    <!-- ══ HERO — feeling first ══ -->
+    <!-- ══ HERO ══ -->
     <div class="ls-hero">
-      <p class="ls-hero-pre">You don't have to send it.</p>
       <h1 class="ls-title">
         <span class="brand-unsent">Unsent</span>
         <span class="ls-title-stories">Stories</span>
       </h1>
-      <p class="ls-hero-tagline">Just write it.</p>
+      <p class="ls-hero-pre">Some things are easier to write than to say.</p>
+      <p class="ls-hero-tagline">Write the feelings, memories and words<br>you never found the right moment to say.</p>
     </div>
 
-    <!-- ══ UNSENT LINES — the emotional gut punch ══ -->
+    <!-- ══ UNSENT LINES — emotional gut punch ══ -->
     <div class="ls-unsent-lines">
-      <p>Write the message you deleted.</p>
-      <p>The goodbye you never said.</p>
-      <p>The feelings you kept to yourself.</p>
-      <p>The words sitting in your drafts.</p>
+      <p>Create your story.</p>
+      <p>Keep adding to it.</p>
+      <p>Share it with them when you're ready.</p>
     </div>
 
     <!-- ══ PRIMARY CTA ══ -->
     <div class="ls-hero-cta">
-      <button class="ls-cta-primary ls-cta-hero" id="landingStartBtn2">Start Your Unsent Story →</button>
+      <button class="ls-cta-primary ls-cta-hero" id="landingStartBtn2">Start Writing — It's Free</button>
     </div>
-    <p class="ls-cta-trust">Free. Private. No judgment.</p>
+    <p class="ls-cta-trust">No pressure. No messages. Just your story.</p>
 
-    <!-- ══ DIARY MOCK — show the experience, don't explain it ══ -->
+    <!-- ══ DIARY MOCK — show the experience ══ -->
     <div class="ls-mock-wrap" aria-hidden="true">
       <div class="ls-mock-phone">
         <div class="ls-mock-screen">
@@ -176,7 +170,7 @@
           </div>
           <div class="ls-mock-actions">
             <span class="ls-mock-lock">🔒 Private</span>
-            <span class="ls-mock-save">Save entry</span>
+            <span class="ls-mock-save">Add to story</span>
           </div>
         </div>
       </div>
@@ -184,32 +178,35 @@
 
     <hr class="ls-rule">
 
-    <!-- ══ NARRATIVE BRIDGE ══ -->
+    <!-- ══ HOW IT WORKS ══ -->
     <div class="ls-narrative">
-      <p class="ls-narrative-lead">Everyone has a story they never sent.</p>
-      <p class="ls-narrative-body">A message still sitting in drafts.<br>A letter that was never delivered.<br>Something you wanted to say — but couldn't.</p>
-      <p class="ls-narrative-body" style="margin-top:16px">You can write it here.</p>
+      <p class="ls-narrative-lead">How Unsent Stories works</p>
+    </div>
+    <div class="ls-feats3">
+      <div class="ls-feat3">
+        <div class="ls-feat3-icon ls-feat3-step">01</div>
+        <div class="ls-feat3-title">Write</div>
+        <div class="ls-feat3-desc">Write what you feel, whenever you feel it. No one sees it. Just you.</div>
+      </div>
+      <div class="ls-feat3">
+        <div class="ls-feat3-icon ls-feat3-step">02</div>
+        <div class="ls-feat3-title">Keep adding</div>
+        <div class="ls-feat3-desc">Your story doesn't have to be finished in one day. Add new thoughts, memories and moments over time.</div>
+      </div>
+      <div class="ls-feat3">
+        <div class="ls-feat3-icon ls-feat3-step">03</div>
+        <div class="ls-feat3-title">Share privately</div>
+        <div class="ls-feat3-desc">When you're ready, share one private link with the person who matters. Nothing is shared unless you choose.</div>
+      </div>
     </div>
 
     <hr class="ls-rule">
 
-    <!-- ══ 3 CORE FEATURES — one idea each ══ -->
-    <div class="ls-feats3">
-      <div class="ls-feat3">
-        <div class="ls-feat3-icon">🔒</div>
-        <div class="ls-feat3-title">Private Journal</div>
-        <div class="ls-feat3-desc">Write freely. Keep it yours. Your diary is completely private by default — no one reads it unless you choose.</div>
-      </div>
-      <div class="ls-feat3">
-        <div class="ls-feat3-icon">🌙</div>
-        <div class="ls-feat3-title">Share When You're Ready</div>
-        <div class="ls-feat3-desc">Post to the public feed when it feels right. Others who understand will find your words.</div>
-      </div>
-      <div class="ls-feat3">
-        <div class="ls-feat3-icon">💬</div>
-        <div class="ls-feat3-title">Find People Who Feel the Same</div>
-        <div class="ls-feat3-desc">Connect around real emotions — not likes and followers. Follow writers whose stories move you.</div>
-      </div>
+    <!-- ══ PRIVACY PROMISE ══ -->
+    <div class="ls-narrative">
+      <p class="ls-narrative-lead">Your story is yours.</p>
+      <p class="ls-narrative-body">Write privately.<br>Nothing is shared unless you choose to share it.</p>
+      <p class="ls-narrative-body" style="margin-top:16px">Someone writing <em>"I still think about her every day"</em><br>deserves a place where that stays private.</p>
     </div>
 
     <hr class="ls-rule">
@@ -217,7 +214,8 @@
     <!-- ══ SECOND CTA ══ -->
     <div class="ls-bottom-cta">
       <p class="ls-bottom-cta-q">What's your unsent story?</p>
-      <button class="ls-cta-ghost ls-cta-browse" id="landingFeedBtn">Read others' stories</button>
+      <button class="ls-cta-primary ls-cta-hero" id="landingFeedBtn" style="margin:0 auto;display:block">Start Writing — It's Free</button>
+      <p class="ls-cta-trust" style="margin-top:10px">Your story is private by default. Share it only when you're ready.</p>
     </div>
 
   </main>
@@ -236,7 +234,7 @@
 
 <!-- ── Fixed bottom CTA bar ── -->
 <div class="ls-fixed-cta" id="landingFixedBar">
-  <button class="ls-cta-primary ls-cta-fixed-primary" id="landingFeedBtnHero">Browse Stories</button>
+  <button class="ls-cta-primary ls-cta-fixed-primary" id="landingFeedBtnHero">Start Writing — It's Free</button>
 </div>
 
 <!-- ══ GUEST FEED SCREEN ═════════════════════════════════════ -->
@@ -289,27 +287,19 @@
     </div>
     <div class="auth-panel hidden" id="panelSignup">
       <div class="field">
-        <label>Username <span class="auth-hint">min 6 chars, must include a special char e.g. sri@123</span></label>
-        <input type="text" id="signupUser" placeholder="e.g. sri@123" autocomplete="username">
-        <p id="signupUserCheck" style="font-size:12px;margin:3px 0 0;min-height:16px"></p>
-      </div>
-      <div class="field">
-        <label>Display Name</label>
-        <input type="text" id="signupName" placeholder="Your Name">
-      </div>
-      <div class="field">
-        <label>Email <span class="auth-hint">required — for password recovery</span></label>
+        <label>Email <span class="auth-hint">for password recovery</span></label>
         <input type="email" id="signupEmail" placeholder="you@example.com" autocomplete="email" required>
-      </div>
-      <div class="field">
-        <label>Phone Number <span class="auth-hint">required</span></label>
-        <input type="tel" id="signupPhone" placeholder="+91 98765 43210" autocomplete="tel" required>
       </div>
       <div class="field">
         <label>Password <span class="auth-hint">min 6 characters</span></label>
         <input type="password" id="signupPwd" placeholder="••••••••" autocomplete="new-password">
       </div>
-      <button class="btn btn-primary btn-lg" id="signupBtn">Create Account</button>
+      <!-- hidden fields — auto-generated on submit -->
+      <input type="hidden" id="signupUser">
+      <input type="hidden" id="signupName">
+      <input type="hidden" id="signupPhone">
+      <p id="signupUserCheck" style="display:none"></p>
+      <button class="btn btn-primary btn-lg" id="signupBtn">Start Writing — It's Free</button>
       <p id="signupErr" class="auth-err"></p>
     </div>
 

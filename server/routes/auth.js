@@ -53,10 +53,8 @@ function validateUsername(raw) {
   const uname = raw.trim().toLowerCase();
   if (!/^[a-z0-9@_.!#-]+$/.test(uname))
     return { error: 'Username may only contain letters, numbers and @ _ . - ! #' };
-  if (uname.length < 6)
-    return { error: 'Username must be at least 6 characters' };
-  if (!/[@_.!#-]/.test(uname))
-    return { error: 'Username must contain at least one special character (@ _ . - ! #)' };
+  if (uname.length < 3)
+    return { error: 'Username must be at least 3 characters' };
   return { uname };
 }
 
@@ -77,10 +75,10 @@ router.post('/signup', async (req, res) => {
   if (!email?.trim()) return res.status(400).json({ error: 'Email address is required' });
   const emailClean = email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailClean)) return res.status(400).json({ error: 'Please enter a valid email address' });
+  // Phone is optional — validate only if provided
   const rawPhone = (phone || '').trim();
-  if (!rawPhone) return res.status(400).json({ error: 'Phone number is required' });
-  const phoneClean = rawPhone.replace(/[^\d+]/g, '').replace(/(?<=.)\+/g, '');
-  if (!/^\+?[0-9]{7,15}$/.test(phoneClean)) return res.status(400).json({ error: 'Enter a valid phone number (7–15 digits)' });
+  const phoneClean = rawPhone ? rawPhone.replace(/[^\d+]/g, '').replace(/(?<=.)\+/g, '') : '';
+  if (phoneClean && !/^\+?[0-9]{7,15}$/.test(phoneClean)) return res.status(400).json({ error: 'Enter a valid phone number (7–15 digits)' });
   const { uname, error: unameErr } = validateUsername(username);
   if (unameErr) return res.status(400).json({ error: unameErr });
   if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });

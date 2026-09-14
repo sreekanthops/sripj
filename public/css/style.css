@@ -1863,7 +1863,7 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 }
 .ls-hero-pre {
   font-family: var(--script); font-size: clamp(18px, 5vw, 24px);
-  color: var(--ink3); margin-bottom: 10px; letter-spacing: .2px;
+  color: var(--ink3); margin-top: 8px; margin-bottom: 10px; letter-spacing: .2px;
 }
 .ls-title {
   display: flex; flex-direction: column; align-items: center;
@@ -2023,6 +2023,13 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 }
 .ls-feat3-icon {
   font-size: 26px; margin-bottom: 10px;
+}
+.ls-feat3-step {
+  font-family: var(--sans); font-size: 11px; font-weight: 800;
+  color: var(--accent); letter-spacing: 1px;
+  background: var(--accent-bg); border: 1.5px solid var(--accent-ring);
+  border-radius: 8px; padding: 3px 8px;
+  display: inline-block; margin-bottom: 12px;
 }
 .ls-feat3-title {
   font-family: var(--serif); font-size: 14px; font-weight: 700;

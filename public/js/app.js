@@ -187,13 +187,21 @@ function showLanding() {
   const bar = document.getElementById('landingFixedBar');
   if (bar) bar.style.display = '';
 }
-function showAuth() {
+function showAuth(tab) {
   document.getElementById('authScreen').classList.remove('hidden');
   document.getElementById('appScreen').classList.add('hidden');
   document.getElementById('guestFeedScreen').classList.add('hidden');
   document.getElementById('authModal').classList.remove('hidden');
   const bar = document.getElementById('landingFixedBar');
   if (bar) bar.style.display = '';
+  // Default to signup tab when coming from landing CTAs
+  const targetTab = tab || 'signup';
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.auth-panel').forEach(p => p.classList.add('hidden'));
+  const tabEl = document.querySelector(`.auth-tab[data-tab="${targetTab}"]`);
+  if (tabEl) tabEl.classList.add('active');
+  const panelId = 'panel' + targetTab.charAt(0).toUpperCase() + targetTab.slice(1);
+  document.getElementById(panelId)?.classList.remove('hidden');
 }
 function showApp() {
   document.getElementById('authScreen').classList.add('hidden');
@@ -220,14 +228,14 @@ function showGuestFeed() {
 }
 
 // ── LANDING PAGE BUTTONS ────────────────────────────────────────────────────
-document.getElementById('landingSignInBtn')?.addEventListener('click', () => showAuth());
-document.getElementById('landingSignInBtn2')?.addEventListener('click', () => showAuth());
-document.getElementById('landingStartBtn')?.addEventListener('click', () => showAuth());
-document.getElementById('landingStartBtn2')?.addEventListener('click', () => showAuth());
-document.getElementById('landingStartBtnFixed')?.addEventListener('click', () => showAuth());
-// Feed buttons on landing → dedicated guest feed screen
-document.getElementById('landingFeedBtn')?.addEventListener('click', () => showGuestFeed());
-document.getElementById('landingFeedBtnHero')?.addEventListener('click', () => showGuestFeed());
+document.getElementById('landingSignInBtn')?.addEventListener('click', () => showAuth('login'));
+document.getElementById('landingSignInBtn2')?.addEventListener('click', () => showAuth('login'));
+document.getElementById('landingStartBtn')?.addEventListener('click', () => showAuth('signup'));
+document.getElementById('landingStartBtn2')?.addEventListener('click', () => showAuth('signup'));
+document.getElementById('landingStartBtnFixed')?.addEventListener('click', () => showAuth('signup'));
+// Bottom CTA + fixed bar → open auth signup flow
+document.getElementById('landingFeedBtn')?.addEventListener('click', () => showAuth('signup'));
+document.getElementById('landingFeedBtnHero')?.addEventListener('click', () => showAuth('signup'));
 document.getElementById('landingLearnBtn')?.addEventListener('click', () => {
   document.getElementById('landingLearnSection')?.scrollIntoView({ behavior: 'smooth' });
 });
@@ -282,55 +290,42 @@ document.getElementById('loginPwd').onkeydown = e => {
   if (e.key === 'Enter') document.getElementById('loginBtn').click();
 };
 
-// ── Live username availability check ──────────────────────────────────────
-let _userCheckTimer = null;
-document.getElementById('signupUser')?.addEventListener('input', () => {
-  const val     = document.getElementById('signupUser').value.trim();
-  const checkEl = document.getElementById('signupUserCheck');
-  clearTimeout(_userCheckTimer);
-  if (!val) { checkEl.textContent = ''; return; }
-  // Client-side rule feedback instantly
-  if (val.length < 6) {
-    checkEl.style.color = '#c0392b'; checkEl.textContent = 'Min 6 characters'; return;
-  }
-  if (!/[@_.!#-]/.test(val)) {
-    checkEl.style.color = '#c0392b'; checkEl.textContent = 'Must include a special char (@ _ . - ! #)'; return;
-  }
-  checkEl.style.color = '#888'; checkEl.textContent = 'Checking…';
-  _userCheckTimer = setTimeout(async () => {
-    try {
-      const data = await api('GET', '/auth/check-username?username=' + encodeURIComponent(val));
-      if (data.available) {
-        checkEl.style.color = '#27ae60'; checkEl.textContent = '✓ Available';
-      } else {
-        checkEl.style.color = '#c0392b'; checkEl.textContent = data.error || '✗ Already taken';
-      }
-    } catch { checkEl.style.color = '#888'; checkEl.textContent = ''; }
-  }, 500);
-});
+// ── Auto-generate a username from email for frictionless signup ───────────
+function _genUsernameFromEmail(email) {
+  // e.g. "sreekanth.c@gmail.com" → "sreekanth_c" + random suffix
+  const base = (email.split('@')[0] || 'user')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 14) || 'user';
+  const suffix = Math.floor(100 + Math.random() * 900); // 3-digit
+  return base + '_' + suffix; // always meets min-length
+}
 
 document.getElementById('signupBtn').onclick = async () => {
-  const username    = document.getElementById('signupUser').value.trim();
-  const displayName = document.getElementById('signupName').value.trim();
-  const email       = document.getElementById('signupEmail').value.trim();
-  const phone       = document.getElementById('signupPhone').value.trim();
-  const password    = document.getElementById('signupPwd').value;
-  const errEl       = document.getElementById('signupErr');
+  const email    = document.getElementById('signupEmail').value.trim();
+  const password = document.getElementById('signupPwd').value;
+  const errEl    = document.getElementById('signupErr');
   errEl.textContent = '';
-  // Client-side pre-validation
-  if (username.length < 6)       { errEl.textContent = 'Username must be at least 6 characters.'; return; }
-  if (!/[@_.!#-]/.test(username)) { errEl.textContent = 'Username must include a special character (@ _ . - ! #).'; return; }
-  if (!phone)                     { errEl.textContent = 'Phone number is required.'; return; }
+  if (!email)    { errEl.textContent = 'Please enter your email address.'; return; }
+  if (!password) { errEl.textContent = 'Please enter a password.'; return; }
+  // Auto-generate username and display name from email
+  const username    = _genUsernameFromEmail(email);
+  const displayName = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   try {
-    const data = await api('POST', '/auth/signup', { username, password, displayName, email, phone });
+    const data = await api('POST', '/auth/signup', { username, password, displayName, email, phone: '' });
     token = data.token;
     localStorage.setItem('diary_token', token);
-    currentUser = { userId: data.userId, username: data.username, displayName: data.displayName || username, email: data.email || '', phone: data.phone || '', bio: '', avatarUrl: '', shareToken: data.shareToken || '' };
+    currentUser = { userId: data.userId, username: data.username, displayName: data.displayName || displayName, email: data.email || '', phone: '', bio: '', avatarUrl: '', shareToken: data.shareToken || '' };
     await enterOwnDiary();
   } catch (e) { errEl.textContent = e.message; }
 };
 document.getElementById('signupPwd').onkeydown = e => {
   if (e.key === 'Enter') document.getElementById('signupBtn').click();
+};
+document.getElementById('signupEmail').onkeydown = e => {
+  if (e.key === 'Enter') document.getElementById('signupPwd').focus();
 };
 
 // ── GOOGLE SIGN-IN VIA CUSTOM BUTTON ───────────────────────────────────────
