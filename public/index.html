@@ -109,7 +109,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/css/style.css?v=25">
+  <link rel="stylesheet" href="/css/style.css?v=26">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -126,13 +126,10 @@
         <span class="brand-unsent">Unsent</span>
         <span class="brand-stories" style="font-size:14px;letter-spacing:2px">Stories</span>
       </div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <a id="navInstaLink" href="#" target="_blank" rel="noopener" class="nav-insta-btn hidden" aria-label="Follow on Instagram" title="Follow us on Instagram">
-          <svg class="nav-insta-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="ig-nav" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="5%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="url(#ig-nav)"/><circle cx="12" cy="12" r="4" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="17.5" cy="6.5" r="1.2" fill="#fff"/></svg>
-          <span class="nav-insta-label">Follow</span>
-        </a>
-        <button class="landing-signin-btn" id="landingSignInBtn">Sign In</button>
-      </div>
+      <a id="navInstaLink" href="#" target="_blank" rel="noopener" class="nav-insta-btn hidden" aria-label="Follow on Instagram" title="Follow us on Instagram">
+        <svg class="nav-insta-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="ig-nav" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="5%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="url(#ig-nav)"/><circle cx="12" cy="12" r="4" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="17.5" cy="6.5" r="1.2" fill="#fff"/></svg>
+        <span class="nav-insta-label">Follow</span>
+      </a>
     </div>
   </nav>
 
@@ -220,7 +217,6 @@
     <!-- ══ SECOND CTA ══ -->
     <div class="ls-bottom-cta">
       <p class="ls-bottom-cta-q">What's your unsent story?</p>
-      <button class="ls-cta-primary ls-cta-hero" id="landingStartBtn">Write it now →</button>
       <button class="ls-cta-ghost ls-cta-browse" id="landingFeedBtn">Read others' stories</button>
     </div>
 
@@ -240,8 +236,7 @@
 
 <!-- ── Fixed bottom CTA bar ── -->
 <div class="ls-fixed-cta" id="landingFixedBar">
-  <button class="ls-cta-primary ls-cta-fixed-primary" id="landingStartBtnFixed">Start Your Unsent Story →</button>
-  <button class="ls-cta-ghost ls-cta-fixed-ghost" id="landingFeedBtnHero">Browse Stories</button>
+  <button class="ls-cta-primary ls-cta-fixed-primary" id="landingFeedBtnHero">Browse Stories</button>
 </div>
 
 <!-- ══ GUEST FEED SCREEN ═════════════════════════════════════ -->
