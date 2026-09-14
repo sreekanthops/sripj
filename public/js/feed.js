@@ -957,17 +957,12 @@
     loadMore();
   }
 
-  // Back button
-  document.getElementById('guestFeedBack')?.addEventListener('click', () => {
+  // "Start Writing" button in feed header → signup
+  document.getElementById('guestFeedSignIn')?.addEventListener('click', () => {
     document.getElementById('guestFeedScreen').classList.add('hidden');
     document.getElementById('authScreen').classList.remove('hidden');
-    const bar = document.getElementById('landingFixedBar');
-    if (bar) bar.style.display = '';
-    // Restore URL when going back to landing
-    if (location.pathname === '/feed') history.pushState({}, '', '/');
+    if (typeof showAuth === 'function') showAuth('signup');
   });
-  // Sign In button inside feed screen
-  document.getElementById('guestFeedSignIn')?.addEventListener('click', () => promptLogin());
 
   window.GuestFeed = { load };
 })();
