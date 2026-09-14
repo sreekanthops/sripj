@@ -476,6 +476,12 @@ if (!hasTable('feedback')) {
   `);
 }
 
+// page_views — add tracking columns for ads/UTM (idempotent)
+if (!hasColumn('page_views', 'referrer'))     db.exec(`ALTER TABLE page_views ADD COLUMN referrer     TEXT NOT NULL DEFAULT ''`);
+if (!hasColumn('page_views', 'utm_source'))   db.exec(`ALTER TABLE page_views ADD COLUMN utm_source   TEXT NOT NULL DEFAULT ''`);
+if (!hasColumn('page_views', 'utm_medium'))   db.exec(`ALTER TABLE page_views ADD COLUMN utm_medium   TEXT NOT NULL DEFAULT ''`);
+if (!hasColumn('page_views', 'utm_campaign')) db.exec(`ALTER TABLE page_views ADD COLUMN utm_campaign TEXT NOT NULL DEFAULT ''`);
+
 // Re-enable FK enforcement
 db.pragma('foreign_keys = ON');
 

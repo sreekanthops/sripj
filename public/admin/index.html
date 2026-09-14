@@ -287,6 +287,24 @@ select.field-select:focus{border-color:var(--accent)}
 }
 #toast.show{opacity:1;transform:translateY(0)}
 
+/* ── VISITOR FILTERS ── */
+.v-select{
+  background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r2);
+  font-size:12px;font-family:var(--sans);color:var(--ink);outline:none;
+  padding:7px 10px;transition:border-color .15s;
+}
+.v-select:focus{border-color:var(--accent)}
+.v-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 12px;border-radius:99px;font-size:12px;font-weight:600;
+  background:var(--surface2);border:1.5px solid var(--border);color:var(--ink2);
+}
+.v-chip.mobile{border-color:var(--blue);background:var(--blue-bg);color:var(--blue)}
+.v-chip.desktop{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.v-chip.tablet{border-color:var(--purple);background:var(--purple-bg);color:var(--purple)}
+.v-chip.source{border-color:var(--amber);background:var(--amber-bg);color:var(--amber)}
+.v-chip.total{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
+
 /* ── RESPONSIVE ── */
 @media(max-width:640px){
   .stat-grid{grid-template-columns:1fr 1fr}
@@ -442,10 +460,60 @@ select.field-select:focus{border-color:var(--accent)}
 
   <!-- VISITORS -->
   <div class="page" id="page-visitors">
-    <div class="section">
-      <div class="section-title">Page Visitor Log
-        <button class="btn btn-ghost" id="visitorsRefreshBtn" style="margin-left:auto;padding:5px 14px;font-size:12px">Refresh</button>
+    <!-- Filter Bar -->
+    <div class="section" style="padding:16px 20px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--ink3);margin-bottom:4px">DEVICE</label>
+          <select id="vfDevice" class="v-select">
+            <option value="all">All Devices</option>
+            <option value="mobile">📱 Mobile</option>
+            <option value="desktop">🖥️ Desktop</option>
+            <option value="tablet">📲 Tablet</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--ink3);margin-bottom:4px">VISITOR TYPE</label>
+          <select id="vfUserType" class="v-select">
+            <option value="all">All Visitors</option>
+            <option value="genuine">✅ Genuine Only</option>
+            <option value="guest">👤 Guests Only</option>
+            <option value="registered">🔑 Registered Only</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--ink3);margin-bottom:4px">FROM</label>
+          <input type="date" id="vfFrom" class="v-select" style="padding:7px 10px">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--ink3);margin-bottom:4px">TO</label>
+          <input type="date" id="vfTo" class="v-select" style="padding:7px 10px">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--ink3);margin-bottom:4px">UTM SOURCE</label>
+          <input type="text" id="vfUtmSource" class="v-select" placeholder="e.g. instagram" style="padding:7px 10px;width:130px">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--ink3);margin-bottom:4px">UTM MEDIUM</label>
+          <input type="text" id="vfUtmMedium" class="v-select" placeholder="e.g. cpc" style="padding:7px 10px;width:110px">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--ink3);margin-bottom:4px">PAGE PATH</label>
+          <input type="text" id="vfPath" class="v-select" placeholder="e.g. /entry/" style="padding:7px 10px;width:120px">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:auto">
+          <button class="btn btn-primary" id="vfApplyBtn" style="padding:7px 18px;font-size:12px">Apply</button>
+          <button class="btn btn-ghost" id="vfResetBtn" style="padding:7px 14px;font-size:12px">Reset</button>
+          <button class="btn btn-ghost" id="visitorsRefreshBtn" style="padding:7px 14px;font-size:12px">↺ Refresh</button>
+        </div>
       </div>
+    </div>
+
+    <!-- Summary Chips -->
+    <div id="visitorsSummary" style="display:flex;flex-wrap:wrap;gap:8px;padding:0 20px 16px"></div>
+
+    <!-- Table -->
+    <div class="section" style="padding-top:0">
       <div class="table-wrap">
         <table>
           <thead>
@@ -453,16 +521,18 @@ select.field-select:focus{border-color:var(--accent)}
               <th>#</th>
               <th>Time</th>
               <th>User</th>
+              <th>Device</th>
               <th>Page</th>
               <th>Location</th>
-              <th>IP</th>
+              <th>Source / UTM</th>
+              <th>Referrer</th>
               <th>Time Spent</th>
-              <th>Device</th>
             </tr>
           </thead>
-          <tbody id="visitorsTable"><tr><td colspan="8" style="text-align:center;color:var(--ink4);padding:30px">Loading…</td></tr></tbody>
+          <tbody id="visitorsTable"><tr><td colspan="9" style="text-align:center;color:var(--ink4);padding:30px">Loading…</td></tr></tbody>
         </table>
       </div>
+      <div id="visitorsCount" style="text-align:right;font-size:11px;color:var(--ink4);padding:8px 4px 0"></div>
     </div>
   </div>
 
@@ -1417,41 +1487,108 @@ function fmtDateTime(iso) {
   return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short' }) + ' ' +
          d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
 }
+function fmtDuration(s) {
+  if (!s || s <= 0) return '—';
+  if (s < 60) return s + 's';
+  return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+}
+function deviceIcon(d) {
+  if (d === 'mobile') return '📱';
+  if (d === 'tablet') return '📲';
+  return '🖥️';
+}
 
-function parseDevice(ua) {
-  if (!ua) return '—';
-  if (/Mobile|Android|iPhone|iPad/i.test(ua)) return '📱 Mobile';
-  if (/Tablet/i.test(ua)) return '📱 Tablet';
-  return '🖥️ Desktop';
+function buildVisitorsQuery() {
+  const p = new URLSearchParams();
+  p.set('limit', '500');
+  const dev = document.getElementById('vfDevice').value;
+  if (dev !== 'all') p.set('device', dev);
+  const ut = document.getElementById('vfUserType').value;
+  if (ut !== 'all') p.set('user_type', ut);
+  const from = document.getElementById('vfFrom').value;
+  if (from) p.set('date_from', from);
+  const to = document.getElementById('vfTo').value;
+  if (to) p.set('date_to', to);
+  const utmSrc = document.getElementById('vfUtmSource').value.trim();
+  if (utmSrc) p.set('utm_source', utmSrc);
+  const utmMed = document.getElementById('vfUtmMedium').value.trim();
+  if (utmMed) p.set('utm_medium', utmMed);
+  const path = document.getElementById('vfPath').value.trim();
+  if (path) p.set('path', path);
+  return p.toString();
+}
+
+function renderVisitorsSummary(summary) {
+  const el = document.getElementById('visitorsSummary');
+  if (!el || !summary) return;
+  const { total, deviceCounts, topSources } = summary;
+  const chips = [];
+  chips.push(`<span class="v-chip total">Total: ${total}</span>`);
+  if (deviceCounts.mobile)  chips.push(`<span class="v-chip mobile">📱 Mobile: ${deviceCounts.mobile}</span>`);
+  if (deviceCounts.desktop) chips.push(`<span class="v-chip desktop">🖥️ Desktop: ${deviceCounts.desktop}</span>`);
+  if (deviceCounts.tablet)  chips.push(`<span class="v-chip tablet">📲 Tablet: ${deviceCounts.tablet}</span>`);
+  (topSources || []).forEach(s => {
+    chips.push(`<span class="v-chip source">🔗 ${escHtml(s.src)}: ${s.c}</span>`);
+  });
+  el.innerHTML = chips.join('');
 }
 
 async function loadVisitors() {
   const tbody = document.getElementById('visitorsTable');
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--ink4);padding:30px">Loading…</td></tr>';
+  const countEl = document.getElementById('visitorsCount');
+  const summaryEl = document.getElementById('visitorsSummary');
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--ink4);padding:30px">Loading…</td></tr>';
+  if (summaryEl) summaryEl.innerHTML = '';
   try {
-    const data = await api('GET', '/visitors?limit=200');
+    const data = await api('GET', '/visitors?' + buildVisitorsQuery());
+    renderVisitorsSummary(data.summary);
     if (!data.visitors.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--ink4);padding:30px">No visitors recorded yet</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--ink4);padding:30px">No visitors match this filter</td></tr>';
+      if (countEl) countEl.textContent = '';
       return;
     }
-    tbody.innerHTML = data.visitors.map((v, i) => `
+    if (countEl) countEl.textContent = `Showing ${data.visitors.length} row${data.visitors.length !== 1 ? 's' : ''}`;
+    tbody.innerHTML = data.visitors.map((v, i) => {
+      const utmLabel = [v.utm_source, v.utm_medium, v.utm_campaign].filter(Boolean).join(' / ') || '—';
+      const refHost  = v.referrer ? (() => { try { return new URL(v.referrer).hostname.replace('www.',''); } catch { return v.referrer.slice(0,30); } })() : '—';
+      const devIcon  = deviceIcon(v.device);
+      const devLabel = v.device ? (v.device.charAt(0).toUpperCase() + v.device.slice(1)) : '—';
+      return `
       <tr>
         <td style="color:var(--ink4)">${i + 1}</td>
         <td style="font-size:11px;white-space:nowrap">${fmtDateTime(v.createdAt)}</td>
-        <td style="font-size:12px">${v.username ? `<span class="badge badge-gold">@${v.username}</span>${v.displayName ? `<span style="color:var(--ink3);margin-left:5px">${v.displayName}</span>` : ''}` : '<span style="color:var(--ink4)">Guest</span>'}</td>
-        <td style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${v.path}">${v.path}</td>
-        <td style="font-size:12px">${v.location}</td>
-        <td style="font-size:11px;color:var(--ink4)">${v.ip || '—'}</td>
-        <td style="font-size:12px">${v.duration_s > 0 ? (v.duration_s < 60 ? v.duration_s + 's' : Math.round(v.duration_s / 60) + 'm ' + (v.duration_s % 60) + 's') : '—'}</td>
-        <td style="font-size:11px">${parseDevice(v.ua)}</td>
-      </tr>
-    `).join('');
+        <td style="font-size:12px">${v.username
+          ? `<span class="badge badge-gold">@${escHtml(v.username)}</span>${v.displayName ? `<span style="color:var(--ink3);margin-left:5px">${escHtml(v.displayName)}</span>` : ''}`
+          : '<span style="color:var(--ink4)">Guest</span>'}</td>
+        <td style="font-size:12px">${devIcon} ${devLabel}</td>
+        <td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(v.path)}">${escHtml(v.path)}</td>
+        <td style="font-size:12px">${escHtml(v.location)}</td>
+        <td style="font-size:11px;color:${utmLabel !== '—' ? 'var(--amber)' : 'var(--ink4)'};font-weight:${utmLabel !== '—' ? '600' : '400'}">${escHtml(utmLabel)}</td>
+        <td style="font-size:11px;color:var(--ink4)" title="${escHtml(v.referrer)}">${escHtml(refHost)}</td>
+        <td style="font-size:12px">${fmtDuration(v.duration_s)}</td>
+      </tr>`;
+    }).join('');
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--red);padding:30px">Error: ${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--red);padding:30px">Error: ${escHtml(e.message)}</td></tr>`;
   }
 }
 
+document.getElementById('vfApplyBtn').onclick = () => loadVisitors();
 document.getElementById('visitorsRefreshBtn').onclick = () => loadVisitors();
+document.getElementById('vfResetBtn').onclick = () => {
+  document.getElementById('vfDevice').value = 'all';
+  document.getElementById('vfUserType').value = 'all';
+  document.getElementById('vfFrom').value = '';
+  document.getElementById('vfTo').value = '';
+  document.getElementById('vfUtmSource').value = '';
+  document.getElementById('vfUtmMedium').value = '';
+  document.getElementById('vfPath').value = '';
+  loadVisitors();
+};
+['vfUtmSource','vfUtmMedium','vfPath'].forEach(id => {
+  document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') loadVisitors(); });
+});
+
 document.getElementById('usersRefreshBtn').onclick = () => loadStats();
 
 // ── REACTIONS ────────────────────────────────────────────────────────────────

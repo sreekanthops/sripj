@@ -80,11 +80,21 @@ router.post('/change-password', verifyAdminToken, async (req, res) => {
 // ── POST /api/admin/track-view ────────────────────────────────────────────────
 // Called by the frontend to record a page view + session duration
 router.post('/track-view', (req, res) => {
-  const { userId, path, duration_s } = req.body;
+  const { userId, path, duration_s, referrer, utm_source, utm_medium, utm_campaign } = req.body;
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || '';
   const ua = (req.headers['user-agent'] || '').slice(0, 200);
-  db.prepare('INSERT INTO page_views (id, user_id, path, ip, ua, duration_s, created_at) VALUES (?,?,?,?,?,?,?)')
-    .run(uuidv4(), userId || null, path || '/', ip, ua, Math.floor(duration_s) || 0, new Date().toISOString());
+  db.prepare(`INSERT INTO page_views
+    (id, user_id, path, ip, ua, duration_s, referrer, utm_source, utm_medium, utm_campaign, created_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(
+      uuidv4(), userId || null, path || '/', ip, ua,
+      Math.floor(duration_s) || 0,
+      (referrer || '').slice(0, 500),
+      (utm_source   || '').slice(0, 100),
+      (utm_medium   || '').slice(0, 100),
+      (utm_campaign || '').slice(0, 100),
+      new Date().toISOString()
+    );
   res.json({ ok: true });
 });
 
@@ -206,27 +216,86 @@ router.get('/stats', verifyAdminToken, (req, res) => {
   });
 });
 
+// Seed usernames — excluded from "genuine" visitors view
+const SEED_USERNAMES = [
+  'aarav.writes','priya_journals','kiran.m','meera.thoughts','ravi.diaries',
+  'teja.scribbles','sahiti.pages','arjun_hyd','niharika.ink',
+  'rohit.notes','ananya_writes','dev.diaries','shreya.feelings',
+  'vikram.space','deepika.daily','aditya.pages','kavya.scribbles','sameer.diaries',
+];
+
 // ── GET /api/admin/visitors ───────────────────────────────────────────────────
-// Returns recent page_views with IP-based geo lookup (free ip-api.com batch)
 router.get('/visitors', verifyAdminToken, async (req, res) => {
-  const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+  const limit      = Math.min(parseInt(req.query.limit)  || 200, 1000);
+  const device     = req.query.device     || 'all';   // all | mobile | desktop | tablet
+  const user_type  = req.query.user_type  || 'all';   // all | guest | registered | genuine
+  const date_from  = req.query.date_from  || '';
+  const date_to    = req.query.date_to    || '';
+  const path_filter= (req.query.path     || '').trim();
+  const utm_source = (req.query.utm_source || '').trim();
+  const utm_medium = (req.query.utm_medium || '').trim();
+
+  // Build WHERE clauses
+  const conditions = [];
+  const params     = [];
+
+  // Exclude seed/demo users when user_type === 'genuine'
+  if (user_type === 'genuine') {
+    const placeholders = SEED_USERNAMES.map(() => '?').join(',');
+    conditions.push(`(pv.user_id IS NULL OR u.username NOT IN (${placeholders}))`);
+    params.push(...SEED_USERNAMES);
+    // Also skip auto-generated users (pattern: name.surname123)
+    conditions.push(`(pv.user_id IS NULL OR u.username IS NULL OR (
+      u.username NOT LIKE '%0' AND u.username NOT LIKE '%1' AND u.username NOT LIKE '%2' AND
+      u.username NOT LIKE '%3' AND u.username NOT LIKE '%4' AND u.username NOT LIKE '%5' AND
+      u.username NOT LIKE '%6' AND u.username NOT LIKE '%7' AND u.username NOT LIKE '%8' AND
+      u.username NOT LIKE '%9'
+    ))`);
+  } else if (user_type === 'guest') {
+    conditions.push(`pv.user_id IS NULL`);
+  } else if (user_type === 'registered') {
+    conditions.push(`pv.user_id IS NOT NULL`);
+  }
+
+  if (date_from) { conditions.push(`DATE(pv.created_at) >= ?`); params.push(date_from); }
+  if (date_to)   { conditions.push(`DATE(pv.created_at) <= ?`); params.push(date_to); }
+  if (path_filter) { conditions.push(`pv.path LIKE ?`); params.push('%' + path_filter + '%'); }
+  if (utm_source)  { conditions.push(`pv.utm_source LIKE ?`); params.push('%' + utm_source + '%'); }
+  if (utm_medium)  { conditions.push(`pv.utm_medium LIKE ?`); params.push('%' + utm_medium + '%'); }
+
+  const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+
   const rows = db.prepare(`
-    SELECT pv.id, pv.user_id, pv.path, pv.ip, pv.ua, pv.duration_s, pv.created_at,
+    SELECT pv.id, pv.user_id, pv.path, pv.ip, pv.ua, pv.duration_s,
+           pv.referrer, pv.utm_source, pv.utm_medium, pv.utm_campaign,
+           pv.created_at,
            u.username, u.display_name
     FROM page_views pv
     LEFT JOIN users u ON u.id = pv.user_id
+    ${where}
     ORDER BY pv.created_at DESC
     LIMIT ?
-  `).all(limit);
+  `).all(...params, limit);
 
-  // Collect unique IPs for geo lookup (skip private/loopback)
+  // Device filter (done in JS after UA parse — cheaper than SQLite REGEXP on UA)
   const privateRe = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1|localhost)/;
-  const uniqueIps = [...new Set(rows.map(r => r.ip).filter(ip => ip && !privateRe.test(ip)))];
+  function detectDevice(ua) {
+    if (!ua) return 'desktop';
+    if (/iPad|Tablet/i.test(ua)) return 'tablet';
+    if (/Mobile|Android|iPhone/i.test(ua)) return 'mobile';
+    return 'desktop';
+  }
+
+  const filtered = device === 'all'
+    ? rows
+    : rows.filter(r => detectDevice(r.ua) === device);
+
+  // Collect unique IPs for geo lookup
+  const uniqueIps = [...new Set(filtered.map(r => r.ip).filter(ip => ip && !privateRe.test(ip)))];
 
   let geoMap = {};
   try {
     if (uniqueIps.length) {
-      // ip-api.com free batch: up to 100 IPs per call
       const batch = uniqueIps.slice(0, 100).map(ip => ({ query: ip, fields: 'query,country,regionName,city,status' }));
       const geoRes = await fetch('http://ip-api.com/batch?fields=query,country,regionName,city,status', {
         method: 'POST',
@@ -237,27 +306,40 @@ router.get('/visitors', verifyAdminToken, async (req, res) => {
       if (geoRes.ok) {
         const geoData = await geoRes.json();
         geoData.forEach(g => {
-          if (g.status === 'success') {
-            geoMap[g.query] = [g.city, g.regionName, g.country].filter(Boolean).join(', ');
-          }
+          if (g.status === 'success') geoMap[g.query] = [g.city, g.regionName, g.country].filter(Boolean).join(', ');
         });
       }
     }
-  } catch { /* geo lookup optional — proceed without it */ }
+  } catch { /* geo lookup optional */ }
 
-  const visitors = rows.map(r => ({
-    id:          r.id,
-    username:    r.username || null,
-    displayName: r.display_name || null,
-    path:        r.path,
-    ip:          r.ip,
-    location:    geoMap[r.ip] || (privateRe.test(r.ip) ? 'Local' : '—'),
-    ua:          r.ua,
-    duration_s:  r.duration_s,
-    createdAt:   r.created_at,
+  // Summary breakdown for the current filtered set
+  const deviceCounts = { mobile: 0, desktop: 0, tablet: 0 };
+  const sourceCounts = {};
+  filtered.forEach(r => {
+    deviceCounts[detectDevice(r.ua)] = (deviceCounts[detectDevice(r.ua)] || 0) + 1;
+    const src = r.utm_source || (r.referrer ? new URL(r.referrer.startsWith('http') ? r.referrer : 'https://x').hostname.replace('www.','') : '') || 'direct';
+    sourceCounts[src] = (sourceCounts[src] || 0) + 1;
+  });
+  const topSources = Object.entries(sourceCounts).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([src,c])=>({src,c}));
+
+  const visitors = filtered.map(r => ({
+    id:           r.id,
+    username:     r.username  || null,
+    displayName:  r.display_name || null,
+    path:         r.path,
+    ip:           r.ip,
+    location:     geoMap[r.ip] || (privateRe.test(r.ip) ? 'Local' : '—'),
+    ua:           r.ua,
+    device:       detectDevice(r.ua),
+    duration_s:   r.duration_s,
+    referrer:     r.referrer     || '',
+    utm_source:   r.utm_source   || '',
+    utm_medium:   r.utm_medium   || '',
+    utm_campaign: r.utm_campaign || '',
+    createdAt:    r.created_at,
   }));
 
-  res.json({ visitors });
+  res.json({ visitors, summary: { total: filtered.length, deviceCounts, topSources } });
 });
 
 // ── DELETE /api/admin/users/:id ───────────────────────────────────────────────

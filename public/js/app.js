@@ -40,9 +40,27 @@ const audio = document.getElementById('bgAudio');
 // ── PAGE VIEW TRACKING ──────────────────────────────────────────────────────
 ;(function trackPageView() {
   const start = Date.now();
+  // Capture UTM params from URL (set by ad campaigns)
+  const _sp = new URLSearchParams(location.search);
+  const _utmSource   = _sp.get('utm_source')   || sessionStorage.getItem('_utm_source')   || '';
+  const _utmMedium   = _sp.get('utm_medium')   || sessionStorage.getItem('_utm_medium')   || '';
+  const _utmCampaign = _sp.get('utm_campaign') || sessionStorage.getItem('_utm_campaign') || '';
+  // Persist UTM across pages in the session
+  if (_sp.get('utm_source'))   sessionStorage.setItem('_utm_source',   _sp.get('utm_source'));
+  if (_sp.get('utm_medium'))   sessionStorage.setItem('_utm_medium',   _sp.get('utm_medium'));
+  if (_sp.get('utm_campaign')) sessionStorage.setItem('_utm_campaign', _sp.get('utm_campaign'));
+
   function sendBeacon(dur) {
     const userId = (() => { try { const t = localStorage.getItem('diary_token'); if (!t) return null; return JSON.parse(atob(t.split('.')[1])).userId; } catch { return null; } })();
-    const payload = JSON.stringify({ userId, path: location.pathname, duration_s: Math.round(dur / 1000) });
+    const payload = JSON.stringify({
+      userId,
+      path:         location.pathname,
+      duration_s:   Math.round(dur / 1000),
+      referrer:     document.referrer || '',
+      utm_source:   _utmSource,
+      utm_medium:   _utmMedium,
+      utm_campaign: _utmCampaign,
+    });
     if (navigator.sendBeacon) navigator.sendBeacon('/api/admin/track-view', new Blob([payload], { type: 'application/json' }));
     else fetch('/api/admin/track-view', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true }).catch(() => {});
   }
