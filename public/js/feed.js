@@ -491,6 +491,9 @@
 
   function closeViewer() {
     stopTimer();
+    // Stop any playing story video so sound doesn't leak after close
+    const vid = document.getElementById('svVideo');
+    if (vid) { vid.pause(); vid.src = ''; }
     const overlay = document.getElementById('storyViewerOverlay');
     if (overlay) overlay.classList.add('hidden');
   }
@@ -598,13 +601,69 @@
       if (svCard) svCard.style.background = '#000';
       if (svBody) {
         if (isVidMime(firstMedia.mimetype)) {
+          // Build video element in JS so we can control it after insert
           svBody.innerHTML = `
-            <div class="sv-story-media" style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;padding:0">
-              <video src="${escHtml(firstMedia.url)}" autoplay playsinline muted loop controls
+            <div class="sv-story-media" id="svVideoWrap" style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:0">
+              <video id="svVideo" src="${escHtml(firstMedia.url)}" playsinline loop
                 style="max-width:100%;max-height:100%;width:auto;height:auto;display:block"></video>
-              ${story.title ? `<div class="sv-story-title" style="position:absolute;bottom:70px;left:0;right:0;text-align:center;color:#fff;padding:8px 16px;text-shadow:0 1px 4px rgba(0,0,0,.7)">${escHtml(story.title)}</div>` : ''}
-              ${story.body  ? `<div class="sv-story-text"  style="position:absolute;bottom:44px;left:0;right:0;text-align:center;color:rgba(255,255,255,.9);font-size:13px;padding:0 16px;text-shadow:0 1px 3px rgba(0,0,0,.6)">${escHtml(story.body)}</div>` : ''}
+              <div id="svPauseIcon" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;background:rgba(0,0,0,.45);border-radius:50%;width:64px;height:64px;align-items:center;justify-content:center">
+                <svg viewBox="0 0 24 24" fill="#fff" width="32" height="32" style="display:block;margin:auto"><rect x="5" y="3" width="4" height="18" rx="1"/><rect x="15" y="3" width="4" height="18" rx="1"/></svg>
+              </div>
+              ${story.title ? `<div class="sv-story-title" style="position:absolute;bottom:70px;left:0;right:0;text-align:center;color:#fff;padding:8px 16px;text-shadow:0 1px 4px rgba(0,0,0,.7);pointer-events:none">${escHtml(story.title)}</div>` : ''}
+              ${story.body  ? `<div class="sv-story-text"  style="position:absolute;bottom:44px;left:0;right:0;text-align:center;color:rgba(255,255,255,.9);font-size:13px;padding:0 16px;text-shadow:0 1px 3px rgba(0,0,0,.6);pointer-events:none">${escHtml(story.body)}</div>` : ''}
             </div>`;
+
+          // Autoplay with sound; browsers may block unmuted autoplay — fall back to muted then unmute
+          const vid = document.getElementById('svVideo');
+          const pauseIcon = document.getElementById('svPauseIcon');
+          let pauseIconTimer = null;
+
+          function showPauseIcon() {
+            if (!pauseIcon) return;
+            pauseIcon.style.display = 'flex';
+            clearTimeout(pauseIconTimer);
+            pauseIconTimer = setTimeout(() => { pauseIcon.style.display = 'none'; }, 800);
+          }
+
+          if (vid) {
+            vid.muted = false;
+            vid.play().catch(() => {
+              // Autoplay blocked without mute — play muted first, then unmute on user gesture
+              vid.muted = true;
+              vid.play().catch(() => {});
+              const unmute = () => { vid.muted = false; document.removeEventListener('click', unmute); };
+              document.addEventListener('click', unmute, { once: true });
+            });
+
+            // Tap on video wrap toggles pause/play + shows pause icon
+            const wrap = document.getElementById('svVideoWrap');
+            if (wrap) {
+              wrap.addEventListener('click', e => {
+                // Don't fire if user tapped the tap-left / tap-right overlay areas
+                e.stopPropagation();
+                if (vid.paused) {
+                  vid.play().catch(() => {});
+                } else {
+                  vid.pause();
+                  showPauseIcon();
+                }
+              });
+            }
+
+            // Sync story timer to actual video duration once metadata loads
+            vid.addEventListener('loadedmetadata', () => {
+              if (!vid.duration || !isFinite(vid.duration)) return;
+              const vidDurMs = Math.min(vid.duration * 1000, 60000); // cap 60s
+              stopTimer();
+              _progStart = Date.now();
+              const activeFill = document.querySelector('.sv-prog-bar.active .sv-prog-fill');
+              if (activeFill) {
+                activeFill.style.transition = `width ${vidDurMs}ms linear`;
+                activeFill.style.width = '100%';
+              }
+              _storyTimer = setTimeout(() => advanceStory(1), vidDurMs);
+            }, { once: true });
+          }
         } else {
           svBody.innerHTML = `
             <div class="sv-story-media" style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;padding:0;position:relative">
@@ -647,16 +706,19 @@
     if (tapL) tapL.onclick = () => advanceStory(-1);
     if (tapR) tapR.onclick = () => advanceStory(1);
 
-    // For video stories use a longer timer (15s) so the video has time to play
-    const dur = (firstMedia && isVidMime(firstMedia.mimetype)) ? 15000 : STORY_DURATION_MS;
-    stopTimer();
-    _progStart = Date.now();
-    const fill = document.querySelector('.sv-prog-bar.active .sv-prog-fill');
-    if (fill) {
-      fill.style.transition = `width ${dur}ms linear`;
-      fill.style.width = '100%';
+    // For video stories the timer is set after loadedmetadata (above); for others set now
+    const isVideoStory = firstMedia && isVidMime(firstMedia.mimetype);
+    if (!isVideoStory) {
+      stopTimer();
+      _progStart = Date.now();
+      const fill = document.querySelector('.sv-prog-bar.active .sv-prog-fill');
+      if (fill) {
+        fill.style.transition = `width ${STORY_DURATION_MS}ms linear`;
+        fill.style.width = '100%';
+      }
+      _storyTimer = setTimeout(() => advanceStory(1), STORY_DURATION_MS);
     }
-    _storyTimer = setTimeout(() => advanceStory(1), dur);
+    // (video timer is started inside the loadedmetadata handler above)
   }
 
   // Wire close button

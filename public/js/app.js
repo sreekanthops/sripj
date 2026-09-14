@@ -3010,13 +3010,20 @@ function buildSlider(items, size, noteId) {
     if (isVid(item.mimetype)) {
       const v = document.createElement('video');
       v.src = item.url; v.loop = true; v.playsInline = true;
-      // unmuted in detail view so the video's own audio plays;
-      // muted in card/grid preview to avoid autoplay issues
+      // muted in card/grid preview to avoid autoplay policy; unmuted in detail
       v.muted = (size !== 'detail');
       slide.appendChild(v);
       if (size === 'detail') {
         const ctrl = buildVideoControls(v, item, noteId);
         if (ctrl) slide.appendChild(ctrl);
+        // Autoplay with sound when detail opens
+        v.play().catch(() => {
+          // If browser blocked unmuted autoplay, play muted first then unmute
+          v.muted = true;
+          v.play().catch(() => {});
+          const unmute = () => { v.muted = false; document.removeEventListener('click', unmute); };
+          document.addEventListener('click', unmute, { once: true });
+        });
       }
     } else {
       const img = document.createElement('img');
