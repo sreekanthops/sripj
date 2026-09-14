@@ -2459,8 +2459,12 @@ document.getElementById('fSave').onclick = async () => {
     }
     if (pendingFiles.length) {
       toast('Uploading media…', 8000);
-      await apiUpload(saved.id, pendingFiles);
-      toast('Uploaded ✅');
+      try {
+        await apiUpload(saved.id, pendingFiles);
+        toast('Uploaded ✅');
+      } catch (uploadErr) {
+        toast('Media upload failed: ' + uploadErr.message, 6000);
+      }
     }
     closeOv('formOverlay'); await loadAndRender();
   } catch (err) {
