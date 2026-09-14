@@ -1441,7 +1441,7 @@
   <div class="story-viewer-card" id="storyViewerCard">
     <!-- Progress bars -->
     <div class="sv-progress-row" id="svProgressRow"></div>
-    <!-- Header: close + user info -->
+    <!-- Header: close + user info + optional delete -->
     <div class="sv-header">
       <div class="sv-user-info">
         <div class="sv-avatar" id="svAvatar"></div>
@@ -1450,9 +1450,12 @@
           <div class="sv-time" id="svTime"></div>
         </div>
       </div>
-      <button class="sv-close" id="svClose" aria-label="Close">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
-      </button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button id="svDeleteBtn" aria-label="Delete story" style="display:none;background:rgba(220,38,38,.18);border:1px solid rgba(220,38,38,.5);color:#f87171;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;line-height:1.4">🗑 Delete</button>
+        <button class="sv-close" id="svClose" aria-label="Close">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+        </button>
+      </div>
     </div>
     <!-- Tap areas -->
     <div class="sv-tap sv-tap-left"  id="svTapLeft"></div>

@@ -631,6 +631,16 @@
       }
     }
 
+    // Show delete button only for own stories
+    const svDeleteBtn = document.getElementById('svDeleteBtn');
+    if (svDeleteBtn) {
+      const myId = window._currentUserId;
+      const isOwn = myId && myId === story.userId;
+      svDeleteBtn.style.display = isOwn ? '' : 'none';
+      svDeleteBtn.dataset.storyId = story.id;
+      svDeleteBtn.dataset.groupIdx = _curGroup;
+    }
+
     // Tap areas — pause video on tap-left, don't auto-advance during video
     const tapL = document.getElementById('svTapLeft');
     const tapR = document.getElementById('svTapRight');
@@ -654,6 +664,47 @@
   // Close on overlay bg click
   document.getElementById('storyViewerOverlay')?.addEventListener('click', e => {
     if (e.target === document.getElementById('storyViewerOverlay')) closeViewer();
+  });
+
+  // Delete story button
+  document.getElementById('svDeleteBtn')?.addEventListener('click', async e => {
+    e.stopPropagation();
+    const btn     = e.currentTarget;
+    const storyId = btn.dataset.storyId;
+    const gIdx    = parseInt(btn.dataset.groupIdx, 10);
+    if (!storyId) return;
+    if (!confirm('Delete this story? This cannot be undone.')) return;
+    const t = localStorage.getItem('diary_token');
+    if (!t) return;
+    try {
+      btn.disabled = true;
+      btn.textContent = 'Deleting…';
+      const r = await fetch(`/api/notes/${storyId}`, {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + t },
+      });
+      if (!r.ok) throw new Error('Delete failed');
+      // Remove from in-memory groups
+      if (_groups[gIdx]) {
+        _groups[gIdx].stories = _groups[gIdx].stories.filter(s => s.id !== storyId);
+        if (_groups[gIdx].stories.length === 0) {
+          _groups.splice(gIdx, 1);
+          closeViewer();
+          // reload story bar
+          load();
+          return;
+        }
+      }
+      // Move to next story or close
+      if (_curStory >= _groups[gIdx]?.stories.length) _curStory = Math.max(0, _curStory - 1);
+      renderSlide();
+      // reload story bar to remove the bubble
+      load();
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = '🗑 Delete';
+      alert('Could not delete story: ' + err.message);
+    }
   });
 
   // Expose openViewer globally so user profile modal can call it

@@ -100,8 +100,10 @@ router.get('/', optionalAuth, (req, res) => {
     const decay  = 1 / Math.pow(ageH, 1.3);
     const follow = followedSet.has(r.author_id) ? 3.0 : 1.0;
     const unseen = reactedSet.has(r.id)         ? 0.6 : 1.5;
+    // Fresh boost: posts < 2h old get a strong bump so they always surface first
+    const fresh  = ageH < 2 ? (10 / ageH) : 1.0;
 
-    const score  = (base + 1) * decay * follow * unseen;
+    const score  = (base + 1) * decay * follow * unseen * fresh;
 
     return { r, score };
   });
