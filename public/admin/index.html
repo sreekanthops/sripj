@@ -1479,6 +1479,10 @@ document.getElementById('saveFreeLimitBtn').onclick = async () => {
 };
 
 // ── VISITORS ─────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 let visitorsLoaded = false;
 
 function fmtDateTime(iso) {
