@@ -224,6 +224,7 @@ document.getElementById('landingSignInBtn')?.addEventListener('click', () => sho
 document.getElementById('landingSignInBtn2')?.addEventListener('click', () => showAuth());
 document.getElementById('landingStartBtn')?.addEventListener('click', () => showAuth());
 document.getElementById('landingStartBtn2')?.addEventListener('click', () => showAuth());
+document.getElementById('landingStartBtnFixed')?.addEventListener('click', () => showAuth());
 // Feed buttons on landing → dedicated guest feed screen
 document.getElementById('landingFeedBtn')?.addEventListener('click', () => showGuestFeed());
 document.getElementById('landingFeedBtnHero')?.addEventListener('click', () => showGuestFeed());

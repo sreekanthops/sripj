@@ -1741,7 +1741,6 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 .landing-screen {
   background: var(--bg);
   display: flex; flex-direction: column;
-  /* no min-height — content determines height, footer stays right after content */
 }
 
 /* ── Nav ─────────────────────────────────────────────────── */
@@ -1763,19 +1762,16 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 .landing-brand .brand-unsent { font-size: 24px; }
 .landing-brand .brand-stories { font-size: 12px; letter-spacing: 2px; margin-left: 2px; color: var(--ink2); }
 
-/* Sign In — plain text link style, no button */
 .landing-signin-btn {
   background: var(--accent); border: none; cursor: pointer;
   font-family: var(--sans); font-size: 13px; font-weight: 600;
   color: #fff; letter-spacing: .3px;
   padding: 7px 18px; border-radius: 20px;
-  text-decoration: none;
   transition: background .18s, transform .15s, box-shadow .18s;
   box-shadow: 0 2px 10px rgba(47,90,110,.22);
 }
 .landing-signin-btn:hover {
-  background: var(--accent2);
-  transform: translateY(-1px);
+  background: var(--accent2); transform: translateY(-1px);
   box-shadow: 0 4px 16px rgba(47,90,110,.32);
 }
 .landing-signin-btn:active { transform: translateY(0); }
@@ -1856,53 +1852,64 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 /* ── Main column ─────────────────────────────────────────── */
 .ls-main {
   max-width: 600px; width: 100%; margin: 0 auto;
-  padding: 64px 28px 56px;
+  padding: 56px 28px 56px;
   box-sizing: border-box;
 }
 
-/* ── Brand title ─────────────────────────────────────────── */
-.ls-brand { text-align: center; margin-bottom: 56px; }
+/* ── Brand / hero ─────────────────────────────────────────── */
+.ls-hero {
+  text-align: center;
+  margin-bottom: 36px;
+}
+.ls-hero-pre {
+  font-family: var(--script); font-size: clamp(18px, 5vw, 24px);
+  color: var(--ink3); margin-bottom: 10px; letter-spacing: .2px;
+}
 .ls-title {
   display: flex; flex-direction: column; align-items: center;
-  line-height: 1; margin-bottom: 14px;
+  line-height: 1; margin-bottom: 10px;
 }
-.ls-title .brand-unsent { font-size: clamp(56px, 14vw, 96px); }
+.ls-title .brand-unsent { font-size: clamp(56px, 14vw, 92px); }
 .ls-title-stories {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(14px, 3vw, 24px);
+  font-size: clamp(13px, 3vw, 22px);
   font-weight: 700; letter-spacing: 6px;
   color: var(--ink2); text-transform: uppercase;
   display: block; margin-top: 4px;
 }
-.ls-subtitle {
-  font-family: var(--script); font-size: 17px;
-  color: var(--ink3); letter-spacing: .2px; margin-top: 10px;
+.ls-hero-tagline {
+  font-family: var(--script); font-size: clamp(20px, 5.5vw, 28px);
+  color: var(--accent); margin-top: 8px; letter-spacing: .3px;
 }
 
-/* ── Hero section ─────────────────────────────────────────── */
-.ls-hero {
-  text-align: center; margin-bottom: 48px;
+/* ── Unsent lines — the emotional punch ───────────────────── */
+.ls-unsent-lines {
+  text-align: center;
+  margin: 0 auto 32px;
+  max-width: 400px;
 }
-.ls-hero-badge {
-  display: inline-block;
-  font-family: var(--sans); font-size: 11px; font-weight: 600;
-  letter-spacing: 1.6px; text-transform: uppercase;
-  color: var(--accent); background: var(--accent-bg);
-  border: 1px solid var(--accent-ring);
-  border-radius: 20px; padding: 5px 16px; margin-bottom: 18px;
+.ls-unsent-lines p {
+  font-family: var(--script); font-size: clamp(17px, 4.5vw, 21px);
+  color: var(--ink2); line-height: 2; letter-spacing: .15px;
 }
+
+/* ── Primary CTA block ─────────────────────────────────────── */
 .ls-hero-cta {
-  display: flex; gap: 10px; justify-content: center;
-  flex-wrap: wrap; margin-top: 20px;
+  display: flex; justify-content: center; margin-bottom: 12px;
 }
 .ls-cta-primary {
   background: var(--accent); color: #fff; border: none;
   font-family: var(--sans); font-size: 15px; font-weight: 700;
-  padding: 13px 28px; border-radius: 14px; cursor: pointer;
+  padding: 14px 28px; border-radius: 14px; cursor: pointer;
   letter-spacing: .2px;
-  transition: background .15s, transform .12s;
+  transition: background .15s, transform .12s, box-shadow .15s;
+  box-shadow: 0 3px 14px rgba(47,90,110,.28);
 }
-.ls-cta-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+.ls-cta-primary:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 5px 20px rgba(47,90,110,.38); }
+.ls-cta-primary:active { transform: translateY(0); }
+.ls-cta-hero {
+  font-size: 16px; padding: 15px 32px; border-radius: 16px;
+}
 .ls-cta-ghost {
   background: transparent; color: var(--accent);
   border: 1.5px solid var(--accent-ring);
@@ -1912,72 +1919,71 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   transition: background .15s, transform .12s;
 }
 .ls-cta-ghost:hover { background: var(--accent-bg); transform: translateY(-1px); }
-
-/* ── Feature grid ─────────────────────────────────────────── */
-.ls-features {
-  display: flex; flex-direction: column; gap: 0;
-  margin-bottom: 8px;
-}
-.ls-feat {
-  display: flex; align-items: flex-start; gap: 14px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--border);
-}
-.ls-feat:last-child { border-bottom: none; }
-.ls-feat-icon {
-  font-size: 22px; flex-shrink: 0; width: 32px; text-align: center;
-  margin-top: 2px;
-}
-.ls-feat-title {
-  font-family: var(--serif); font-size: 15px; font-weight: 700;
-  color: var(--ink); margin-bottom: 3px;
-}
-.ls-feat-desc {
-  font-family: var(--sans); font-size: 13px; color: var(--ink3); line-height: 1.6;
+.ls-cta-trust {
+  text-align: center; font-family: var(--sans); font-size: 12px;
+  color: var(--ink4); letter-spacing: .3px;
+  margin-bottom: 40px;
 }
 
-/* ── How it works ─────────────────────────────────────────── */
-.ls-how { margin-bottom: 8px; }
-.ls-how-title {
-  font-family: var(--sans); font-size: 10.5px; font-weight: 700;
-  letter-spacing: 2.5px; text-transform: uppercase;
-  color: var(--accent); margin-bottom: 24px; text-align: center;
+/* ── Phone mock ────────────────────────────────────────────── */
+.ls-mock-wrap {
+  display: flex; justify-content: center;
+  margin: 0 auto 8px;
 }
-.ls-how-steps {
-  display: flex; align-items: flex-start; gap: 8px;
-  justify-content: center; flex-wrap: wrap;
+.ls-mock-phone {
+  width: min(300px, 78vw);
+  background: var(--surface2);
+  border-radius: 24px;
+  border: 1.5px solid var(--border3);
+  box-shadow: 0 8px 40px rgba(44,36,22,.13), 0 2px 8px rgba(44,36,22,.07);
+  overflow: hidden;
 }
-.ls-how-step {
-  display: flex; align-items: flex-start; gap: 12px;
-  flex: 1; min-width: 140px; max-width: 180px;
+.ls-mock-screen { padding: 18px 20px 16px; }
+.ls-mock-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border2);
 }
-.ls-how-num {
-  width: 28px; height: 28px; flex-shrink: 0;
-  border-radius: 50%; background: var(--accent-bg);
-  border: 1.5px solid var(--accent-ring);
-  font-family: var(--sans); font-size: 13px; font-weight: 700;
-  color: var(--accent);
-  display: flex; align-items: center; justify-content: center;
+.ls-mock-brand {
+  font-family: var(--sans); font-size: 11px; font-weight: 700;
+  color: var(--accent); letter-spacing: .5px;
 }
-.ls-how-step-title {
-  font-family: var(--serif); font-size: 14px; font-weight: 700;
-  color: var(--ink); margin-bottom: 4px;
+.ls-mock-date {
+  font-family: var(--sans); font-size: 10px; color: var(--ink5);
 }
-.ls-how-step-desc {
-  font-family: var(--sans); font-size: 12px; color: var(--ink3); line-height: 1.55;
+.ls-mock-entry {
+  min-height: 100px;
+  padding: 0 0 14px;
 }
-.ls-how-arrow {
-  font-size: 20px; color: var(--ink5); align-self: center;
-  flex-shrink: 0; margin-top: -4px;
+.ls-mock-cursor-wrap {
+  display: inline;
 }
-@media (max-width: 480px) {
-  .ls-how-arrow { display: none; }
-  .ls-how-steps { gap: 16px; }
-  .ls-how-step { min-width: 100%; max-width: 100%; }
+.ls-mock-text {
+  display: inline;
+  font-family: var(--script); font-size: 15px;
+  color: var(--ink2); line-height: 1.85;
 }
-
-/* ── Centred text block ───────────────────────────────────── */
-.ls-body-center { text-align: center; }
+.ls-mock-cursor {
+  display: inline-block;
+  font-size: 15px; color: var(--accent);
+  margin-left: 1px;
+  animation: blink .9s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.ls-mock-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 12px; border-top: 1px solid var(--border);
+}
+.ls-mock-lock {
+  font-family: var(--sans); font-size: 10px; color: var(--ink4);
+  font-weight: 600; letter-spacing: .3px;
+}
+.ls-mock-save {
+  font-family: var(--sans); font-size: 11px; font-weight: 700;
+  color: #fff; background: var(--accent);
+  padding: 5px 13px; border-radius: 10px;
+}
 
 /* ── Horizontal rule ──────────────────────────────────────── */
 .ls-rule {
@@ -1985,37 +1991,64 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   margin: 44px 0;
 }
 
-/* ── Text blocks ──────────────────────────────────────────── */
-.ls-body { margin-bottom: 0; }
-.ls-line {
-  font-family: var(--script); font-size: 19px;
-  color: var(--ink2); line-height: 1.9;
-  margin-bottom: 26px; letter-spacing: .2px;
+/* ── Narrative bridge ─────────────────────────────────────── */
+.ls-narrative {
+  text-align: center; margin-bottom: 4px;
 }
-.ls-line:last-child { margin-bottom: 0; }
-.ls-line-lead {
-  font-family: var(--sans); font-size: 10.5px; font-weight: 700;
-  letter-spacing: 2.5px; text-transform: uppercase;
-  color: var(--accent); margin-bottom: 18px;
+.ls-narrative-lead {
+  font-family: var(--serif); font-size: clamp(20px, 5vw, 26px);
+  font-weight: 700; font-style: italic;
+  color: var(--ink); margin-bottom: 16px; line-height: 1.35;
 }
-.ls-line-quiet {
-  font-size: 16px; color: var(--ink3); line-height: 2.05;
-}
-.ls-line-serif {
-  font-family: var(--serif); font-size: 22px; font-weight: 700;
-  font-style: italic; color: var(--ink); letter-spacing: -.2px;
-}
-.ls-line-label {
-  font-family: var(--sans); font-size: 10px; font-weight: 700;
-  letter-spacing: 2.5px; text-transform: uppercase;
-  color: var(--ink4); margin-bottom: 14px;
-}
-.ls-line-about {
-  font-family: var(--script); font-size: 18px;
-  color: var(--ink2); line-height: 2.1;
+.ls-narrative-body {
+  font-family: var(--script); font-size: clamp(16px, 4.2vw, 19px);
+  color: var(--ink3); line-height: 2; letter-spacing: .15px;
 }
 
-/* ── Sign-in nudge (replaces CTA button) ─────────────────── */
+/* ── 3-feature cards ──────────────────────────────────────── */
+.ls-feats3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 4px;
+}
+@media (max-width: 500px) {
+  .ls-feats3 { grid-template-columns: 1fr; gap: 12px; }
+}
+.ls-feat3 {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 20px 16px 18px;
+}
+.ls-feat3-icon {
+  font-size: 26px; margin-bottom: 10px;
+}
+.ls-feat3-title {
+  font-family: var(--serif); font-size: 14px; font-weight: 700;
+  color: var(--ink); margin-bottom: 6px; line-height: 1.3;
+}
+.ls-feat3-desc {
+  font-family: var(--sans); font-size: 12px;
+  color: var(--ink3); line-height: 1.65;
+}
+
+/* ── Bottom CTA ────────────────────────────────────────────── */
+.ls-bottom-cta {
+  text-align: center;
+  padding: 8px 0 0;
+}
+.ls-bottom-cta-q {
+  font-family: var(--serif); font-size: clamp(18px, 5vw, 22px);
+  font-weight: 700; font-style: italic;
+  color: var(--ink); margin-bottom: 20px;
+}
+.ls-cta-browse {
+  display: block; margin: 12px auto 0;
+  font-size: 13px; padding: 10px 22px;
+}
+
+/* ── Sign-in nudge ────────────────────────────────────────── */
 .ls-signin-nudge {
   margin-top: 52px;
   font-family: var(--serif); font-size: 17px; font-style: italic;
@@ -2027,6 +2060,11 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   text-decoration: none; transition: opacity .15s;
 }
 .ls-signin-link:hover { opacity: .7; }
+
+/* keep backward compat for any stray references */
+.ls-body { margin-bottom: 0; }
+.ls-line { font-family: var(--script); font-size: 19px; color: var(--ink2); line-height: 1.9; margin-bottom: 26px; }
+.ls-body-center { text-align: center; }
 
 /* ── Footer ───────────────────────────────────────────────── */
 /* ── Landing public feed section ──────────────────────────────────────────── */
@@ -2094,19 +2132,6 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   font-size: 14px; padding: 13px 0; border-radius: 14px;
 }
 
-/* ── Emotional section spacing ────────────────────────────── */
-.ls-emotional {
-  padding: 32px 0 24px;
-  border-top: 1px solid var(--border2);
-  border-bottom: 1px solid var(--border2);
-  margin-bottom: 0 !important;
-}
-.ls-emotional .ls-line-serif {
-  font-size: 20px; margin-bottom: 20px;
-}
-.ls-emotional .ls-line-quiet {
-  font-size: 15px; line-height: 2;
-}
 
 /* btn-outline (used elsewhere) */
 .btn-outline {
