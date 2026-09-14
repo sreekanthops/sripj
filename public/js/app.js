@@ -184,16 +184,12 @@ function showLanding() {
   document.getElementById('appScreen').classList.add('hidden');
   document.getElementById('guestFeedScreen').classList.add('hidden');
   document.getElementById('authModal').classList.add('hidden');
-  const bar = document.getElementById('landingFixedBar');
-  if (bar) bar.style.display = '';
 }
 function showAuth(tab) {
   document.getElementById('authScreen').classList.remove('hidden');
   document.getElementById('appScreen').classList.add('hidden');
   document.getElementById('guestFeedScreen').classList.add('hidden');
   document.getElementById('authModal').classList.remove('hidden');
-  const bar = document.getElementById('landingFixedBar');
-  if (bar) bar.style.display = '';
   // Default to signup tab when coming from landing CTAs
   const targetTab = tab || 'signup';
   document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
@@ -206,8 +202,6 @@ function showAuth(tab) {
 function showApp() {
   document.getElementById('authScreen').classList.add('hidden');
   document.getElementById('guestFeedScreen').classList.add('hidden');
-  const bar = document.getElementById('landingFixedBar');
-  if (bar) bar.style.display = 'none';
   const appScreen = document.getElementById('appScreen');
   appScreen.classList.remove('hidden');
   document.getElementById('authModal').classList.add('hidden');
@@ -221,8 +215,6 @@ function showGuestFeed() {
   document.getElementById('authScreen').classList.add('hidden');
   document.getElementById('appScreen').classList.add('hidden');
   document.getElementById('authModal').classList.add('hidden');
-  const bar = document.getElementById('landingFixedBar');
-  if (bar) bar.style.display = 'none';
   document.getElementById('guestFeedScreen').classList.remove('hidden');
   window.GuestFeed?.load?.();
 }
@@ -233,8 +225,6 @@ document.getElementById('landingSignInBtn2')?.addEventListener('click', () => sh
 document.getElementById('landingStartBtn')?.addEventListener('click', () => showAuth('signup'));
 document.getElementById('landingStartBtn2')?.addEventListener('click', () => showAuth('signup'));
 document.getElementById('landingStartBtnFixed')?.addEventListener('click', () => showAuth('signup'));
-// Fixed bottom bar → open auth signup flow
-document.getElementById('landingFeedBtnHero')?.addEventListener('click', () => showAuth('signup'));
 document.getElementById('landingLearnBtn')?.addEventListener('click', () => {
   document.getElementById('landingLearnSection')?.scrollIntoView({ behavior: 'smooth' });
 });
@@ -249,7 +239,7 @@ document.getElementById('authModal')?.addEventListener('click', e => {
 });
 
 // ── HERO TYPEWRITER ────────────────────────────────────────────────────────
-;(function heroTypewriter() {
+window.addEventListener('DOMContentLoaded', function heroTypewriter() {
   const el     = document.getElementById('heroTypeText');
   const cursor = document.getElementById('heroTypeCursor');
   if (!el || !cursor) return;
@@ -262,11 +252,9 @@ document.getElementById('authModal')?.addEventListener('click', e => {
       i++;
       setTimeout(type, SPEED);
     }
-    // cursor keeps blinking via CSS after typing finishes
   }
-  // Small delay so page renders first
-  setTimeout(type, 400);
-})();
+  setTimeout(type, 300);
+});
 
 // ── AUTH ───────────────────────────────────────────────────────────────────
 document.querySelectorAll('.auth-tab').forEach(tab => {
