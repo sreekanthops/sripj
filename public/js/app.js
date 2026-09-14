@@ -3748,6 +3748,7 @@ function _jwtPayload(t) {
   const userMatch  = location.pathname.match(/^\/u\/([^/]+)/); // /u/username (legacy)
   const entryMatch = location.pathname.match(/^\/entry\/([^/]+)/);
   const shareMatch = location.pathname.match(/^\/s\/([^/]+)/);
+  const isFeedUrl  = location.pathname === '/feed';
   const urlParams  = new URLSearchParams(location.search);
 
   // Decode percent-encoding so /@sri%40123 matches username sri@123
@@ -3805,7 +3806,16 @@ function _jwtPayload(t) {
     }
   }
 
-  if (entryId) {
+  if (isFeedUrl) {
+    // /feed — public feed page, works for both guests and logged-in users
+    if (currentUser) {
+      await enterOwnDiary();
+      window.Feed?.showFeed?.();
+    } else {
+      showGuestFeed();
+    }
+
+  } else if (entryId) {
     await enterSingleNote(entryId);
 
   } else if (shareToken) {

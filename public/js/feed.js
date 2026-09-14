@@ -350,6 +350,8 @@
     if (feedScreen)  feedScreen.style.display  = 'block';
     if (mainContent) mainContent.style.display = 'none';
     setActiveNavTab('feed');
+    // Update URL so the feed is directly shareable/bookmarkable
+    if (location.pathname !== '/feed') history.pushState({ page: 'feed' }, '', '/feed');
     // always reset + reload so newly-public notes appear immediately
     resetFeed();
     loadMore();
@@ -363,6 +365,8 @@
     const mainContent  = document.getElementById('mainContent');
     if (feedScreen)  feedScreen.style.display  = 'none';
     if (mainContent) mainContent.style.display = '';
+    // Restore URL when navigating away from /feed
+    if (location.pathname === '/feed') history.pushState({}, '', '/');
   }
 
   function setActiveNavTab(tab) {
@@ -378,6 +382,16 @@
     resetFeed();
     loadMore();
   }
+
+  // Wire feedShareBtn — copies the direct /feed URL
+  document.getElementById('feedShareBtn')?.addEventListener('click', async () => {
+    const url = location.origin + '/feed';
+    try {
+      await navigator.clipboard.writeText(url);
+      const btn = document.getElementById('feedShareBtn');
+      if (btn) { const orig = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = orig; }, 1500); }
+    } catch {}
+  });
 
   // Wire Refresh button
   document.getElementById('feedRefreshBtn')?.addEventListener('click', () => {
@@ -935,6 +949,8 @@
     const empty     = document.getElementById('guestFeedEmpty');
     if (container) container.innerHTML = '';
     if (empty) empty.style.display = 'none';
+    // Update URL so the feed is directly shareable/bookmarkable
+    if (location.pathname !== '/feed') history.pushState({ page: 'feed' }, '', '/feed');
     // observe bottom sentinel
     const sentinel = document.getElementById('guestFeedSpinner');
     if (sentinel) observer.observe(sentinel);
@@ -947,6 +963,8 @@
     document.getElementById('authScreen').classList.remove('hidden');
     const bar = document.getElementById('landingFixedBar');
     if (bar) bar.style.display = '';
+    // Restore URL when going back to landing
+    if (location.pathname === '/feed') history.pushState({}, '', '/');
   });
   // Sign In button inside feed screen
   document.getElementById('guestFeedSignIn')?.addEventListener('click', () => promptLogin());
