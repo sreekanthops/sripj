@@ -248,6 +248,26 @@ document.getElementById('authModal')?.addEventListener('click', e => {
   }
 });
 
+// ── HERO TYPEWRITER ────────────────────────────────────────────────────────
+;(function heroTypewriter() {
+  const el     = document.getElementById('heroTypeText');
+  const cursor = document.getElementById('heroTypeCursor');
+  if (!el || !cursor) return;
+  const msg   = "Tell your heart how much you love someone — even if you can never tell them.";
+  let i       = 0;
+  const SPEED = 38; // ms per character
+  function type() {
+    if (i <= msg.length) {
+      el.textContent = msg.slice(0, i);
+      i++;
+      setTimeout(type, SPEED);
+    }
+    // cursor keeps blinking via CSS after typing finishes
+  }
+  // Small delay so page renders first
+  setTimeout(type, 400);
+})();
+
 // ── AUTH ───────────────────────────────────────────────────────────────────
 document.querySelectorAll('.auth-tab').forEach(tab => {
   tab.onclick = () => {

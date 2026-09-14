@@ -1861,25 +1861,23 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   text-align: center;
   margin-bottom: 36px;
 }
-.ls-hero-pre {
-  font-family: var(--script); font-size: clamp(18px, 5vw, 24px);
-  color: var(--ink3); margin-top: 8px; margin-bottom: 10px; letter-spacing: .2px;
+.ls-hero-brand {
+  font-family: var(--sans); font-size: 12px; font-weight: 700;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--accent); opacity: .7; margin-bottom: 22px;
 }
-.ls-title {
-  display: flex; flex-direction: column; align-items: center;
-  line-height: 1; margin-bottom: 10px;
+.ls-hero-type {
+  font-family: var(--script);
+  font-size: clamp(28px, 7.5vw, 46px);
+  color: var(--ink); line-height: 1.4;
+  font-weight: 400; letter-spacing: .2px;
+  min-height: 3.2em;
+  margin: 0 auto; max-width: 520px;
 }
-.ls-title .brand-unsent { font-size: clamp(56px, 14vw, 92px); }
-.ls-title-stories {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(13px, 3vw, 22px);
-  font-weight: 700; letter-spacing: 6px;
-  color: var(--ink2); text-transform: uppercase;
-  display: block; margin-top: 4px;
-}
-.ls-hero-tagline {
-  font-family: var(--script); font-size: clamp(20px, 5.5vw, 28px);
-  color: var(--accent); margin-top: 8px; letter-spacing: .3px;
+.ls-hero-cursor {
+  display: inline-block; color: var(--accent);
+  font-weight: 300; margin-left: 2px;
+  animation: blink .85s step-end infinite;
 }
 
 /* ── Unsent lines — the emotional punch ───────────────────── */
