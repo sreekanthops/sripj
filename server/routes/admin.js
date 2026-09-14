@@ -225,7 +225,7 @@ const SEED_USERNAMES = [
 ];
 
 // ── GET /api/admin/visitors ───────────────────────────────────────────────────
-router.get('/visitors', verifyAdminToken, async (req, res) => {
+router.get('/visitors', verifyAdminToken, async (req, res) => { try {
   const limit      = Math.min(parseInt(req.query.limit)  || 200, 1000);
   const device     = req.query.device     || 'all';   // all | mobile | desktop | tablet
   const user_type  = req.query.user_type  || 'all';   // all | guest | registered | genuine
@@ -316,8 +316,14 @@ router.get('/visitors', verifyAdminToken, async (req, res) => {
   const deviceCounts = { mobile: 0, desktop: 0, tablet: 0 };
   const sourceCounts = {};
   filtered.forEach(r => {
-    deviceCounts[detectDevice(r.ua)] = (deviceCounts[detectDevice(r.ua)] || 0) + 1;
-    const src = r.utm_source || (r.referrer ? new URL(r.referrer.startsWith('http') ? r.referrer : 'https://x').hostname.replace('www.','') : '') || 'direct';
+    const devKey = detectDevice(r.ua);
+    deviceCounts[devKey] = (deviceCounts[devKey] || 0) + 1;
+    let src = 'direct';
+    if (r.utm_source) {
+      src = r.utm_source;
+    } else if (r.referrer) {
+      try { src = new URL(r.referrer).hostname.replace('www.', '') || 'direct'; } catch { src = 'direct'; }
+    }
     sourceCounts[src] = (sourceCounts[src] || 0) + 1;
   });
   const topSources = Object.entries(sourceCounts).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([src,c])=>({src,c}));
@@ -340,6 +346,10 @@ router.get('/visitors', verifyAdminToken, async (req, res) => {
   }));
 
   res.json({ visitors, summary: { total: filtered.length, deviceCounts, topSources } });
+  } catch (err) {
+    console.error('[visitors]', err);
+    res.status(500).json({ error: err.message, visitors: [], summary: { total: 0, deviceCounts: {}, topSources: [] } });
+  }
 });
 
 // ── DELETE /api/admin/users/:id ───────────────────────────────────────────────
