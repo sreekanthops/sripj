@@ -408,6 +408,8 @@ async function initGoogleOAuth() {
 function openOv(id)  { document.getElementById(id).classList.add('open'); }
 function closeOv(id) {
   document.getElementById(id).classList.remove('open');
+  // Always stop bg music when the note detail closes
+  if (id === 'detailOverlay' && audio) { audio.pause(); audio.currentTime = 0; fmpHide?.(); }
 }
 
 ['detailOverlay','formOverlay','profileOverlay','upgradeOverlay','libraryOverlay','shareOverlay','passOverlay','userProfileOverlay','userListOverlay'].forEach(id => {
@@ -3003,7 +3005,10 @@ function buildSlider(items, size, noteId) {
 
     if (isVid(item.mimetype)) {
       const v = document.createElement('video');
-      v.src = item.url; v.loop = true; v.muted = true; v.playsInline = true;
+      v.src = item.url; v.loop = true; v.playsInline = true;
+      // unmuted in detail view so the video's own audio plays;
+      // muted in card/grid preview to avoid autoplay issues
+      v.muted = (size !== 'detail');
       slide.appendChild(v);
       if (size === 'detail') {
         const ctrl = buildVideoControls(v, item, noteId);
@@ -3128,7 +3133,10 @@ async function openDetail(id) {
     const i = notes.findIndex(n => n.id === id);
     if (i !== -1) { notes[i] = note; detailIdx = i; }
     renderDetail(note);
-    playMusic(note);
+    // Don't play bg music if the note contains a video — the video has its own audio
+    const hasVideo = note.media?.some(m => isVid(m.mimetype));
+    if (!hasVideo) playMusic(note);
+    else { audio.pause(); audio.src = ''; fmpHide?.(); }
   } catch (err) {
     document.getElementById('detailContent').innerHTML =
       `<p style="color:var(--ink3);padding:40px;text-align:center">Could not load entry.<br><small>${esc(err.message)}</small></p>`;
