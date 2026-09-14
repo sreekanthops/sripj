@@ -16,6 +16,11 @@ const { verifyToken, optionalAuth } = require('../auth');
 function storyNow() { return new Date().toISOString(); }
 
 function buildStory(row) {
+  const mediaRows = db.prepare(
+    'SELECT id, filename, mimetype FROM media WHERE note_id=? ORDER BY sort_order ASC'
+  ).all(row.id);
+  const media = mediaRows.map(m => ({ id: m.id, url: '/uploads/' + m.filename, mimetype: m.mimetype }));
+
   return {
     id:             row.id,
     userId:         row.user_id,
@@ -26,6 +31,7 @@ function buildStory(row) {
     bgUrl:          row.bg_url || '',
     createdAt:      row.created_at,
     storyExpiresAt: row.story_expires_at,
+    media,
     author: {
       id:          row.author_id,
       username:    row.author_username,

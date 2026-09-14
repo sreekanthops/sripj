@@ -2089,21 +2089,10 @@ function updateNoteBgDefaultLabel() {
     : 'No default set';
 }
 
-// Show "default music will be set to …" notice when nothing is selected
+// Notice: always hidden — audio is now fully optional, no auto-default on save
 function updateDefaultMusicNotice() {
   const el = document.getElementById('defaultMusicNotice');
-  if (!el) return;
-  const hasSelection = _selectedMusicId || _pendingAudioFile || _uploadedAudioUrl ||
-                       document.getElementById('fMusic')?.value?.trim();
-  if (hasSelection) { el.style.display = 'none'; return; }
-
-  // Pick a random from combined pool
-  const pool = [...(_userMusicLib || []), ...(_globalMusicLib || [])];
-  if (!pool.length) { el.style.display = 'none'; return; }
-  const pick = pool[Math.floor(Math.random() * pool.length)];
-  el.style.display = '';
-  el.textContent = `♪ No music selected — a random track will be set on save: "${pick.title}"`;
-  el._defaultTrack = pick;
+  if (el) el.style.display = 'none';
 }
 
 async function renderMusicPicker(activeMusicId, activeCustomUrl) {
@@ -2405,26 +2394,14 @@ document.getElementById('fSave').onclick = async () => {
     } catch { bgUrl = ''; }
   }
 
-  // Determine final music — priority: uploaded file > URL text > library selection > random default
+  // Determine final music — priority: uploaded file > URL text > library selection > no default
   let finalMusicUrl    = _selectedMusicId ? '' : (musicUrl || _uploadedAudioUrl);
   let finalNoteMusicId = _selectedMusicId;
-  let defaultMusicLabel = '';
-
-  if (!finalMusicUrl && !finalNoteMusicId && !_pendingAudioFile) {
-    // No music selected — pick a random one from user lib then global lib
-    const pool = [...(_userMusicLib || []), ...(_globalMusicLib || [])];
-    if (pool.length) {
-      const pick = pool[Math.floor(Math.random() * pool.length)];
-      finalNoteMusicId = pick.id;
-      defaultMusicLabel = `♪ Default music set to: "${pick.title}"`;
-    }
-  }
 
   const isPublic = document.getElementById('fIsPublic')?.checked || false;
   const isStory  = document.getElementById('fIsStory')?.checked  || false;
   const payload = { title: title||'Untitled', body, font, titleFont, fontSize, fontWeight, colorIdx,
-                    musicUrl: finalMusicUrl,
-                    noteMusicId: finalNoteMusicId,
+                    musicUrl: finalMusicUrl, noteMusicId: finalNoteMusicId,
                     bgUrl, tags, taggedUserId };
   try {
     let saved;
@@ -2433,12 +2410,12 @@ document.getElementById('fSave').onclick = async () => {
       // Sync is_public + is_story separately
       await api('PUT', `/notes/${editId}/public`, { isPublic }).catch(() => {});
       await api('PUT', `/notes/${editId}/story`,  { isStory  }).catch(() => {});
-      toast(defaultMusicLabel ? `Entry updated ✅  ${defaultMusicLabel}` : 'Entry updated ✅', defaultMusicLabel ? 4000 : 2600);
+      toast('Entry updated ✅', 2600);
     } else {
       saved = await api('POST', '/notes', payload);
       if (isPublic) await api('PUT', `/notes/${saved.id}/public`, { isPublic: true }).catch(() => {});
       if (isStory)  await api('PUT', `/notes/${saved.id}/story`,  { isStory: true  }).catch(() => {});
-      toast(defaultMusicLabel ? `Entry saved 💾  ${defaultMusicLabel}` : 'Entry saved 💾', defaultMusicLabel ? 4000 : 2600);
+      toast('Entry saved 💾', 2600);
     }
     // Upload audio file if one was selected (replaces the placeholder musicUrl)
     if (_pendingAudioFile) {

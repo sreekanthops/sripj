@@ -32,6 +32,25 @@
     return Math.floor(diff / 86400) + 'd ago';
   }
 
+  function isVidMime(mime) { return (mime || '').startsWith('video/'); }
+
+  // Build media block for a feed card — preserves native aspect ratio, no forced sizing
+  function buildFeedMedia(media) {
+    if (!media || !media.length) return '';
+    return media.map(m => {
+      if (isVidMime(m.mimetype)) {
+        return `<div class="feed-media-item">
+          <video src="${escHtml(m.url)}" controls playsinline preload="metadata"
+            style="display:block;width:100%;height:auto;max-width:100%;border-radius:8px;background:#000"></video>
+        </div>`;
+      }
+      return `<div class="feed-media-item">
+        <img src="${escHtml(m.url)}" loading="lazy" decoding="async"
+          style="display:block;width:100%;height:auto;max-width:100%;border-radius:8px;object-fit:contain">
+      </div>`;
+    }).join('');
+  }
+
   function renderFeedCard(note) {
     const a = note.author;
     const av = a.avatarUrl
@@ -55,6 +74,8 @@
       ? 'cursor:pointer;padding:2.5px;border-radius:50%;background:linear-gradient(135deg,#f7971e,#f72585,#7209b7,#4cc9f0);display:inline-flex;flex-shrink:0'
       : 'cursor:pointer';
 
+    const mediaHtml = buildFeedMedia(note.media);
+
     // data-tagged-pinned used for view tracking only — no visible banner shown to user
     return `
       <article class="feed-card" data-note-id="${note.id}"${isPinned ? ' data-tagged-pinned="1"' : ''}>
@@ -70,7 +91,8 @@
             ${!isOwnNote ? `<button class="feed-profile-btn" data-uid="${escHtml(a.id)}" data-uname="${escHtml(a.username)}" title="View profile">View Profile</button>` : ''}
           </div>
           ${note.title ? `<h3 class="feed-card-title" style="font-family:${escHtml(note.font)}">${escHtml(note.title)}</h3>` : ''}
-          <p class="feed-card-text">${escHtml((note.body || '').slice(0, 280))}${(note.body || '').length > 280 ? '…' : ''}</p>
+          ${mediaHtml ? `<div class="feed-card-media">${mediaHtml}</div>` : ''}
+          ${!mediaHtml ? `<p class="feed-card-text">${escHtml((note.body || '').slice(0, 280))}${(note.body || '').length > 280 ? '…' : ''}</p>` : (note.body ? `<p class="feed-card-text" style="margin-top:8px">${escHtml((note.body || '').slice(0, 200))}${(note.body || '').length > 200 ? '…' : ''}</p>` : '')}
           <div class="feed-card-actions">
             <button class="feed-react-btn" data-note-id="${note.id}" title="React">
               ${topEmoji || '♡'} <span class="feed-react-count">${reactionTotal || ''}</span>
@@ -526,6 +548,8 @@
     });
   }
 
+  function isVidMime(mime) { return (mime || '').startsWith('video/'); }
+
   function renderSlide() {
     stopTimer();
     const group = _groups[_curGroup];
@@ -557,35 +581,72 @@
     const svTime = document.getElementById('svTime');
     if (svTime) svTime.textContent = relTime(story.createdAt);
 
-    // Body — colour from palette
+    // Body — colour from palette (used as fallback bg when no media)
     const ci  = story.colorIdx ?? 0;
     const bg  = PALETTE_BG[ci % PALETTE_BG.length];
     const acc = PALETTE_ACCENT[ci % PALETTE_ACCENT.length];
     const svBody = document.getElementById('svBody');
     const svCard = document.getElementById('storyViewerCard');
-    // Remove any previous bg element
-    svCard?.querySelectorAll('.sv-story-bg').forEach(el => el.remove());
-    // Inject background into the card (positioned ancestor)
-    const bgDiv = document.createElement('div');
-    bgDiv.className = 'sv-story-bg';
-    bgDiv.innerHTML = `<div class="sv-story-bg-color" style="background:${bg};width:100%;height:100%;position:absolute;inset:0"></div>`;
-    svCard?.insertBefore(bgDiv, svCard.firstChild);
 
-    if (svBody) {
-      svBody.innerHTML = `
-        <div class="sv-story-content">
-          ${story.title ? `<div class="sv-story-title" style="color:${escHtml(acc)}">${escHtml(story.title)}</div>` : ''}
-          <div class="sv-story-text">${escHtml(story.body || '')}</div>
-        </div>`;
+    // Remove any previous bg / media elements
+    svCard?.querySelectorAll('.sv-story-bg').forEach(el => el.remove());
+
+    const firstMedia = story.media?.[0];
+
+    if (firstMedia) {
+      // Media story — show video or image filling the card, no colour bg overlay
+      if (svCard) svCard.style.background = '#000';
+      if (svBody) {
+        if (isVidMime(firstMedia.mimetype)) {
+          svBody.innerHTML = `
+            <div class="sv-story-media" style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;padding:0">
+              <video src="${escHtml(firstMedia.url)}" autoplay playsinline muted loop controls
+                style="max-width:100%;max-height:100%;width:auto;height:auto;display:block"></video>
+              ${story.title ? `<div class="sv-story-title" style="position:absolute;bottom:70px;left:0;right:0;text-align:center;color:#fff;padding:8px 16px;text-shadow:0 1px 4px rgba(0,0,0,.7)">${escHtml(story.title)}</div>` : ''}
+              ${story.body  ? `<div class="sv-story-text"  style="position:absolute;bottom:44px;left:0;right:0;text-align:center;color:rgba(255,255,255,.9);font-size:13px;padding:0 16px;text-shadow:0 1px 3px rgba(0,0,0,.6)">${escHtml(story.body)}</div>` : ''}
+            </div>`;
+        } else {
+          svBody.innerHTML = `
+            <div class="sv-story-media" style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;padding:0;position:relative">
+              <img src="${escHtml(firstMedia.url)}" style="max-width:100%;max-height:100%;width:auto;height:auto;display:block;object-fit:contain">
+              ${story.title ? `<div class="sv-story-title" style="position:absolute;bottom:70px;left:0;right:0;text-align:center;color:#fff;padding:8px 16px;text-shadow:0 1px 4px rgba(0,0,0,.7)">${escHtml(story.title)}</div>` : ''}
+              ${story.body  ? `<div class="sv-story-text"  style="position:absolute;bottom:44px;left:0;right:0;text-align:center;color:rgba(255,255,255,.9);font-size:13px;padding:0 16px;text-shadow:0 1px 3px rgba(0,0,0,.6)">${escHtml(story.body)}</div>` : ''}
+            </div>`;
+        }
+      }
+    } else {
+      // Text-only story — original colour background rendering
+      if (svCard) svCard.style.background = '';
+      const bgDiv = document.createElement('div');
+      bgDiv.className = 'sv-story-bg';
+      bgDiv.innerHTML = `<div class="sv-story-bg-color" style="background:${bg};width:100%;height:100%;position:absolute;inset:0"></div>`;
+      svCard?.insertBefore(bgDiv, svCard.firstChild);
+
+      if (svBody) {
+        svBody.innerHTML = `
+          <div class="sv-story-content">
+            ${story.title ? `<div class="sv-story-title" style="color:${escHtml(acc)}">${escHtml(story.title)}</div>` : ''}
+            <div class="sv-story-text">${escHtml(story.body || '')}</div>
+          </div>`;
+      }
     }
 
-    // Tap areas
+    // Tap areas — pause video on tap-left, don't auto-advance during video
     const tapL = document.getElementById('svTapLeft');
     const tapR = document.getElementById('svTapRight');
     if (tapL) tapL.onclick = () => advanceStory(-1);
     if (tapR) tapR.onclick = () => advanceStory(1);
 
-    startTimer();
+    // For video stories use a longer timer (15s) so the video has time to play
+    const dur = (firstMedia && isVidMime(firstMedia.mimetype)) ? 15000 : STORY_DURATION_MS;
+    stopTimer();
+    _progStart = Date.now();
+    const fill = document.querySelector('.sv-prog-bar.active .sv-prog-fill');
+    if (fill) {
+      fill.style.transition = `width ${dur}ms linear`;
+      fill.style.width = '100%';
+    }
+    _storyTimer = setTimeout(() => advanceStory(1), dur);
   }
 
   // Wire close button
@@ -647,6 +708,15 @@
     document.getElementById('landingFixedBar') && (document.getElementById('landingFixedBar').style.display = '');
   }
 
+  function isVidMime(m) { return (m||'').startsWith('video/'); }
+  function buildGfMedia(media) {
+    if (!media || !media.length) return '';
+    return media.map(m => isVidMime(m.mimetype)
+      ? `<div class="feed-media-item"><video src="${escHtml(m.url)}" controls playsinline preload="metadata" style="display:block;width:100%;height:auto;max-width:100%;border-radius:8px;background:#000"></video></div>`
+      : `<div class="feed-media-item"><img src="${escHtml(m.url)}" loading="lazy" decoding="async" style="display:block;width:100%;height:auto;max-width:100%;border-radius:8px;object-fit:contain"></div>`
+    ).join('');
+  }
+
   function renderCard(note) {
     const a = note.author;
     const av = a.avatarUrl
@@ -658,6 +728,7 @@
     const myId = window._currentUserId;
     const isOwnNote = myId && myId === a.id;
     const bgStyle = note.bgUrl ? `style="background-image:url('${escHtml(note.bgUrl)}');background-size:cover;background-position:center"` : '';
+    const mediaHtml = buildGfMedia(note.media);
 
     return `
       <article class="feed-card" data-note-id="${escHtml(note.id)}">
@@ -671,7 +742,8 @@
             </div>
           </div>
           ${note.title ? `<h3 class="feed-card-title">${escHtml(note.title)}</h3>` : ''}
-          <p class="feed-card-text">${escHtml((note.body||'').slice(0,280))}${(note.body||'').length>280?'…':''}</p>
+          ${mediaHtml ? `<div class="feed-card-media">${mediaHtml}</div>` : ''}
+          ${!mediaHtml ? `<p class="feed-card-text">${escHtml((note.body||'').slice(0,280))}${(note.body||'').length>280?'…':''}</p>` : (note.body ? `<p class="feed-card-text" style="margin-top:8px">${escHtml((note.body||'').slice(0,200))}${(note.body||'').length>200?'…':''}</p>` : '')}
           <div class="feed-card-actions">
             <button class="feed-react-btn gf-action" data-note-id="${escHtml(note.id)}" title="${loggedIn?'React':'Sign in to react'}">
               ${topEmoji||'♡'} <span>${reactionTotal||''}</span>

@@ -141,6 +141,12 @@ router.get('/', optionalAuth, (req, res) => {
       tagViewStatus = tvRec ? { durationS: tvRec.duration_s, viewCount: tvRec.view_count, notified: !!tvRec.notified } : null;
     }
 
+    // Media attachments (images + videos)
+    const mediaRows = db.prepare(
+      'SELECT id, filename, mimetype FROM media WHERE note_id=? ORDER BY sort_order ASC'
+    ).all(r.id);
+    const media = mediaRows.map(m => ({ id: m.id, url: '/uploads/' + m.filename, mimetype: m.mimetype }));
+
     return {
       id:            r.id,
       title:         r.title,
@@ -155,6 +161,7 @@ router.get('/', optionalAuth, (req, res) => {
       reactions,
       replyCount:    r.reply_count,
       userReactions,
+      media,
       taggedUserId:  r.tagged_user_id || '',
       taggedUser,
       tagViewStatus,
