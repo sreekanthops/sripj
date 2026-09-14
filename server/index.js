@@ -1,6 +1,7 @@
 require('dotenv').config();
 const http    = require('http');
 const express = require('express');
+const { startAutoFeedScheduler } = require('./auto-feed');
 const cors    = require('cors');
 const morgan  = require('morgan');
 const path    = require('path');
@@ -130,4 +131,9 @@ const { attachWS } = require('./ws');
 attachWS(server);
 
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => console.log(`Diary running → http://localhost:${PORT}`));
+server.listen(PORT, () => {
+  console.log(`Diary running → http://localhost:${PORT}`);
+  // Start daily auto-feed generator (50 posts/day from seed + new users)
+  const db = require('./db');
+  startAutoFeedScheduler(db);
+});
