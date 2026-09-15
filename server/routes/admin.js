@@ -525,7 +525,7 @@ Answer concisely. Use numbers directly. If asked for charts or graphs, describe 
 
   // ── Call Ollama (stream) ────────────────────────────────────────────────────
   const ollamaHost  = process.env.OLLAMA_HOST || 'http://localhost:11434';
-  const ollamaModel = process.env.OLLAMA_MODEL || 'llama3.2';
+  const ollamaModel = process.env.OLLAMA_MODEL || 'granite3.2:2b';
 
   const messages = [
     { role: 'system', content: context },
@@ -538,9 +538,68 @@ Answer concisely. Use numbers directly. If asked for charts or graphs, describe 
   res.setHeader('Transfer-Encoding', 'chunked');
   res.flushHeaders?.();
 
+  // ── Rule-based fallback (used when Ollama is unreachable) ──────────────────
+  function ruleBasedAnswer(q) {
+    const lq = q.toLowerCase();
+    const lines = [];
+
+    if (/new.*(user|signup|register).*today|today.*new.*(user|signup)/i.test(q))
+      lines.push(`New users today: **${todayUsers}**`);
+    if (/new.*(user|signup).*week|this week/i.test(q))
+      lines.push(`New users this week: **${weekUsers}**`);
+    if (/total.*user|how many user|user.*count/i.test(q))
+      lines.push(`Total registered users: **${totalUsers}**`);
+    if (/monthly.*sub|subscriber.*month/i.test(q))
+      lines.push(`Monthly subscribers: **${subMonthly}**`);
+    if (/yearly.*sub|subscriber.*year/i.test(q))
+      lines.push(`Yearly subscribers: **${subYearly}**`);
+    if (/lifetime.*sub|subscriber.*life/i.test(q))
+      lines.push(`Lifetime subscribers: **${subLifetime}**`);
+    if (/free.*user|free.*plan/i.test(q))
+      lines.push(`Free plan users: **${subFree}**`);
+    if (/subscri/i.test(q) && !lines.length)
+      lines.push(`Subscriptions — Monthly: **${subMonthly}**, Yearly: **${subYearly}**, Lifetime: **${subLifetime}**, Free: **${subFree}**`);
+    if (/visitor.*today|today.*visitor/i.test(q))
+      lines.push(`Visitors today: **${todayVisitors}**`);
+    if (/source|traffic|where.*visit|visit.*from|referr/i.test(q)) {
+      if (topSources.length)
+        lines.push(`Top traffic sources: ${topSources.map(s=>`**${s.utm_source}** (${s.hits})`).join(', ')}`);
+      else
+        lines.push(`No UTM-tagged traffic recorded yet.`);
+    }
+    if (/top.*page|popular.*page|most.*visit/i.test(q))
+      lines.push(`Top pages: ${topPages.map(p=>`**${p.path}** (${p.hits})`).join(', ')}`);
+    if (/reaction|emoji/i.test(q))
+      lines.push(`Total reactions: **${totalReactions}**`);
+    if (/comment|repl/i.test(q))
+      lines.push(`Total comments/replies: **${totalReplies}**`);
+    if (/complaint/i.test(q))
+      lines.push(`Open complaints: **${openComplaints}**`);
+    if (/session|avg.*time|time.*site/i.test(q))
+      lines.push(`Average session time: **${avgTime}s**`);
+    if (/note|entr|post/i.test(q))
+      lines.push(`Total notes: **${totalNotes}** (${publicNotes} public)`);
+    if (/recent.*signup|signup.*last|last.*7/i.test(q))
+      lines.push(`Recent signups (last 7 days): ${recentSignups.map(r=>`${r.day}: **${r.c}**`).join(', ') || 'none'}`);
+
+    // General summary
+    if (!lines.length)
+      lines.push(
+        `Here's a quick snapshot for today (${now}):`,
+        `• Users: **${totalUsers}** total, **${todayUsers}** new today, **${weekUsers}** this week`,
+        `• Subscriptions: **${subMonthly}** monthly · **${subYearly}** yearly · **${subLifetime}** lifetime · **${subFree}** free`,
+        `• Visitors today: **${todayVisitors}** · Avg session: **${avgTime}s**`,
+        `• Notes: **${totalNotes}** (**${publicNotes}** public)`,
+        `• Open complaints: **${openComplaints}**`,
+      );
+
+    return lines.join('\n');
+  }
+
+  // ── Try Ollama; fall back to rule-based if unreachable ────────────────────
   try {
-    const https = require('https');
-    const http  = require('http');
+    const https  = require('https');
+    const http   = require('http');
     const urlMod = require('url');
     const parsed = urlMod.parse(ollamaHost + '/api/chat');
     const lib    = parsed.protocol === 'https:' ? https : http;
@@ -567,15 +626,20 @@ Answer concisely. Use numbers directly. If asked for charts or graphs, describe 
       oRes.on('end', () => { try { res.write(`data: [DONE]\n\n`); res.end(); } catch {} });
     });
 
-    oReq.on('error', err => {
-      res.write(`data: ${JSON.stringify({ error: 'Ollama not reachable: ' + err.message })}\n\n`);
+    oReq.on('error', () => {
+      // Ollama unreachable — answer directly from live DB data
+      const answer = ruleBasedAnswer(message.trim());
+      res.write(`data: ${JSON.stringify({ token: answer })}\n\n`);
+      res.write(`data: [DONE]\n\n`);
       res.end();
     });
     oReq.setTimeout(60000, () => { oReq.destroy(); });
     oReq.write(body);
     oReq.end();
   } catch (err) {
-    res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+    const answer = ruleBasedAnswer(message.trim());
+    res.write(`data: ${JSON.stringify({ token: answer })}\n\n`);
+    res.write(`data: [DONE]\n\n`);
     res.end();
   }
 });

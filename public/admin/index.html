@@ -1597,7 +1597,7 @@ select.field-select:focus{border-color:var(--accent)}
       </div>
       <div class="aic-messages" id="aiChatMessages">
         <div class="aic-msg ai">
-          <div class="aic-bubble">Hi! I can answer questions about your portal data. Try asking about new users today, subscription counts, visitor sources, and more.</div>
+          <div class="aic-bubble">Hi! I'm your admin assistant, powered by <strong>granite3.2</strong> (Ollama). I answer instantly from live data even when Ollama is offline. Try the suggestions below.</div>
         </div>
       </div>
       <div class="aic-suggestions" id="aiSuggestions">
@@ -4075,12 +4075,20 @@ document.getElementById('complaintReopenBtn')?.addEventListener('click', async (
     return new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
   }
 
+  function renderMarkdown(text) {
+    // Bold **text**, bullet lines starting with •, newlines → <br>
+    return text
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+  }
+
   function addMsg(role, text, streaming = false) {
     const div = document.createElement('div');
     div.className = 'aic-msg ' + role;
     const bubble = document.createElement('div');
     bubble.className = 'aic-bubble' + (streaming ? ' streaming' : '');
-    bubble.textContent = text;
+    if (text) bubble.innerHTML = renderMarkdown(text); else bubble.textContent = '';
     const time = document.createElement('div');
     time.className = 'aic-time';
     time.textContent = now();
@@ -4162,7 +4170,7 @@ document.getElementById('complaintReopenBtn')?.addEventListener('click', async (
             if (obj.error) { bubble.textContent = '⚠ ' + obj.error; bubble.classList.remove('streaming'); break; }
             if (obj.token) {
               aiText += obj.token;
-              bubble.textContent = aiText;
+              bubble.innerHTML = renderMarkdown(aiText);
               bubble.classList.add('streaming');
               msgWrap.scrollTop = msgWrap.scrollHeight;
             }
