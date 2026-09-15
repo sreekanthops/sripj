@@ -225,6 +225,7 @@ document.getElementById('landingSignInBtn2')?.addEventListener('click', () => sh
 document.getElementById('landingStartBtn')?.addEventListener('click', () => showAuth('signup'));
 document.getElementById('landingStartBtn2')?.addEventListener('click', () => showAuth('signup'));
 document.getElementById('landingStartBtnFixed')?.addEventListener('click', () => showAuth('signup'));
+document.getElementById('landingReadBtn')?.addEventListener('click', () => showGuestFeed());
 document.getElementById('landingLearnBtn')?.addEventListener('click', () => {
   document.getElementById('landingLearnSection')?.scrollIntoView({ behavior: 'smooth' });
 });

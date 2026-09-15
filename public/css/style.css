@@ -1893,7 +1893,8 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 
 /* ── Primary CTA block ─────────────────────────────────────── */
 .ls-hero-cta {
-  display: flex; justify-content: center; margin-bottom: 12px;
+  display: flex; justify-content: center; align-items: center;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
 }
 .ls-cta-primary {
   background: var(--accent); color: #fff; border: none;
