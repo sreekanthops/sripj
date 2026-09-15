@@ -2436,6 +2436,106 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   flex-shrink: 0;
 }
 
+/* ── Subscription plan box in profile ───────────────────── */
+.prof-plan-box {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1.5px solid var(--border2);
+  border-radius: var(--r);
+  background: var(--surface2);
+}
+.prof-plan-loading {
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink4);
+  text-align: center;
+  padding: 6px 0;
+}
+/* Current plan badge row */
+.prof-plan-current {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.prof-plan-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 99px;
+  letter-spacing: .3px;
+}
+.prof-plan-badge.free     { background: var(--bg3); color: var(--ink3); border: 1.5px solid var(--border3); }
+.prof-plan-badge.monthly  { background: rgba(47,90,110,.10); color: var(--accent); border: 1.5px solid var(--accent-ring); }
+.prof-plan-badge.yearly   { background: rgba(140,109,63,.10); color: var(--gold); border: 1.5px solid var(--glow2); }
+.prof-plan-badge.lifetime { background: rgba(124,58,237,.10); color: #7c3aed; border: 1.5px solid rgba(124,58,237,.25); }
+.prof-plan-expiry {
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--ink4);
+}
+.prof-plan-expiry.expiring { color: var(--red); font-weight: 600; }
+/* Upgrade plan cards grid */
+.prof-plan-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.prof-plan-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: var(--r2);
+  border: 1.5px solid var(--border2);
+  background: var(--surface3);
+  text-decoration: none;
+  transition: border-color .15s, background .15s;
+  cursor: pointer;
+}
+.prof-plan-card:hover   { border-color: var(--accent); background: var(--accent-bg); }
+.prof-plan-card.current { border-color: var(--accent); background: var(--accent-bg); pointer-events: none; }
+.prof-plan-card-info { flex: 1; }
+.prof-plan-card-name {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.prof-plan-card.current .prof-plan-card-name { color: var(--accent); }
+.prof-plan-card-desc {
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--ink4);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+.prof-plan-card-price {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink2);
+  flex-shrink: 0;
+}
+.prof-plan-card-price span { font-size: 11px; font-weight: 400; color: var(--ink4); }
+.prof-plan-card-tag {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+.prof-plan-card-tag.active-tag  { background: rgba(47,90,110,.12); color: var(--accent); border: 1px solid var(--accent-ring); }
+.prof-plan-card-tag.upgrade-tag { background: rgba(140,109,63,.12); color: var(--gold); border: 1px solid var(--glow2); }
+
 .prof-signout-box {
   margin-top: 20px;
   padding-top: 16px;

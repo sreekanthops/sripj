@@ -904,6 +904,8 @@ async function openProfileModal() {
   loadDiaryAccessList();
   // Load wallet
   loadProfileWallet();
+  // Load subscription plan
+  loadProfilePlan();
 }
 
 async function loadProfileWallet() {
@@ -938,6 +940,67 @@ async function loadProfileWallet() {
 }
 
 // ── DIARY ACCESS ─────────────────────────────────────────────────────────────
+async function loadProfilePlan() {
+  const currentEl = document.getElementById('profPlanCurrent');
+  const cardsEl   = document.getElementById('profPlanCards');
+  if (!currentEl || !token) return;
+
+  currentEl.className = 'prof-plan-loading';
+  currentEl.textContent = 'Loading…';
+  cardsEl.classList.add('hidden');
+
+  try {
+    const [subData, plansData] = await Promise.all([
+      fetch('/api/subscriptions/me', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      fetch('/api/subscriptions/plans').then(r => r.json()),
+    ]);
+
+    const activePlanId = subData.planId || 'free';
+    const plans = (plansData.plans || []).filter(p => p.id !== 'free');
+
+    // ── Current plan badge ──────────────────────────────────────────────────
+    const planEmoji = { free: '🆓', monthly: '⚡', yearly: '🌟', lifetime: '♾️' };
+    const planLabel = subData.name || 'Free';
+    let expiryHtml = '';
+    if (subData.expiresAt) {
+      const daysLeft = Math.ceil((new Date(subData.expiresAt) - Date.now()) / 86400000);
+      const expiring = daysLeft <= 7;
+      expiryHtml = `<span class="prof-plan-expiry${expiring ? ' expiring' : ''}">
+        ${expiring ? '⚠️ ' : ''}Expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}
+      </span>`;
+    }
+
+    currentEl.className = 'prof-plan-current';
+    currentEl.innerHTML = `
+      <span class="prof-plan-badge ${activePlanId}">${planEmoji[activePlanId] || '⭐'} ${planLabel}</span>
+      ${expiryHtml}
+    `;
+
+    // ── Plan cards ──────────────────────────────────────────────────────────
+    cardsEl.classList.remove('hidden');
+    cardsEl.innerHTML = plans.map(p => {
+      const isCurrent = p.id === activePlanId;
+      const priceStr  = p.price_inr ? `₹${p.price_inr}` : (p.price_usd ? `${p.price_usd}` : 'Free');
+      const suffix    = p.id === 'monthly' ? '/mo' : p.id === 'yearly' ? '/yr' : '';
+      const tag       = isCurrent
+        ? `<span class="prof-plan-card-tag active-tag">Current</span>`
+        : `<span class="prof-plan-card-tag upgrade-tag">Upgrade</span>`;
+      return `<a href="/pricing" class="prof-plan-card${isCurrent ? ' current' : ''}">
+        <div class="prof-plan-card-info">
+          <div class="prof-plan-card-name">${p.name}</div>
+          <div class="prof-plan-card-desc">${p.description || ''}</div>
+        </div>
+        <div class="prof-plan-card-price">${priceStr}<span>${suffix}</span></div>
+        ${tag}
+      </a>`;
+    }).join('');
+
+  } catch {
+    currentEl.className = 'prof-plan-loading';
+    currentEl.textContent = 'Could not load plan.';
+  }
+}
+
 let _daSearchTimer = null;
 
 async function loadDiaryAccessList() {
