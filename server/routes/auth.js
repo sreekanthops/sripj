@@ -202,10 +202,10 @@ router.get('/verify-reset-token', (req, res) => {
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  if (!username?.trim() || !password) return res.status(400).json({ error: 'Username and password required' });
+  if (!username?.trim() || !password) return res.status(400).json({ error: 'Username or email and password required' });
   const uname = username.trim().toLowerCase();
-  const user  = db.prepare('SELECT * FROM users WHERE username = ?').get(uname);
-  if (!user) return res.status(401).json({ error: 'Invalid username or password' });
+  const user  = db.prepare('SELECT * FROM users WHERE username = ? OR email = ?').get(uname, uname);
+  if (!user) return res.status(401).json({ error: 'Invalid username/email or password' });
   const ok = await checkPassword(password, user.password_hash);
   if (!ok) return res.status(401).json({ error: 'Invalid username or password' });
   const token = signToken(user.id, user.username);
