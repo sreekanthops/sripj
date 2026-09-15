@@ -3780,14 +3780,12 @@ body.draw-mode.tool-select #drawingCanvas {
 }
 .feed-search-clear:hover { color: var(--ink); }
 .feed-user-search-results {
-  position: absolute;
-  top: calc(100% - 4px);
-  left: 16px; right: 16px;
+  position: fixed;
   background: var(--surface3);
   border: 1.5px solid var(--border2);
   border-radius: var(--r);
-  box-shadow: 0 8px 24px rgba(0,0,0,.12);
-  z-index: 200;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  z-index: 9999;
   overflow: hidden;
   max-height: 340px;
   overflow-y: auto;

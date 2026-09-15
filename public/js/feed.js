@@ -396,6 +396,14 @@
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
+    function positionDropdown() {
+      const box = document.getElementById('feedUserSearchWrap')?.getBoundingClientRect();
+      if (!box) return;
+      results.style.top   = (box.bottom + 4) + 'px';
+      results.style.left  = box.left + 'px';
+      results.style.width = box.width + 'px';
+    }
+
     function showResults(users) {
       if (!users.length) {
         results.innerHTML = '<div class="feed-search-empty">No users found</div>';
@@ -419,6 +427,7 @@
           });
         });
       }
+      positionDropdown();
       results.classList.remove('hidden');
     }
 

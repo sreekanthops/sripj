@@ -515,7 +515,6 @@
         <input type="text" id="feedUserSearch" placeholder="Search users…" autocomplete="off">
         <button id="feedUserSearchClear" class="feed-search-clear hidden">✕</button>
       </div>
-      <div id="feedUserSearchResults" class="feed-user-search-results hidden"></div>
     </div>
     <div style="padding:0 16px">
       <div id="feedCards"></div>
@@ -1186,6 +1185,8 @@
 </div>
 
 <div id="toast"></div>
+<!-- feed user search results — at body level so it's never clipped -->
+<div id="feedUserSearchResults" class="feed-user-search-results hidden"></div>
 
 <!-- ══ CHAT PANEL ═══════════════════════════════════════════════ -->
 <div id="chatPanel" class="chat-panel">
