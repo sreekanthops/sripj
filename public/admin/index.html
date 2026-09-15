@@ -2949,7 +2949,7 @@ document.getElementById('navTabs').addEventListener('click', e => {
     btn.disabled = true;
     btn.textContent = '⏳ Generating…';
 
-    const token = localStorage.getItem('admin_token');
+    const token = sessionStorage.getItem('admin_token');
     try {
       const res = await fetch('/api/admin/generate-feed', {
         method: 'POST',
