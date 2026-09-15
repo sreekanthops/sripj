@@ -707,7 +707,9 @@ document.getElementById('topbarUserChip')?.addEventListener('click', () => {
 document.getElementById('bottomNav')?.addEventListener('click', e => {
   const btn = e.target.closest('.bottom-nav-btn');
   if (!btn) return;
+  // Buttons without data-tab are handled by their own listeners (e.g. complaint)
   const tab = btn.dataset.tab;
+  if (!tab) return;
   document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.toggle('active', b === btn));
   if (tab === 'home') {
     window.Feed?.hideFeed?.();
@@ -4847,45 +4849,43 @@ document.getElementById('resetSubmitBtn')?.addEventListener('click', async () =>
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('complaintNavBtn')?.addEventListener('click', openComplaintModal);
-    document.getElementById('complaintClose')?.addEventListener('click', closeComplaintModal);
-    document.getElementById('complaintOverlay')?.addEventListener('click', e => {
-      if (e.target === document.getElementById('complaintOverlay')) closeComplaintModal();
-    });
+  document.getElementById('complaintNavBtn')?.addEventListener('click', openComplaintModal);
+  document.getElementById('complaintClose')?.addEventListener('click', closeComplaintModal);
+  document.getElementById('complaintOverlay')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('complaintOverlay')) closeComplaintModal();
+  });
 
-    // Tab switching
-    document.querySelectorAll('.complaint-tab').forEach(btn => {
-      btn.addEventListener('click', () => switchComplaintTab(btn.dataset.ctab));
-    });
+  // Tab switching
+  document.querySelectorAll('.complaint-tab').forEach(btn => {
+    btn.addEventListener('click', () => switchComplaintTab(btn.dataset.ctab));
+  });
 
-    // Submit
-    document.getElementById('complaintSubmitBtn')?.addEventListener('click', async () => {
-      const subject = document.getElementById('complaintSubject')?.value?.trim() || '';
-      const body    = document.getElementById('complaintBody')?.value?.trim() || '';
-      const errEl   = document.getElementById('complaintErr');
-      errEl.textContent = '';
-      if (!body) { errEl.textContent = 'Please describe your issue.'; return; }
-      const btn = document.getElementById('complaintSubmitBtn');
-      btn.disabled = true;
-      try {
-        const res = await fetch('/api/complaints', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-          body: JSON.stringify({ subject, body }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed');
-        document.getElementById('complaintSubject').value = '';
-        document.getElementById('complaintBody').value    = '';
-        toast('Complaint submitted! We\'ll get back to you soon 🙏');
-        switchComplaintTab('mine');
-      } catch (e) {
-        errEl.textContent = e.message;
-      } finally {
-        btn.disabled = false;
-      }
-    });
+  // Submit
+  document.getElementById('complaintSubmitBtn')?.addEventListener('click', async () => {
+    const subject = document.getElementById('complaintSubject')?.value?.trim() || '';
+    const body    = document.getElementById('complaintBody')?.value?.trim() || '';
+    const errEl   = document.getElementById('complaintErr');
+    errEl.textContent = '';
+    if (!body) { errEl.textContent = 'Please describe your issue.'; return; }
+    const submitBtn = document.getElementById('complaintSubmitBtn');
+    submitBtn.disabled = true;
+    try {
+      const res = await fetch('/api/complaints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ subject, body }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      document.getElementById('complaintSubject').value = '';
+      document.getElementById('complaintBody').value    = '';
+      toast('Complaint submitted! We\'ll get back to you soon 🙏');
+      switchComplaintTab('mine');
+    } catch (e) {
+      errEl.textContent = e.message;
+    } finally {
+      submitBtn.disabled = false;
+    }
   });
 
   // Make openComplaintModal accessible globally (e.g. from notification click)
