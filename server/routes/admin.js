@@ -471,6 +471,8 @@ router.post('/ai-chat', verifyAdminToken, async (req, res) => {
 
   // ── Build live data context ─────────────────────────────────────────────────
   const now = new Date().toISOString().slice(0, 10);
+  const privateRe = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1$|localhost)/;
+
   const totalUsers     = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
   const todayUsers     = db.prepare("SELECT COUNT(*) as c FROM users WHERE DATE(created_at) = DATE('now')").get().c;
   const weekUsers      = db.prepare("SELECT COUNT(*) as c FROM users WHERE created_at >= DATE('now','-7 days')").get().c;
@@ -488,39 +490,134 @@ router.post('/ai-chat', verifyAdminToken, async (req, res) => {
   const subLifetime = db.prepare("SELECT COUNT(*) as c FROM user_subscriptions WHERE plan_id='lifetime' AND (expires_at IS NULL OR expires_at > datetime('now'))").get().c;
   const subFree     = totalUsers - subMonthly - subYearly - subLifetime;
 
-  // Top visitor sources (UTM)
-  const topSources = db.prepare(`
-    SELECT utm_source, COUNT(*) as hits FROM page_views
-    WHERE utm_source != '' GROUP BY utm_source ORDER BY hits DESC LIMIT 5
+  // All traffic sources — UTM + referrer hostname combined
+  const utmRows = db.prepare(`
+    SELECT utm_source as src, COUNT(*) as hits FROM page_views
+    WHERE utm_source != '' GROUP BY utm_source ORDER BY hits DESC LIMIT 10
   `).all();
+  const refRows = db.prepare(`
+    SELECT referrer, COUNT(*) as hits FROM page_views
+    WHERE referrer != '' AND utm_source = '' GROUP BY referrer ORDER BY hits DESC LIMIT 20
+  `).all();
+  // Collapse referrer hostnames
+  const refMap = {};
+  refRows.forEach(r => {
+    let host = 'direct';
+    try { host = new URL(r.referrer).hostname.replace(/^www\./, '') || 'direct'; } catch {}
+    refMap[host] = (refMap[host] || 0) + r.hits;
+  });
+  const topReferrers = Object.entries(refMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([src,c])=>({src,c}));
+  const topSources   = utmRows; // keep for rule-based
 
   // Top pages
   const topPages = db.prepare(`
     SELECT path, COUNT(*) as hits FROM page_views
-    GROUP BY path ORDER BY hits DESC LIMIT 5
+    GROUP BY path ORDER BY hits DESC LIMIT 10
   `).all();
 
-  // New users last 7 days
+  // New users last 7 days (with names)
   const recentSignups = db.prepare(`
     SELECT DATE(created_at) as day, COUNT(*) as c FROM users
     WHERE created_at >= DATE('now','-7 days') GROUP BY day ORDER BY day ASC
   `).all();
+  const recentUserList = db.prepare(`
+    SELECT username, display_name, email, created_at FROM users
+    WHERE created_at >= DATE('now','-7 days') ORDER BY created_at DESC LIMIT 30
+  `).all();
+  const todayUserList = db.prepare(`
+    SELECT username, display_name, email, created_at FROM users
+    WHERE DATE(created_at) = DATE('now') ORDER BY created_at DESC
+  `).all();
+
+  // Today's visitor IPs for geo lookup
+  const todayIpRows = db.prepare(`
+    SELECT DISTINCT ip FROM page_views
+    WHERE DATE(created_at) = DATE('now') AND ip IS NOT NULL AND ip != ''
+    LIMIT 100
+  `).all();
+  const publicIps = todayIpRows.map(r=>r.ip).filter(ip => !privateRe.test(ip));
+
+  // Async geo lookup for today's IPs
+  let geoMap = {};
+  let locationCounts = {};  // city → count of visitors
+  try {
+    if (publicIps.length) {
+      const batch = publicIps.slice(0,100).map(ip => ({ query: ip, fields: 'query,country,regionName,city,status' }));
+      const geoRes = await fetch('http://ip-api.com/batch?fields=query,country,regionName,city,status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(batch),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (geoRes.ok) {
+        const geoData = await geoRes.json();
+        geoData.forEach(g => {
+          if (g.status !== 'success') return;
+          const loc = [g.city, g.regionName, g.country].filter(Boolean).join(', ');
+          geoMap[g.query] = loc;
+          const cityKey = g.city || g.regionName || g.country || 'Unknown';
+          locationCounts[cityKey] = (locationCounts[cityKey] || 0) + 1;
+        });
+      }
+    }
+  } catch { /* geo lookup optional */ }
+
+  // All-time visitor geo (from IPs we have, limited sample)
+  const allIpRows = db.prepare(`
+    SELECT DISTINCT ip FROM page_views WHERE ip IS NOT NULL AND ip != '' LIMIT 200
+  `).all();
+  const allPublicIps = allIpRows.map(r=>r.ip).filter(ip => !privateRe.test(ip) && !geoMap[ip]);
+  let allGeoMap = { ...geoMap };
+  try {
+    if (allPublicIps.length) {
+      const batch = allPublicIps.slice(0,100).map(ip => ({ query: ip, fields: 'query,country,regionName,city,status' }));
+      const geoRes = await fetch('http://ip-api.com/batch?fields=query,country,regionName,city,status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(batch),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (geoRes.ok) {
+        const geoData = await geoRes.json();
+        geoData.forEach(g => {
+          if (g.status === 'success') allGeoMap[g.query] = [g.city, g.regionName, g.country].filter(Boolean).join(', ');
+        });
+      }
+    }
+  } catch {}
+
+  // Count all-time visitors per city from page_views + allGeoMap
+  const allIpRowsFull = db.prepare(`SELECT ip, COUNT(*) as hits FROM page_views WHERE ip IS NOT NULL AND ip != '' GROUP BY ip`).all();
+  const allLocationCounts = {};
+  allIpRowsFull.forEach(r => {
+    if (allGeoMap[r.ip]) {
+      const city = allGeoMap[r.ip].split(',')[0].trim();
+      allLocationCounts[city] = (allLocationCounts[city] || 0) + r.hits;
+    }
+  });
+  const topLocations = Object.entries(allLocationCounts).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([loc,c])=>({loc,c}));
+  const topLocationsToday = Object.entries(locationCounts).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([loc,c])=>({loc,c}));
 
   const context = `
 You are an admin AI assistant for "Unsent Stories" — a private diary/writing app.
 Today is ${now}. Answer questions based on this live data snapshot:
 
 USERS: total=${totalUsers}, new_today=${todayUsers}, new_this_week=${weekUsers}
+NEW_USERS_TODAY: ${todayUserList.length ? todayUserList.map(u=>`${u.username}(${u.display_name||''})`).join(', ') : 'none'}
+NEW_USERS_THIS_WEEK: ${recentUserList.map(u=>`${u.username} joined ${u.created_at.slice(0,10)}`).join('; ') || 'none'}
 NOTES: total=${totalNotes}, public=${publicNotes}
 ENGAGEMENT: reactions=${totalReactions}, comments=${totalReplies}
 VISITORS: today=${todayVisitors}, avg_session=${avgTime}s
+VISITOR_LOCATIONS_TODAY: ${topLocationsToday.map(l=>`${l.loc}(${l.c})`).join(', ') || 'geo data pending or local IPs'}
+VISITOR_LOCATIONS_ALLTIME: ${topLocations.map(l=>`${l.loc}(${l.c})`).join(', ') || 'geo data pending or local IPs'}
 SUBSCRIPTIONS: monthly=${subMonthly}, yearly=${subYearly}, lifetime=${subLifetime}, free=${subFree}
 COMPLAINTS: open=${openComplaints}
-TOP_SOURCES: ${topSources.map(s => `${s.utm_source}(${s.hits})`).join(', ') || 'none tracked'}
-TOP_PAGES: ${topPages.map(p => `${p.path}(${p.hits})`).join(', ')}
-RECENT_SIGNUPS (last 7 days): ${recentSignups.map(r => `${r.day}:${r.c}`).join(', ') || 'none'}
+UTM_SOURCES: ${topSources.map(s=>`${s.src}(${s.hits})`).join(', ') || 'none tracked'}
+REFERRERS: ${topReferrers.map(s=>`${s.src}(${s.c})`).join(', ') || 'none'}
+TOP_PAGES: ${topPages.map(p=>`${p.path}(${p.hits})`).join(', ')}
+RECENT_SIGNUPS_BY_DAY: ${recentSignups.map(r=>`${r.day}:${r.c}`).join(', ') || 'none'}
 
-Answer concisely. Use numbers directly. If asked for charts or graphs, describe the trend in text.
+Answer concisely and directly. Use the exact numbers above. When asked about locations/cities, use VISITOR_LOCATIONS data. When asked who signed up, list from NEW_USERS fields.
 `.trim();
 
   // ── Call Ollama (stream) ────────────────────────────────────────────────────
@@ -540,13 +637,82 @@ Answer concisely. Use numbers directly. If asked for charts or graphs, describe 
 
   // ── Rule-based fallback (used when Ollama is unreachable) ──────────────────
   function ruleBasedAnswer(q) {
-    const lq = q.toLowerCase();
     const lines = [];
 
-    if (/new.*(user|signup|register).*today|today.*new.*(user|signup)/i.test(q))
-      lines.push(`New users today: **${todayUsers}**`);
-    if (/new.*(user|signup).*week|this week/i.test(q))
-      lines.push(`New users this week: **${weekUsers}**`);
+    // ── Who are the new users / who joined ──────────────────────────────────
+    if (/who.*(new|join|sign|register)|new.*user.*name|list.*user|user.*list/i.test(q)) {
+      if (todayUserList.length) {
+        lines.push(`**${todayUserList.length} new user(s) today:**`);
+        todayUserList.forEach(u => lines.push(`• **${u.username}** (${u.display_name || '—'}) — ${u.email || 'no email'}`));
+      } else {
+        lines.push(`No new users today.`);
+      }
+      if (/week|7.*day/i.test(q) && recentUserList.length) {
+        lines.push(`\n**This week (${recentUserList.length} users):**`);
+        recentUserList.forEach(u => lines.push(`• **${u.username}** (${u.display_name || '—'}) joined ${u.created_at.slice(0,10)}`));
+      }
+    }
+
+    // ── New users count ─────────────────────────────────────────────────────
+    if (!lines.length && /new.*(user|signup|register).*today|today.*new.*(user|signup)/i.test(q)) {
+      lines.push(`**${todayUsers}** new user(s) today.`);
+      if (todayUserList.length)
+        todayUserList.forEach(u => lines.push(`• ${u.username} (${u.display_name || '—'})`));
+    }
+    if (!lines.length && /new.*(user|signup).*week|this week|last 7/i.test(q)) {
+      lines.push(`**${weekUsers}** new users this week.`);
+      recentUserList.forEach(u => lines.push(`• ${u.username} — joined ${u.created_at.slice(0,10)}`));
+    }
+
+    // ── Location / city / geo / Hyderabad etc. ──────────────────────────────
+    if (/location|city|cit(y|ies)|where.*from|from.*where|geo|country|hyder|bangalore|mumbai|chennai|delhi|pune|kolkata/i.test(q)) {
+      // Check for specific city mention
+      const cityMatch = q.match(/hyderabad|hyder|bangalore|bengaluru|mumbai|chennai|delhi|pune|kolkata|surat|jaipur/i);
+      if (cityMatch) {
+        const cityQuery = cityMatch[0].toLowerCase();
+        const cityNorm  = { hyder: 'Hyderabad', hyderabad: 'Hyderabad', bangalore: 'Bangalore', bengaluru: 'Bangalore',
+          mumbai: 'Mumbai', chennai: 'Chennai', delhi: 'Delhi', pune: 'Pune', kolkata: 'Kolkata',
+          surat: 'Surat', jaipur: 'Jaipur' }[cityQuery] || cityQuery;
+        const todayCount = topLocationsToday.find(l => l.loc.toLowerCase().includes(cityQuery))?.c || 0;
+        const alltimeCount = topLocations.find(l => l.loc.toLowerCase().includes(cityQuery))?.c || 0;
+        lines.push(`Visitors from **${cityNorm}**: **${todayCount}** today, **${alltimeCount}** all-time`);
+      } else if (/today/i.test(q)) {
+        if (topLocationsToday.length) {
+          lines.push(`**Visitor locations today:**`);
+          topLocationsToday.forEach(l => lines.push(`• **${l.loc}**: ${l.c}`));
+        } else {
+          lines.push(`Location data not available for today (visitors may be on local/private IPs, or geo lookup is pending).`);
+        }
+      } else {
+        if (topLocations.length) {
+          lines.push(`**Top visitor locations (all time):**`);
+          topLocations.forEach(l => lines.push(`• **${l.loc}**: ${l.c} visit(s)`));
+        } else {
+          lines.push(`Location data not available yet. This could be because visitors are on private/local networks, or no public IPs have been recorded.`);
+        }
+      }
+    }
+
+    // ── Traffic sources / referrers ─────────────────────────────────────────
+    if (/source|traffic|referr|where.*visit|visit.*from|ig|instagram|facebook|fb|organic/i.test(q) &&
+        !/location|city|geo/i.test(q)) {
+      if (topSources.length || topReferrers.length) {
+        if (topSources.length) {
+          lines.push(`**UTM sources:**`);
+          topSources.forEach(s => lines.push(`• **${s.src}**: ${s.hits} hits`));
+        }
+        if (topReferrers.length) {
+          lines.push(`\n**Referrer domains:**`);
+          topReferrers.forEach(r => lines.push(`• **${r.src}**: ${r.c} hits`));
+        }
+        if (!topSources.length && !topReferrers.length)
+          lines.push(`No traffic source data recorded yet.`);
+      } else {
+        lines.push(`No UTM-tagged or referrer traffic tracked yet. Make sure your links include UTM parameters.`);
+      }
+    }
+
+    // ── Subscriptions ───────────────────────────────────────────────────────
     if (/total.*user|how many user|user.*count/i.test(q))
       lines.push(`Total registered users: **${totalUsers}**`);
     if (/monthly.*sub|subscriber.*month/i.test(q))
@@ -559,16 +725,16 @@ Answer concisely. Use numbers directly. If asked for charts or graphs, describe 
       lines.push(`Free plan users: **${subFree}**`);
     if (/subscri/i.test(q) && !lines.length)
       lines.push(`Subscriptions — Monthly: **${subMonthly}**, Yearly: **${subYearly}**, Lifetime: **${subLifetime}**, Free: **${subFree}**`);
-    if (/visitor.*today|today.*visitor/i.test(q))
+
+    // ── Visitors ────────────────────────────────────────────────────────────
+    if (/visitor.*today|today.*visitor|how many.*visit/i.test(q) && !/location|city|geo/i.test(q))
       lines.push(`Visitors today: **${todayVisitors}**`);
-    if (/source|traffic|where.*visit|visit.*from|referr/i.test(q)) {
-      if (topSources.length)
-        lines.push(`Top traffic sources: ${topSources.map(s=>`**${s.utm_source}** (${s.hits})`).join(', ')}`);
-      else
-        lines.push(`No UTM-tagged traffic recorded yet.`);
-    }
-    if (/top.*page|popular.*page|most.*visit/i.test(q))
-      lines.push(`Top pages: ${topPages.map(p=>`**${p.path}** (${p.hits})`).join(', ')}`);
+
+    // ── Pages ───────────────────────────────────────────────────────────────
+    if (/top.*page|popular.*page|most.*visit.*page/i.test(q))
+      lines.push(`Top pages:\n${topPages.map(p=>`• **${p.path}**: ${p.hits} hits`).join('\n')}`);
+
+    // ── Engagement ──────────────────────────────────────────────────────────
     if (/reaction|emoji/i.test(q))
       lines.push(`Total reactions: **${totalReactions}**`);
     if (/comment|repl/i.test(q))
@@ -577,21 +743,27 @@ Answer concisely. Use numbers directly. If asked for charts or graphs, describe 
       lines.push(`Open complaints: **${openComplaints}**`);
     if (/session|avg.*time|time.*site/i.test(q))
       lines.push(`Average session time: **${avgTime}s**`);
-    if (/note|entr|post/i.test(q))
-      lines.push(`Total notes: **${totalNotes}** (${publicNotes} public)`);
+    if (/note|entr|post/i.test(q) && !/footnote/i.test(q))
+      lines.push(`Total notes: **${totalNotes}** (**${publicNotes}** public)`);
     if (/recent.*signup|signup.*last|last.*7/i.test(q))
-      lines.push(`Recent signups (last 7 days): ${recentSignups.map(r=>`${r.day}: **${r.c}**`).join(', ') || 'none'}`);
+      lines.push(`Recent signups:\n${recentSignups.map(r=>`• ${r.day}: **${r.c}**`).join('\n') || 'none'}`);
 
-    // General summary
-    if (!lines.length)
+    // ── General summary (fallback) ──────────────────────────────────────────
+    if (!lines.length) {
+      const locSummary = topLocations.length
+        ? topLocations.slice(0,5).map(l=>`${l.loc}(${l.c})`).join(', ')
+        : 'geo data pending';
       lines.push(
-        `Here's a quick snapshot for today (${now}):`,
-        `• Users: **${totalUsers}** total, **${todayUsers}** new today, **${weekUsers}** this week`,
+        `**Portal snapshot — ${now}:**`,
+        `• Users: **${totalUsers}** total · **${todayUsers}** new today · **${weekUsers}** this week`,
         `• Subscriptions: **${subMonthly}** monthly · **${subYearly}** yearly · **${subLifetime}** lifetime · **${subFree}** free`,
         `• Visitors today: **${todayVisitors}** · Avg session: **${avgTime}s**`,
+        `• Top locations: ${locSummary}`,
+        `• Traffic: ${topSources.slice(0,3).map(s=>`${s.src}(${s.hits})`).join(', ') || 'no UTM data'}`,
         `• Notes: **${totalNotes}** (**${publicNotes}** public)`,
         `• Open complaints: **${openComplaints}**`,
       );
+    }
 
     return lines.join('\n');
   }
