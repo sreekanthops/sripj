@@ -408,19 +408,27 @@ async function initGoogleOAuth() {
 }
 
 // ── OVERLAYS ───────────────────────────────────────────────────────────────
+// Pause all inline <video> elements in the feed (called whenever a detail overlay closes)
+function pauseAllFeedVideos() {
+  document.querySelectorAll('#feedCards video, #guestFeedCards video').forEach(v => {
+    if (!v.paused) v.pause();
+  });
+}
+
 function openOv(id)  { document.getElementById(id).classList.add('open'); }
 function closeOv(id) {
   document.getElementById(id).classList.remove('open');
-  // Always stop bg music when the note detail closes
-  if (id === 'detailOverlay' && audio) { audio.pause(); audio.currentTime = 0; fmpHide?.(); }
+  // Always stop bg music + inline feed videos when the note detail closes
+  if (id === 'detailOverlay') {
+    if (audio) { audio.pause(); audio.currentTime = 0; fmpHide?.(); }
+    pauseAllFeedVideos();
+  }
 }
 
 ['detailOverlay','formOverlay','profileOverlay','upgradeOverlay','libraryOverlay','shareOverlay','passOverlay','userProfileOverlay','userListOverlay'].forEach(id => {
   document.getElementById(id)?.addEventListener('click', e => {
     if (e.target === document.getElementById(id)) {
       closeOv(id);
-      // stop note music when detail overlay is dismissed via backdrop click
-      if (id === 'detailOverlay' && audio) { audio.pause(); audio.currentTime = 0; }
     }
   });
 });
@@ -1219,9 +1227,8 @@ document.getElementById('profAvatarRemoveBtn')?.addEventListener('click', async 
 document.getElementById('profSave').onclick = async () => {
   const displayName = document.getElementById('profName').value.trim();
   const email       = document.getElementById('profEmail').value.trim();
-  const phone       = document.getElementById('profPhone').value.trim();
+  const phone       = document.getElementById('profPhone')?.value.trim() || '';
   const bio         = document.getElementById('profBio').value.trim();
-  if (!phone) { toast('Phone number is required'); return; }
   try {
     await api('PUT', '/auth/profile', { displayName, email, phone, bio, avatarUrl: currentUser.avatarUrl || '' });
     currentUser.displayName = displayName;

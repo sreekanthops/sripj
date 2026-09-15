@@ -379,4 +379,43 @@ router.get('/free-limit', verifyAdminToken, (req, res) => {
   res.json({ notesLimit: plan?.notes_limit ?? 5 });
 });
 
+// ── POST /api/admin/generate-feed — AI-driven feed generator ────────────────
+// Streams progress via newline-delimited JSON (NDJSON).
+// Body: { feedCount, storyCount, enPct, tePct, hiPct, customPrompt }
+router.post('/generate-feed', verifyAdminToken, async (req, res) => {
+  const { feedCount = 20, storyCount = 5, enPct = 40, tePct = 30, hiPct = 30, customPrompt = '' } = req.body;
+
+  // Validate
+  const fc = Math.max(1, Math.min(100, parseInt(feedCount) || 20));
+  const sc = Math.max(0, Math.min(20,  parseInt(storyCount) || 5));
+  const en = Math.max(0, Math.min(100, parseInt(enPct)  || 40));
+  const te = Math.max(0, Math.min(100, parseInt(tePct)  || 30));
+  const hi = Math.max(0, Math.min(100, parseInt(hiPct)  || 30));
+
+  // Stream progress as NDJSON
+  res.setHeader('Content-Type', 'application/x-ndjson');
+  res.setHeader('Transfer-Encoding', 'chunked');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.flushHeaders?.();
+
+  const send = (msg, done = false, error = null) => {
+    try { res.write(JSON.stringify({ msg, done, error }) + '\n'); } catch {}
+  };
+
+  try {
+    const { runAutoFeed } = require('../auto-feed');
+    const result = await runAutoFeed(db, {
+      feedCount: fc, storyCount: sc,
+      enPct: en, tePct: te, hiPct: hi,
+      customPrompt: (customPrompt || '').trim(),
+      onProgress: (msg) => send(msg),
+    });
+    send(`✅ Generation complete — ${result.created} notes created.`, true);
+  } catch (err) {
+    send(`❌ Error: ${err.message}`, true, err.message);
+  }
+
+  res.end();
+});
+
 module.exports = router;

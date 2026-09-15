@@ -1,7 +1,6 @@
 require('dotenv').config();
 const http    = require('http');
 const express = require('express');
-const { startAutoFeedScheduler } = require('./auto-feed');
 const cors    = require('cors');
 const morgan  = require('morgan');
 const path    = require('path');
@@ -90,6 +89,12 @@ app.get('/admin/*splat', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'admin', 'index.html'));
 });
 
+// /feed — public feed page, indexable, shareable
+app.get('/feed', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+});
+
 // Pricing page — indexable, canonical, cache-friendly
 app.get('/pricing', (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -133,7 +138,4 @@ attachWS(server);
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
   console.log(`Diary running → http://localhost:${PORT}`);
-  // Start daily auto-feed generator (50 posts/day from seed + new users)
-  const db = require('./db');
-  startAutoFeedScheduler(db);
 });
