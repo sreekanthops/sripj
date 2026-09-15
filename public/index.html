@@ -104,7 +104,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/css/style.css?v=28">
+  <link rel="stylesheet" href="/css/style.css?v=29">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -501,12 +501,21 @@
         <div class="story-bar-loading">Loading stories…</div>
       </div>
     </div>
-    <div style="padding:16px 16px 0;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div style="padding:16px 16px 0;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <h2 style="font-size:18px;font-weight:700;font-family:var(--serif);margin:0">🌍 Public Feed</h2>
       <div style="display:flex;gap:8px;align-items:center">
         <button id="feedShareBtn" title="Copy feed link" style="background:none;border:1.5px solid var(--border2);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:600;color:var(--ink3);cursor:pointer;font-family:var(--sans)">↗ Share</button>
         <button id="feedRefreshBtn" style="background:none;border:1.5px solid var(--border2);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:600;color:var(--ink3);cursor:pointer;font-family:var(--sans)">↻ Refresh</button>
       </div>
+    </div>
+    <!-- ── User search bar ── -->
+    <div class="feed-user-search-wrap" id="feedUserSearchWrap">
+      <div class="feed-user-search-box">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--ink4)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="feedUserSearch" placeholder="Search users…" autocomplete="off">
+        <button id="feedUserSearchClear" class="feed-search-clear hidden">✕</button>
+      </div>
+      <div id="feedUserSearchResults" class="feed-user-search-results hidden"></div>
     </div>
     <div style="padding:0 16px">
       <div id="feedCards"></div>

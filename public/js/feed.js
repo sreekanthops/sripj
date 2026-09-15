@@ -383,6 +383,77 @@
     loadMore();
   }
 
+  // ── User search ─────────────────────────────────────────────────────────────
+  (function () {
+    const input   = document.getElementById('feedUserSearch');
+    const results = document.getElementById('feedUserSearchResults');
+    const clearBtn= document.getElementById('feedUserSearchClear');
+    if (!input) return;
+
+    let _timer = null;
+
+    function escHtmlS(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function showResults(users) {
+      if (!users.length) {
+        results.innerHTML = '<div class="feed-search-empty">No users found</div>';
+      } else {
+        results.innerHTML = users.map(u => {
+          const av = u.avatarUrl
+            ? `<img src="${escHtmlS(u.avatarUrl)}" alt="">`
+            : `<span>${escHtmlS((u.displayName || u.username).charAt(0).toUpperCase())}</span>`;
+          return `<div class="feed-search-result-item" data-uid="${escHtmlS(u.id)}">
+            <div class="feed-search-av">${av}</div>
+            <div>
+              <div class="feed-search-name">${escHtmlS(u.displayName)}</div>
+              <div class="feed-search-handle">@${escHtmlS(u.username)}</div>
+            </div>
+          </div>`;
+        }).join('');
+        results.querySelectorAll('.feed-search-result-item').forEach(el => {
+          el.addEventListener('click', () => {
+            closeSearch();
+            window.openUserProfile?.(el.dataset.uid);
+          });
+        });
+      }
+      results.classList.remove('hidden');
+    }
+
+    function closeSearch() {
+      results.classList.add('hidden');
+      results.innerHTML = '';
+    }
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim();
+      clearBtn.classList.toggle('hidden', !q);
+      clearTimeout(_timer);
+      if (!q) { closeSearch(); return; }
+      _timer = setTimeout(async () => {
+        try {
+          const res  = await fetch(`/api/follows/search?q=${encodeURIComponent(q)}`);
+          const data = await res.json();
+          showResults(data.users || []);
+        } catch { closeSearch(); }
+      }, 200);
+    });
+
+    clearBtn.addEventListener('click', () => {
+      input.value = '';
+      clearBtn.classList.add('hidden');
+      closeSearch();
+      input.focus();
+    });
+
+    // Close on outside click
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#feedUserSearchWrap')) closeSearch();
+    });
+  })();
+
   // Wire feedShareBtn — copies the direct /feed URL
   document.getElementById('feedShareBtn')?.addEventListener('click', async () => {
     const url = location.origin + '/feed';

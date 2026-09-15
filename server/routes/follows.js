@@ -4,6 +4,28 @@ const db      = require('../db');
 const { verifyToken, optionalAuth } = require('../auth');
 const { emitToUser } = require('../ws');
 
+// GET /api/follows/search?q= — live user search by username or display name
+router.get('/search', optionalAuth, (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (!q) return res.json({ users: [] });
+  const pattern = '%' + q.toLowerCase() + '%';
+  const rows = db.prepare(`
+    SELECT id, username, display_name, avatar_url
+    FROM users
+    WHERE LOWER(username) LIKE ? OR LOWER(display_name) LIKE ?
+    ORDER BY
+      CASE WHEN LOWER(username) LIKE ? THEN 0 ELSE 1 END,
+      username ASC
+    LIMIT 12
+  `).all(pattern, pattern, q.toLowerCase() + '%');
+  res.json({ users: rows.map(u => ({
+    id:          u.id,
+    username:    u.username,
+    displayName: u.display_name || u.username,
+    avatarUrl:   u.avatar_url || '',
+  })) });
+});
+
 // POST /api/follows/:userId — follow a user
 router.post('/:userId', verifyToken, (req, res) => {
   const followerId = req.user.userId;
