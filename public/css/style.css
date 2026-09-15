@@ -2351,6 +2351,91 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 }
 
 /* ── Profile Sign Out ── */
+/* ── Wallet box in profile ────────────────────────────────── */
+.prof-wallet-box {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1.5px solid rgba(124,58,237,.2);
+  border-radius: var(--r);
+  background: rgba(124,58,237,.04);
+}
+.prof-wallet-title {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: #7c3aed;
+  margin-bottom: 10px;
+}
+.prof-wallet-balance-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.prof-wallet-balance {
+  font-family: var(--sans);
+  font-size: 26px;
+  font-weight: 700;
+  color: #7c3aed;
+}
+.prof-wallet-balance-label {
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink4);
+}
+.prof-wallet-txns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.prof-wallet-loading {
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink4);
+  text-align: center;
+  padding: 8px 0;
+}
+.prof-wallet-empty {
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink4);
+  text-align: center;
+  padding: 8px 0;
+}
+.prof-wallet-txn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--r3);
+  background: var(--surface2);
+  font-family: var(--sans);
+  font-size: 12px;
+}
+.prof-wallet-txn-reason {
+  flex: 1;
+  color: var(--ink2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.prof-wallet-txn-amount {
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.prof-wallet-txn-amount.credit { color: #16a34a; }
+.prof-wallet-txn-amount.debit  { color: var(--red); }
+.prof-wallet-txn-date {
+  color: var(--ink4);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
 .prof-signout-box {
   margin-top: 20px;
   padding-top: 16px;

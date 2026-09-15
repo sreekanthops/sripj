@@ -900,6 +900,39 @@ async function openProfileModal() {
   openOv('profileOverlay');
   // Load diary access grantees
   loadDiaryAccessList();
+  // Load wallet
+  loadProfileWallet();
+}
+
+async function loadProfileWallet() {
+  const balEl  = document.getElementById('profWalletBalance');
+  const txnEl  = document.getElementById('profWalletTxns');
+  if (!balEl || !txnEl || !token) return;
+  txnEl.innerHTML = '<div class="prof-wallet-loading">Loading…</div>';
+  try {
+    const data = await api('GET', '/wallet/me');
+    balEl.textContent = '₹' + (data.balanceInr ?? 0).toFixed(2);
+    const txns = data.transactions || [];
+    if (!txns.length) {
+      txnEl.innerHTML = '<div class="prof-wallet-empty">No transactions yet.</div>';
+      return;
+    }
+    txnEl.innerHTML = txns.map(t => {
+      const isCredit = t.type === 'credit';
+      const amt = (t.amount / 100).toFixed(2);
+      const sign = isCredit ? '+' : '−';
+      const cls  = isCredit ? 'credit' : 'debit';
+      const label = (t.reason || '').replace(/_/g, ' ');
+      const date = new Date(t.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'2-digit' });
+      return `<div class="prof-wallet-txn">
+        <span class="prof-wallet-txn-reason">${label}</span>
+        <span class="prof-wallet-txn-amount ${cls}">${sign}₹${amt}</span>
+        <span class="prof-wallet-txn-date">${date}</span>
+      </div>`;
+    }).join('');
+  } catch {
+    txnEl.innerHTML = '<div class="prof-wallet-empty">Could not load wallet.</div>';
+  }
 }
 
 // ── DIARY ACCESS ─────────────────────────────────────────────────────────────
