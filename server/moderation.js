@@ -85,6 +85,85 @@ async function moderateText(title, body) {
 }
 
 /**
+ * Quality check: detect dummy / lorem / auto-generated / gibberish text.
+ * Returns { isProper: bool, reason: string }
+ *   isProper = true  → content looks like a real post worth rewarding
+ *   isProper = false → filler, lorem ipsum, single word, unintelligible, etc.
+ */
+async function checkPostQuality(title, body) {
+  if (!OPENROUTER_API_KEY) {
+    // No AI key — do a basic local check only
+    const combined = ((title || '') + ' ' + (body || '')).trim();
+    if (combined.length < 30) return { isProper: false, reason: 'Post is too short to be considered genuine content.' };
+    if (/lorem ipsum/i.test(combined)) return { isProper: false, reason: 'Post appears to be placeholder (lorem ipsum) text.' };
+    return { isProper: true, reason: '' };
+  }
+
+  const content = [title, body].filter(Boolean).join('\n\n').slice(0, 3000);
+  if (!content.trim() || content.trim().length < 20) {
+    return { isProper: false, reason: 'Post is too short to be genuine content.' };
+  }
+
+  const QUALITY_PROMPT = `You are a content quality checker for a public diary platform.
+Decide if this post is genuine, meaningful human writing worth showing to others.
+
+Mark FAIL if the content is any of:
+- Lorem ipsum or any placeholder/dummy text
+- Random characters, keyboard spam, or gibberish
+- Single words or extremely short content with no meaning
+- Auto-generated filler with no emotional or narrative value
+- Copy-pasted content clearly not written by the user (e.g. news articles, ads)
+- Purely repetitive text (same word/phrase repeated many times)
+
+Mark PASS for everything else, including:
+- Short but heartfelt emotional expressions
+- Diary entries in any language
+- Personal thoughts, even if brief or unpolished
+- Rants, poems, observations — as long as they're genuine
+
+Respond EXACTLY in one of these formats:
+PASS
+FAIL: <reason in under 12 words>
+
+No other text.`;
+
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization:  `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://unsentstories.in',
+        'X-Title':      'Unsent Stories Quality Check',
+      },
+      body: JSON.stringify({
+        model:      MODERATION_MODEL,
+        max_tokens: 40,
+        temperature: 0,
+        messages: [
+          { role: 'system', content: QUALITY_PROMPT },
+          { role: 'user',   content: `Check this diary post:\n\n${content}` },
+        ],
+      }),
+    });
+
+    if (!res.ok) return { isProper: true, reason: '' }; // fail open
+
+    const data  = await res.json();
+    const reply = (data.choices?.[0]?.message?.content || '').trim().toUpperCase();
+
+    if (reply.startsWith('FAIL')) {
+      const reason = reply.replace(/^FAIL[:\s]*/i, '').trim() || 'Post does not meet quality standards.';
+      return { isProper: false, reason };
+    }
+    return { isProper: true, reason: '' };
+  } catch (err) {
+    console.error('[quality] check failed:', err.message);
+    return { isProper: true, reason: '' }; // fail open
+  }
+}
+
+/**
  * Moderate a chat message body.
  * Lighter check — only hard rejects (nudity, CSAM, threats).
  */
@@ -131,4 +210,4 @@ Respond EXACTLY with ALLOW or REJECT: <short reason>. No other text.`;
   }
 }
 
-module.exports = { moderateText, moderateMessage };
+module.exports = { moderateText, moderateMessage, checkPostQuality };

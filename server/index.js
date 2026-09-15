@@ -136,6 +136,10 @@ app.get('/{*splat}', (req, res) => {
 const { attachWS } = require('./ws');
 attachWS(server);
 
+// ── Weekly engagement rewards job ────────────────────────────────────────────
+const { startEngagementRewardsJob } = require('./jobs/engagement-rewards');
+startEngagementRewardsJob();
+
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
   console.log(`Diary running → http://localhost:${PORT}`);

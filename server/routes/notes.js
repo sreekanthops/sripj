@@ -3,7 +3,8 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 const { verifyToken, optionalAuth, checkPassword } = require('../auth');
 const { getUserPlan } = require('../subscription');
-const { moderateText } = require('../moderation');
+const { moderateText, checkPostQuality } = require('../moderation');
+const { creditWallet } = require('./wallet');
 let _emitToUser = null;
 try { _emitToUser = require('../ws').emitToUser; } catch {}
 const emitToUser = (uid, type, payload) => { try { _emitToUser?.(uid, type, payload); } catch {} };
@@ -431,30 +432,51 @@ router.put('/:id/story', verifyToken, (req, res) => {
 });
 
 // PUT /api/notes/:id/public  (owner only — toggle is_public)
-// When publishing (isPublic → true): runs AI moderation first.
+// When publishing (isPublic → true): runs quality check + AI moderation first.
 // If rejected: keeps the note private and returns 422 with the reason.
+// First-time publish of a qualifying note → credits ₹1 signup bonus to wallet.
 router.put('/:id/public', verifyToken, async (req, res) => {
   const row = db.prepare('SELECT id, user_id, is_public, title, body FROM notes WHERE id=?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Not found' });
   if (row.user_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
 
   const newVal = req.body.isPublic !== undefined ? (req.body.isPublic ? 1 : 0) : (row.is_public ? 0 : 1);
+  const wasPublic = !!row.is_public;
 
-  // Run AI moderation only when publishing (0 → 1)
-  if (newVal === 1) {
-    const { allowed, reason } = await moderateText(row.title, row.body);
-    if (!allowed) {
-      // Store the rejection so we can surface it if needed
+  // Run checks only when publishing (0 → 1)
+  if (newVal === 1 && !wasPublic) {
+    // 1. Quality check — reject dummy/filler text before even running moderation
+    const { isProper, reason: qualityReason } = await checkPostQuality(row.title, row.body);
+    if (!isProper) {
       db.prepare('UPDATE notes SET moderation_status=?, moderation_reason=? WHERE id=?')
-        .run('rejected', reason, row.id);
+        .run('rejected', qualityReason, row.id);
       return res.status(422).json({
-        error: `Your entry can't be published: ${reason}`,
+        error: `Your entry doesn't qualify for publishing: ${qualityReason}`,
+        qualityRejected: true,
+        reason: qualityReason,
+      });
+    }
+
+    // 2. Safety moderation
+    const { allowed, reason: modReason } = await moderateText(row.title, row.body);
+    if (!allowed) {
+      db.prepare('UPDATE notes SET moderation_status=?, moderation_reason=? WHERE id=?')
+        .run('rejected', modReason, row.id);
+      return res.status(422).json({
+        error: `Your entry can't be published: ${modReason}`,
         moderated: true,
-        reason,
+        reason: modReason,
       });
     }
     db.prepare('UPDATE notes SET moderation_status=?, moderation_reason=? WHERE id=?')
       .run('approved', '', row.id);
+
+    // 3. Credit ₹1 to wallet for first publish of a genuine post
+    try {
+      creditWallet(row.user_id, 100, 'post_publish', row.id); // 100 paise = ₹1
+    } catch (e) {
+      console.error('[notes/public] wallet credit failed:', e.message);
+    }
   }
 
   db.prepare('UPDATE notes SET is_public=? WHERE id=?').run(newVal, row.id);

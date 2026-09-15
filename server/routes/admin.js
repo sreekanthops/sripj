@@ -379,6 +379,51 @@ router.get('/free-limit', verifyAdminToken, (req, res) => {
   res.json({ notesLimit: plan?.notes_limit ?? 5 });
 });
 
+// ── POST /api/admin/run-engagement-rewards — manually trigger the weekly job ─
+router.post('/run-engagement-rewards', verifyAdminToken, (req, res) => {
+  try {
+    const { runEngagementRewards } = require('../jobs/engagement-rewards');
+    const summary = runEngagementRewards();
+    res.json({ ok: true, summary });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── GET /api/admin/engagement-ledger — view all users' engagement state ────────
+router.get('/engagement-ledger', verifyAdminToken, (req, res) => {
+  const rows = db.prepare(`
+    SELECT u.id, u.username, u.display_name,
+           COALESCE(el.paid_engagement, 0) AS paid_engagement,
+           el.last_run_at,
+           (SELECT COUNT(*) FROM note_reactions nr
+              JOIN notes n ON n.id = nr.note_id
+              WHERE n.user_id = u.id AND n.is_public = 1) AS total_reactions,
+           (SELECT COUNT(*) FROM replies r
+              JOIN notes n ON n.id = r.note_id
+              WHERE n.user_id = u.id AND n.is_public = 1) AS total_replies,
+           (SELECT COUNT(*) FROM notes WHERE user_id = u.id AND is_public = 1) AS public_posts
+    FROM users u
+    LEFT JOIN wallet_engagement_ledger el ON el.user_id = u.id
+    WHERE (SELECT COUNT(*) FROM notes WHERE user_id = u.id AND is_public = 1) > 0
+    ORDER BY (total_reactions + total_replies) DESC
+    LIMIT 500
+  `).all();
+
+  res.json({ rows: rows.map(r => ({
+    userId:          r.id,
+    username:        r.username,
+    displayName:     r.display_name || '',
+    publicPosts:     r.public_posts,
+    totalReactions:  r.total_reactions,
+    totalReplies:    r.total_replies,
+    totalEngagement: r.total_reactions + r.total_replies,
+    paidEngagement:  r.paid_engagement,
+    newEngagement:   Math.max(0, r.total_reactions + r.total_replies - r.paid_engagement),
+    lastRunAt:       r.last_run_at || null,
+  }))});
+});
+
 // ── POST /api/admin/generate-feed — AI-driven feed generator ────────────────
 // Streams progress via newline-delimited JSON (NDJSON).
 // Body: { feedCount, storyCount, enPct, tePct, hiPct, customPrompt }

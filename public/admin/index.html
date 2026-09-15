@@ -645,6 +645,37 @@ select.field-select:focus{border-color:var(--accent)}
         </table>
       </div>
     </div>
+
+    <!-- Engagement Rewards section -->
+    <div class="section" style="margin-top:8px">
+      <div class="section-title">Engagement Rewards (Weekly Auto-Credit)
+        <button class="btn btn-ghost" id="engLedgerRefreshBtn" style="margin-left:auto;padding:5px 14px;font-size:12px">Refresh</button>
+        <button class="btn btn-primary" id="engRunNowBtn" style="padding:5px 14px;font-size:12px;margin-left:8px">&#9654; Run Now</button>
+      </div>
+      <div class="settings-card" style="max-width:100%;margin-bottom:16px">
+        <p style="font-size:12px;color:var(--ink3);line-height:1.7;margin-bottom:0">
+          Runs automatically every <b>7 days</b>. Credits wallet based on <i>new</i> reactions + comments since the last payout:
+          &nbsp;&#8377;1 for 5–9 new &nbsp;·&nbsp; &#8377;2 for 10–19 new &nbsp;·&nbsp; &#8377;5 for 20+ new.
+          The counter never resets — only net-new engagement beyond the already-paid total is counted.
+          Posts must pass AI quality check to be eligible.
+        </p>
+      </div>
+      <div id="engRunResult" style="display:none;margin-bottom:14px;padding:12px 16px;background:var(--green-bg);border:1px solid var(--green);border-radius:var(--r2);font-size:12px;color:var(--ink2)"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Username</th><th>Public Posts</th>
+              <th>Total Reactions</th><th>Total Comments</th><th>Total Engagement</th>
+              <th>Already Paid</th><th>New (unpaid)</th><th>Est. Reward</th><th>Last Run</th>
+            </tr>
+          </thead>
+          <tbody id="engLedgerTable">
+            <tr><td colspan="10" style="text-align:center;color:var(--ink4);padding:30px">Click Refresh to load</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- GRANT FREE ACCESS PAGE -->
@@ -1361,6 +1392,7 @@ document.getElementById('navTabs').addEventListener('click', e => {
     walletTabLoaded = true;
     populateWalletUserSelect();
     loadWalletList();
+    loadEngagementLedger();
   }
 });
 
@@ -2084,6 +2116,80 @@ document.getElementById('walletAllBtn').onclick = async () => {
 document.getElementById('walletListRefreshBtn').onclick = () => {
   loadWalletList();
   populateWalletUserSelect();
+};
+
+// ── ENGAGEMENT REWARDS ────────────────────────────────────────────────────────
+function rewardLabel(newEng) {
+  if (newEng >= 20) return '<span style="color:var(--green);font-weight:700">₹5</span>';
+  if (newEng >= 10) return '<span style="color:var(--green);font-weight:700">₹2</span>';
+  if (newEng >= 5)  return '<span style="color:var(--green);font-weight:700">₹1</span>';
+  if (newEng > 0)   return `<span style="color:var(--ink4);font-size:11px">${newEng}/5 (below threshold)</span>`;
+  return '<span style="color:var(--ink4);font-size:11px">—</span>';
+}
+
+async function loadEngagementLedger() {
+  const tbody = document.getElementById('engLedgerTable');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--ink4);padding:30px">Loading…</td></tr>';
+  try {
+    const data = await api('GET', '/engagement-ledger');
+    if (!data.rows.length) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--ink4);padding:30px">No users with public posts yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.rows.map((r, i) => `
+      <tr>
+        <td style="color:var(--ink4)">${i + 1}</td>
+        <td><span class="badge badge-gold">@${escHtml(r.username)}</span></td>
+        <td style="text-align:center">${r.publicPosts}</td>
+        <td style="text-align:center">${r.totalReactions}</td>
+        <td style="text-align:center">${r.totalReplies}</td>
+        <td style="text-align:center;font-weight:700">${r.totalEngagement}</td>
+        <td style="text-align:center;color:var(--ink3)">${r.paidEngagement}</td>
+        <td style="text-align:center;color:${r.newEngagement > 0 ? 'var(--accent)' : 'var(--ink4)'};font-weight:${r.newEngagement > 0 ? '700' : '400'}">${r.newEngagement}</td>
+        <td style="text-align:center">${rewardLabel(r.newEngagement)}</td>
+        <td style="font-size:11px;color:var(--ink3)">${r.lastRunAt ? fmtDate(r.lastRunAt) : '<span style="color:var(--ink4)">Never</span>'}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--red);padding:20px">${escHtml(e.message)}</td></tr>`;
+  }
+}
+
+document.getElementById('engLedgerRefreshBtn').onclick = loadEngagementLedger;
+
+document.getElementById('engRunNowBtn').onclick = async () => {
+  const btn    = document.getElementById('engRunNowBtn');
+  const result = document.getElementById('engRunResult');
+  btn.disabled = true;
+  btn.textContent = '⏳ Running…';
+  result.style.display = 'none';
+  try {
+    const data = await api('POST', '/run-engagement-rewards');
+    const s = data.summary;
+    result.style.display = '';
+    result.innerHTML = `
+      <b>✅ Job complete</b> — ${s.credited} user(s) credited, ₹${(s.totalPaise / 100).toFixed(2)} total paid out.
+      ${s.processed} users processed, ${s.skipped} skipped (no new engagement).
+      ${s.details.filter(d => d.rewardInr > 0).map(d =>
+        `<br>• @${escHtml(d.username)}: ${d.newEngagement} new → <b>₹${d.rewardInr}</b>`
+      ).join('')}
+    `;
+    toast(`✅ Engagement rewards run: ${s.credited} users credited`);
+    await loadEngagementLedger();
+    await loadWalletList();
+    await loadWalletMapForUsers();
+    applyUserFilters();
+  } catch (e) {
+    result.style.display = '';
+    result.style.background = 'var(--red-bg)';
+    result.style.borderColor = 'var(--red)';
+    result.textContent = '❌ Error: ' + e.message;
+    toast('Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Run Now';
+  }
 };
 
 // ── SUBSCRIPTIONS ────────────────────────────────────────────────────────────

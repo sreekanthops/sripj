@@ -510,6 +510,19 @@ if (!hasTable('wallet_transactions')) {
   `);
 }
 
+// ── ENGAGEMENT REWARD LEDGER ──────────────────────────────────────────────────
+// Tracks the cumulative paid-out reactions+comments count per user so we only
+// credit new engagement beyond what was already rewarded.
+if (!hasTable('wallet_engagement_ledger')) {
+  db.exec(`
+    CREATE TABLE wallet_engagement_ledger (
+      user_id         TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      paid_engagement INTEGER NOT NULL DEFAULT 0,  -- total reactions+comments already rewarded
+      last_run_at     TEXT NOT NULL                -- last time the weekly job ran for this user
+    )
+  `);
+}
+
 // Re-enable FK enforcement
 db.pragma('foreign_keys = ON');
 
