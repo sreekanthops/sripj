@@ -89,10 +89,11 @@ router.get('/', optionalAuth, (req, res) => {
       .forEach(r => reactedSet.add(r.note_id));
   }
 
-  // ── 3. Score every candidate ────────────────────────────────────────────────
+  // ── 3. Score every candidate (skip Telugu posts) ────────────────────────────
   const now = Date.now();
+  const teluguRe = /[\u0C00-\u0C7F]/;
 
-  const scored = rows.map(r => {
+  const scored = rows.filter(r => !teluguRe.test(r.title + ' ' + r.body)).map(r => {
     const ageMs  = now - new Date(r.created_at).getTime();
     const ageH   = Math.max(0.5, ageMs / 3_600_000);
 
