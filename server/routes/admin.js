@@ -463,4 +463,121 @@ router.post('/generate-feed', verifyAdminToken, async (req, res) => {
   res.end();
 });
 
+// ── POST /api/admin/ai-chat — Ollama-powered admin assistant ─────────────────
+// Builds a live data snapshot from the DB, injects it as context, streams reply
+router.post('/ai-chat', verifyAdminToken, async (req, res) => {
+  const { message, history = [] } = req.body;
+  if (!message?.trim()) return res.status(400).json({ error: 'message required' });
+
+  // ── Build live data context ─────────────────────────────────────────────────
+  const now = new Date().toISOString().slice(0, 10);
+  const totalUsers     = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
+  const todayUsers     = db.prepare("SELECT COUNT(*) as c FROM users WHERE DATE(created_at) = DATE('now')").get().c;
+  const weekUsers      = db.prepare("SELECT COUNT(*) as c FROM users WHERE created_at >= DATE('now','-7 days')").get().c;
+  const totalNotes     = db.prepare('SELECT COUNT(*) as c FROM notes').get().c;
+  const publicNotes    = db.prepare('SELECT COUNT(*) as c FROM notes WHERE is_public=1').get().c;
+  const totalReactions = db.prepare('SELECT COUNT(*) as c FROM note_reactions').get().c;
+  const totalReplies   = db.prepare('SELECT COUNT(*) as c FROM replies').get().c;
+  const avgTime        = db.prepare('SELECT ROUND(AVG(duration_s),1) as v FROM page_views WHERE duration_s > 0').get().v || 0;
+  const todayVisitors  = db.prepare("SELECT COUNT(DISTINCT COALESCE(user_id,ip)) as c FROM page_views WHERE DATE(created_at)=DATE('now')").get().c;
+  const openComplaints = db.prepare("SELECT COUNT(*) as c FROM complaints WHERE status='open'").get().c;
+
+  // Subscriptions breakdown
+  const subMonthly  = db.prepare("SELECT COUNT(*) as c FROM user_subscriptions WHERE plan_id='monthly' AND (expires_at IS NULL OR expires_at > datetime('now'))").get().c;
+  const subYearly   = db.prepare("SELECT COUNT(*) as c FROM user_subscriptions WHERE plan_id='yearly'  AND (expires_at IS NULL OR expires_at > datetime('now'))").get().c;
+  const subLifetime = db.prepare("SELECT COUNT(*) as c FROM user_subscriptions WHERE plan_id='lifetime' AND (expires_at IS NULL OR expires_at > datetime('now'))").get().c;
+  const subFree     = totalUsers - subMonthly - subYearly - subLifetime;
+
+  // Top visitor sources (UTM)
+  const topSources = db.prepare(`
+    SELECT utm_source, COUNT(*) as hits FROM page_views
+    WHERE utm_source != '' GROUP BY utm_source ORDER BY hits DESC LIMIT 5
+  `).all();
+
+  // Top pages
+  const topPages = db.prepare(`
+    SELECT path, COUNT(*) as hits FROM page_views
+    GROUP BY path ORDER BY hits DESC LIMIT 5
+  `).all();
+
+  // New users last 7 days
+  const recentSignups = db.prepare(`
+    SELECT DATE(created_at) as day, COUNT(*) as c FROM users
+    WHERE created_at >= DATE('now','-7 days') GROUP BY day ORDER BY day ASC
+  `).all();
+
+  const context = `
+You are an admin AI assistant for "Unsent Stories" — a private diary/writing app.
+Today is ${now}. Answer questions based on this live data snapshot:
+
+USERS: total=${totalUsers}, new_today=${todayUsers}, new_this_week=${weekUsers}
+NOTES: total=${totalNotes}, public=${publicNotes}
+ENGAGEMENT: reactions=${totalReactions}, comments=${totalReplies}
+VISITORS: today=${todayVisitors}, avg_session=${avgTime}s
+SUBSCRIPTIONS: monthly=${subMonthly}, yearly=${subYearly}, lifetime=${subLifetime}, free=${subFree}
+COMPLAINTS: open=${openComplaints}
+TOP_SOURCES: ${topSources.map(s => `${s.utm_source}(${s.hits})`).join(', ') || 'none tracked'}
+TOP_PAGES: ${topPages.map(p => `${p.path}(${p.hits})`).join(', ')}
+RECENT_SIGNUPS (last 7 days): ${recentSignups.map(r => `${r.day}:${r.c}`).join(', ') || 'none'}
+
+Answer concisely. Use numbers directly. If asked for charts or graphs, describe the trend in text.
+`.trim();
+
+  // ── Call Ollama (stream) ────────────────────────────────────────────────────
+  const ollamaHost  = process.env.OLLAMA_HOST || 'http://localhost:11434';
+  const ollamaModel = process.env.OLLAMA_MODEL || 'llama3.2';
+
+  const messages = [
+    { role: 'system', content: context },
+    ...history.slice(-6).map(m => ({ role: m.role, content: m.content })),
+    { role: 'user', content: message.trim() },
+  ];
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Transfer-Encoding', 'chunked');
+  res.flushHeaders?.();
+
+  try {
+    const https = require('https');
+    const http  = require('http');
+    const urlMod = require('url');
+    const parsed = urlMod.parse(ollamaHost + '/api/chat');
+    const lib    = parsed.protocol === 'https:' ? https : http;
+    const body   = JSON.stringify({ model: ollamaModel, messages, stream: true });
+
+    const oReq = lib.request({
+      hostname: parsed.hostname,
+      port:     parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+      path:     parsed.path,
+      method:   'POST',
+      headers:  { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+    }, oRes => {
+      oRes.on('data', chunk => {
+        const lines = chunk.toString().split('\n').filter(Boolean);
+        for (const line of lines) {
+          try {
+            const obj = JSON.parse(line);
+            const token = obj?.message?.content || '';
+            if (token) res.write(`data: ${JSON.stringify({ token })}\n\n`);
+            if (obj.done) res.write(`data: [DONE]\n\n`);
+          } catch {}
+        }
+      });
+      oRes.on('end', () => { try { res.write(`data: [DONE]\n\n`); res.end(); } catch {} });
+    });
+
+    oReq.on('error', err => {
+      res.write(`data: ${JSON.stringify({ error: 'Ollama not reachable: ' + err.message })}\n\n`);
+      res.end();
+    });
+    oReq.setTimeout(60000, () => { oReq.destroy(); });
+    oReq.write(body);
+    oReq.end();
+  } catch (err) {
+    res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+    res.end();
+  }
+});
+
 module.exports = router;

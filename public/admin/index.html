@@ -21,7 +21,9 @@ html{font-size:14px;scroll-behavior:smooth}
   --amber:#d97706;--amber-bg:rgba(217,119,6,.09);
   --r:12px;--r2:8px;--r3:6px;
   --sans:'Inter',system-ui,sans-serif;
-  --topbar:56px;
+  --topbar:52px;
+  --sidebar:220px;
+  --sidebar-collapsed:56px;
   --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
   --shadow2:0 4px 16px rgba(0,0,0,.1);
 }
@@ -66,43 +68,178 @@ a{color:var(--accent);text-decoration:none}
 .btn-full{width:100%;justify-content:center}
 .err{color:var(--red);font-size:12px;margin-top:8px;min-height:16px;font-weight:500}
 
-/* ── APP SHELL ── */
-#appShell{display:flex;flex-direction:column;min-height:100vh}
+/* ═══════════════════════════════════════════════
+   APP SHELL — sidebar layout
+═══════════════════════════════════════════════ */
+#appShell{display:flex;min-height:100vh}
+
+/* ── Sidebar ── */
+#sidebar{
+  width:var(--sidebar);
+  min-height:100vh;
+  background:#1a1d2e;
+  display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;bottom:0;
+  z-index:200;
+  transition:width .22s cubic-bezier(.4,0,.2,1);
+  overflow:hidden;
+}
+#sidebar.collapsed{width:var(--sidebar-collapsed)}
+
+/* Brand row */
+.sb-brand{
+  display:flex;align-items:center;gap:10px;
+  padding:0 14px;height:var(--topbar);
+  border-bottom:1px solid rgba(255,255,255,.07);
+  flex-shrink:0;
+}
+.sb-brand-icon{
+  width:30px;height:30px;border-radius:8px;
+  background:var(--accent);display:flex;align-items:center;justify-content:center;
+  font-size:15px;flex-shrink:0;color:#fff;font-style:italic;font-weight:700;
+}
+.sb-brand-text{
+  font-size:13px;font-weight:700;color:#fff;letter-spacing:-.2px;
+  white-space:nowrap;overflow:hidden;
+}
+.sb-brand-text em{font-style:italic;opacity:.9}
+.sb-brand-badge{
+  font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  background:rgba(79,110,247,.3);color:#a5b4fc;
+  padding:2px 6px;border-radius:4px;margin-left:2px;
+  white-space:nowrap;
+}
+#sidebar.collapsed .sb-brand-text,
+#sidebar.collapsed .sb-brand-badge{display:none}
+
+/* Toggle button */
+.sb-toggle{
+  position:absolute;top:14px;right:-11px;
+  width:22px;height:22px;border-radius:50%;
+  background:#1a1d2e;border:1.5px solid rgba(255,255,255,.15);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:rgba(255,255,255,.55);font-size:11px;
+  transition:background .15s,color .15s,transform .22s;
+  z-index:201;
+}
+.sb-toggle:hover{background:#2d3150;color:#fff}
+#sidebar.collapsed .sb-toggle{transform:rotate(180deg)}
+
+/* Nav scroll area */
+.sb-nav{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  padding:10px 0 20px;
+}
+.sb-nav::-webkit-scrollbar{width:4px}
+.sb-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+
+/* Group labels */
+.sb-group-label{
+  font-size:9.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  color:rgba(255,255,255,.28);padding:16px 16px 5px;
+  white-space:nowrap;overflow:hidden;
+  transition:opacity .15s;
+}
+#sidebar.collapsed .sb-group-label{opacity:0;height:0;padding:0;margin:0}
+
+/* Nav items */
+.nav-tab{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 14px;margin:1px 8px;border-radius:8px;
+  font-size:12.5px;font-weight:500;color:rgba(255,255,255,.6);
+  cursor:pointer;border:none;background:none;font-family:var(--sans);
+  white-space:nowrap;transition:background .12s,color .12s;
+  width:calc(100% - 16px);text-align:left;
+  position:relative;
+}
+.nav-tab:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-tab.active{background:rgba(79,110,247,.22);color:#a5b4fc;font-weight:600}
+.nav-tab.active .nav-icon{color:var(--accent)}
+
+.nav-icon{
+  width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:14px;
+}
+.nav-label{white-space:nowrap;overflow:hidden;transition:opacity .15s,width .15s}
+#sidebar.collapsed .nav-label{opacity:0;width:0}
+
+/* Badge on nav item */
+.nav-badge{
+  margin-left:auto;background:var(--red);color:#fff;
+  font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;
+  flex-shrink:0;
+}
+#sidebar.collapsed .nav-badge{position:absolute;top:4px;right:4px;padding:1px 4px;font-size:9px}
+
+/* Tooltip on collapsed */
+#sidebar.collapsed .nav-tab{position:relative}
+#sidebar.collapsed .nav-tab::after{
+  content:attr(data-tooltip);
+  position:absolute;left:calc(var(--sidebar-collapsed) - 4px);top:50%;transform:translateY(-50%);
+  background:#1a1d2e;color:#fff;font-size:11.5px;font-weight:500;
+  padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.12);
+  white-space:nowrap;pointer-events:none;opacity:0;
+  transition:opacity .12s;z-index:300;
+}
+#sidebar.collapsed .nav-tab:hover::after{opacity:1}
+
+/* Sidebar footer */
+.sb-footer{
+  padding:12px 8px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0;
+}
+.sb-user{
+  display:flex;align-items:center;gap:9px;
+  padding:8px 8px;border-radius:8px;
+  cursor:pointer;transition:background .12s;
+}
+.sb-user:hover{background:rgba(255,255,255,.07)}
+.sb-avatar{
+  width:30px;height:30px;border-radius:50%;
+  background:linear-gradient(135deg,#4f6ef7,#7c3aed);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.sb-user-info{overflow:hidden}
+.sb-user-name{font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-user-role{font-size:10px;color:rgba(255,255,255,.4);white-space:nowrap}
+#sidebar.collapsed .sb-user-info{display:none}
+.sb-logout-btn{
+  display:flex;align-items:center;gap:8px;width:100%;
+  padding:7px 8px;border-radius:7px;margin-top:4px;
+  font-size:12px;font-weight:500;color:rgba(255,255,255,.45);
+  border:none;background:none;cursor:pointer;font-family:var(--sans);
+  transition:background .12s,color .12s;
+}
+.sb-logout-btn:hover{background:rgba(220,38,38,.15);color:#fca5a5}
+#sidebar.collapsed .sb-logout-btn span{display:none}
+
+/* ── Main wrapper (offset by sidebar) ── */
+#mainWrap{
+  margin-left:var(--sidebar);
+  display:flex;flex-direction:column;
+  min-height:100vh;flex:1;
+  transition:margin-left .22s cubic-bezier(.4,0,.2,1);
+}
+#sidebar.collapsed ~ #mainWrap{margin-left:var(--sidebar-collapsed)}
+
+/* ── Topbar (inside mainWrap) ── */
 #topbar{
-  position:sticky;top:0;z-index:100;height:var(--topbar);
+  height:var(--topbar);
   background:var(--bg2);border-bottom:1px solid var(--border);
-  box-shadow:0 1px 0 var(--border);
-  display:flex;align-items:center;justify-content:space-between;padding:0 28px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;flex-shrink:0;position:sticky;top:0;z-index:100;
 }
-.topbar-left{display:flex;align-items:center;gap:12px}
-.topbar-logo{font-size:16px;font-weight:700;letter-spacing:-.3px;color:var(--ink)}
-.topbar-logo span{color:var(--accent)}
-.topbar-badge{
-  font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
-  background:var(--accent-bg);color:var(--accent);padding:3px 10px;border-radius:99px;
-  border:1px solid rgba(79,110,247,.2);
-}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.topbar-page-title{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.2px}
 .topbar-right{display:flex;align-items:center;gap:10px}
 #adminName{font-size:12px;color:var(--ink3);font-weight:500}
 
-/* ── NAV TABS ── */
-.nav-tabs{
-  display:flex;align-items:center;gap:0;
-  padding:0 28px;border-bottom:1px solid var(--border);
-  background:var(--bg2);overflow-x:auto;
-}
-.nav-tab{
-  padding:14px 18px;font-size:13px;font-weight:500;
-  color:var(--ink3);cursor:pointer;border:none;background:none;
-  font-family:var(--sans);border-bottom:2px solid transparent;
-  white-space:nowrap;transition:color .15s,border-color .15s;margin-bottom:-1px;
-}
-.nav-tab:hover{color:var(--ink)}
-.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
-
-/* ── PAGES ── */
-.page{display:none;padding:28px 28px 60px;max-width:1200px;margin:0 auto;width:100%}
+/* ── Pages ── */
+.page{display:none;padding:24px 28px 80px;max-width:1200px;width:100%}
 .page.active{display:block}
+
+/* NAV TABS (keep old class for JS compat, but never show) */
+.nav-tabs{display:none}
 
 /* ── STAT CARDS ── */
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:32px}
@@ -305,12 +442,129 @@ select.field-select:focus{border-color:var(--accent)}
 .v-chip.source{border-color:var(--amber);background:var(--amber-bg);color:var(--amber)}
 .v-chip.total{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
 
+/* ═══════════════════════════════════════════════
+   AI CHAT WINDOW
+═══════════════════════════════════════════════ */
+#aiChatBtn{
+  position:fixed;bottom:28px;right:28px;z-index:1000;
+  width:48px;height:48px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--purple));
+  border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 20px rgba(79,110,247,.45);
+  transition:transform .15s,box-shadow .15s;
+  color:#fff;font-size:20px;
+}
+#aiChatBtn:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(79,110,247,.6)}
+#aiChatBtn.has-unread::after{
+  content:'';position:absolute;top:0;right:0;
+  width:12px;height:12px;background:var(--red);border-radius:50%;border:2px solid var(--bg2);
+}
+
+#aiChatWindow{
+  position:fixed;bottom:88px;right:28px;z-index:1000;
+  width:380px;height:520px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:16px;
+  box-shadow:0 8px 40px rgba(0,0,0,.16);
+  display:flex;flex-direction:column;
+  transform:scale(.95) translateY(10px);
+  opacity:0;pointer-events:none;
+  transition:transform .2s cubic-bezier(.4,0,.2,1),opacity .2s;
+}
+#aiChatWindow.open{transform:scale(1) translateY(0);opacity:1;pointer-events:all}
+
+.aic-header{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.aic-avatar{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--purple));
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;color:#fff;
+}
+.aic-header-info{flex:1;min-width:0}
+.aic-title{font-size:13px;font-weight:700;color:var(--ink)}
+.aic-subtitle{font-size:10px;color:var(--ink4)}
+.aic-status{width:7px;height:7px;border-radius:50%;background:var(--green);margin-top:1px}
+.aic-close{
+  background:none;border:none;cursor:pointer;padding:4px;
+  color:var(--ink3);font-size:16px;border-radius:6px;line-height:1;
+}
+.aic-close:hover{background:var(--surface3);color:var(--ink)}
+
+.aic-messages{
+  flex:1;overflow-y:auto;padding:14px 14px 6px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.aic-messages::-webkit-scrollbar{width:4px}
+.aic-messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+.aic-msg{max-width:88%;display:flex;flex-direction:column;gap:3px}
+.aic-msg.user{align-self:flex-end;align-items:flex-end}
+.aic-msg.ai  {align-self:flex-start;align-items:flex-start}
+.aic-bubble{
+  padding:9px 13px;border-radius:12px;font-size:12.5px;line-height:1.6;
+  word-break:break-word;
+}
+.aic-msg.user .aic-bubble{
+  background:var(--accent);color:#fff;border-bottom-right-radius:3px;
+}
+.aic-msg.ai .aic-bubble{
+  background:var(--surface2);color:var(--ink2);border-bottom-left-radius:3px;
+  border:1px solid var(--border);
+}
+.aic-msg.ai .aic-bubble.streaming{
+  background:linear-gradient(90deg,var(--surface2) 0%,#eef2ff 100%);
+}
+.aic-time{font-size:10px;color:var(--ink4);padding:0 3px}
+
+.aic-suggestions{
+  display:flex;flex-wrap:wrap;gap:5px;padding:0 14px 10px;flex-shrink:0;
+}
+.aic-sug{
+  padding:4px 10px;font-size:11px;font-weight:500;border-radius:99px;cursor:pointer;
+  background:var(--accent-bg);border:1px solid rgba(79,110,247,.2);color:var(--accent);
+  font-family:var(--sans);transition:background .12s,color .12s;white-space:nowrap;
+}
+.aic-sug:hover{background:var(--accent);color:#fff}
+
+.aic-footer{
+  display:flex;gap:8px;padding:10px 12px 12px;border-top:1px solid var(--border);flex-shrink:0;
+}
+#aiChatInput{
+  flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;
+  padding:8px 12px;font-size:12.5px;color:var(--ink);font-family:var(--sans);outline:none;
+  resize:none;height:38px;max-height:100px;line-height:1.5;
+  transition:border-color .15s,height .1s;
+}
+#aiChatInput:focus{border-color:var(--accent)}
+#aiSendBtn{
+  width:36px;height:36px;border-radius:8px;flex-shrink:0;
+  background:var(--accent);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;
+  transition:background .12s,transform .1s;align-self:flex-end;
+}
+#aiSendBtn:hover{background:var(--accent2)}
+#aiSendBtn:active{transform:scale(.92)}
+#aiSendBtn:disabled{opacity:.5;cursor:default}
+
 /* ── RESPONSIVE ── */
+@media(max-width:900px){
+  #sidebar{width:var(--sidebar-collapsed)}
+  #sidebar .sb-brand-text,#sidebar .sb-brand-badge,
+  #sidebar .nav-label,#sidebar .sb-user-info,
+  #sidebar .sb-logout-btn span,#sidebar .sb-group-label{
+    display:none;
+  }
+  #sidebar .sb-toggle{display:none}
+  #mainWrap{margin-left:var(--sidebar-collapsed)}
+}
 @media(max-width:640px){
   .stat-grid{grid-template-columns:1fr 1fr}
-  .page{padding:16px 14px 60px}
-  .topbar-badge{display:none}
-  #topbar,#navTabs .nav-tab{padding-left:16px;padding-right:16px}
+  .page{padding:14px 12px 80px}
+  #aiChatWindow{width:calc(100vw - 32px);right:16px;bottom:80px}
+  #aiChatBtn{right:16px;bottom:20px}
 }
 </style>
 </head>
@@ -370,36 +624,108 @@ select.field-select:focus{border-color:var(--accent)}
 
 <!-- ── APP SHELL ─────────────────────────────────────────────── -->
 <div id="appShell" class="hidden">
-  <header id="topbar">
-    <div class="topbar-left">
-      <span class="topbar-logo"><em style="font-style:italic">Unsent</em> <span>Stories</span></span>
-      <span class="topbar-badge">Admin</span>
-    </div>
-    <div class="topbar-right">
-      <span id="adminName"></span>
-      <button class="btn btn-ghost" id="logoutBtn" style="padding:6px 12px;font-size:12px">Sign out</button>
-    </div>
-  </header>
 
-  <nav class="nav-tabs" id="navTabs">
-    <button class="nav-tab active" data-page="overview">Overview</button>
-    <button class="nav-tab" data-page="activity">Activity</button>
-    <button class="nav-tab" data-page="users">Users</button>
-    <button class="nav-tab" data-page="visitors">Visitors</button>
-    <button class="nav-tab" data-page="reactions">Reactions</button>
-    <button class="nav-tab" data-page="subscriptions">Subscriptions</button>
-    <button class="nav-tab" data-page="wallet">Wallet</button>
-    <button class="nav-tab" data-page="grant">Grant Free Access</button>
-    <button class="nav-tab" data-page="global-images">Global Images</button>
-    <button class="nav-tab" data-page="note-backgrounds">Note Backgrounds</button>
-    <button class="nav-tab" data-page="music-library">Music Library</button>
-    <button class="nav-tab" data-page="payments">Payments</button>
-    <button class="nav-tab" data-page="feed-generator">Feed Generator</button>
-    <button class="nav-tab" data-page="feedback">Feedback</button>
-    <button class="nav-tab" data-page="complaints" id="complaintsNavTab">🚨 Complaints <span id="complaintsNavBadge" style="display:none;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px;margin-left:4px">0</span></button>
-    <button class="nav-tab" data-page="settings">Settings</button>
-    <button class="nav-tab" data-page="profile">My Profile</button>
+  <!-- ══ SIDEBAR ══ -->
+  <nav id="sidebar">
+    <div class="sb-brand">
+      <div class="sb-brand-icon">✦</div>
+      <div class="sb-brand-text"><em>Unsent</em> Stories <span class="sb-brand-badge">Admin</span></div>
+    </div>
+    <button class="sb-toggle" id="sidebarToggle" title="Collapse sidebar">‹</button>
+
+    <div class="sb-nav" id="navTabs">
+
+      <div class="sb-group-label">Analytics</div>
+      <button class="nav-tab active" data-page="overview" data-tooltip="Overview">
+        <span class="nav-icon">▦</span><span class="nav-label">Overview</span>
+      </button>
+      <button class="nav-tab" data-page="activity" data-tooltip="Activity">
+        <span class="nav-icon">↗</span><span class="nav-label">Activity</span>
+      </button>
+      <button class="nav-tab" data-page="visitors" data-tooltip="Visitors">
+        <span class="nav-icon">◎</span><span class="nav-label">Visitors</span>
+      </button>
+      <button class="nav-tab" data-page="reactions" data-tooltip="Reactions">
+        <span class="nav-icon">❤</span><span class="nav-label">Reactions</span>
+      </button>
+      <button class="nav-tab" data-page="feedback" data-tooltip="Feedback">
+        <span class="nav-icon">★</span><span class="nav-label">Feedback</span>
+      </button>
+
+      <div class="sb-group-label">Users</div>
+      <button class="nav-tab" data-page="users" data-tooltip="Users">
+        <span class="nav-icon">👥</span><span class="nav-label">Users</span>
+      </button>
+      <button class="nav-tab" data-page="subscriptions" data-tooltip="Subscriptions">
+        <span class="nav-icon">♦</span><span class="nav-label">Subscriptions</span>
+      </button>
+      <button class="nav-tab" data-page="wallet" data-tooltip="Wallet">
+        <span class="nav-icon">₹</span><span class="nav-label">Wallet</span>
+      </button>
+      <button class="nav-tab" data-page="grant" data-tooltip="Grant Free">
+        <span class="nav-icon">🎁</span><span class="nav-label">Grant Free</span>
+      </button>
+
+      <div class="sb-group-label">Content</div>
+      <button class="nav-tab" data-page="global-images" data-tooltip="Global Images">
+        <span class="nav-icon">🖼</span><span class="nav-label">Global Images</span>
+      </button>
+      <button class="nav-tab" data-page="note-backgrounds" data-tooltip="Backgrounds">
+        <span class="nav-icon">◻</span><span class="nav-label">Backgrounds</span>
+      </button>
+      <button class="nav-tab" data-page="music-library" data-tooltip="Music">
+        <span class="nav-icon">♪</span><span class="nav-label">Music Library</span>
+      </button>
+      <button class="nav-tab" data-page="feed-generator" data-tooltip="Feed Gen">
+        <span class="nav-icon">⚙</span><span class="nav-label">Feed Generator</span>
+      </button>
+
+      <div class="sb-group-label">Finance</div>
+      <button class="nav-tab" data-page="payments" data-tooltip="Payments">
+        <span class="nav-icon">💳</span><span class="nav-label">Payments</span>
+      </button>
+
+      <div class="sb-group-label">Support</div>
+      <button class="nav-tab" data-page="complaints" id="complaintsNavTab" data-tooltip="Complaints">
+        <span class="nav-icon">🚨</span>
+        <span class="nav-label">Complaints</span>
+        <span class="nav-badge hidden" id="complaintsNavBadge">0</span>
+      </button>
+
+      <div class="sb-group-label">Admin</div>
+      <button class="nav-tab" data-page="settings" data-tooltip="Settings">
+        <span class="nav-icon">⚙</span><span class="nav-label">Settings</span>
+      </button>
+      <button class="nav-tab" data-page="profile" data-tooltip="Profile">
+        <span class="nav-icon">◉</span><span class="nav-label">My Profile</span>
+      </button>
+    </div>
+
+    <div class="sb-footer">
+      <div class="sb-user">
+        <div class="sb-avatar" id="sbAvatar">A</div>
+        <div class="sb-user-info">
+          <div class="sb-user-name" id="adminName">admin</div>
+          <div class="sb-user-role">Administrator</div>
+        </div>
+      </div>
+      <button class="sb-logout-btn" id="logoutBtn">
+        <span style="font-size:14px;line-height:1">⎋</span>
+        <span>Sign out</span>
+      </button>
+    </div>
   </nav>
+
+  <!-- ══ MAIN WRAP ══ -->
+  <div id="mainWrap">
+    <header id="topbar">
+      <div class="topbar-left">
+        <span class="topbar-page-title" id="topbarPageTitle">Overview</span>
+      </div>
+      <div class="topbar-right">
+        <span style="font-size:11px;color:var(--ink4);font-variant-numeric:tabular-nums" id="topbarClock"></span>
+      </div>
+    </header>
 
   <!-- OVERVIEW -->
   <div class="page active" id="page-overview">
@@ -1256,7 +1582,42 @@ select.field-select:focus{border-color:var(--accent)}
     </div>
   </div>
 
-</div>
+    <!-- ── AI CHAT WINDOW ── -->
+    <button id="aiChatBtn" title="Ask AI Assistant">&#x1F916;</button>
+    <div id="aiChatWindow">
+      <div class="aic-header">
+        <div class="aic-avatar">&#x1F916;</div>
+        <div class="aic-header-info">
+          <div class="aic-title">Admin AI</div>
+          <div class="aic-subtitle" style="display:flex;align-items:center;gap:5px">
+            <span class="aic-status"></span> Powered by Ollama
+          </div>
+        </div>
+        <button class="aic-close" id="aiChatClose">&#x2715;</button>
+      </div>
+      <div class="aic-messages" id="aiChatMessages">
+        <div class="aic-msg ai">
+          <div class="aic-bubble">Hi! I can answer questions about your portal data. Try asking about new users today, subscription counts, visitor sources, and more.</div>
+        </div>
+      </div>
+      <div class="aic-suggestions" id="aiSuggestions">
+        <button class="aic-sug">New users today?</button>
+        <button class="aic-sug">Monthly subscribers?</button>
+        <button class="aic-sug">Top traffic sources?</button>
+        <button class="aic-sug">Yearly vs lifetime?</button>
+      </div>
+      <div class="aic-footer">
+        <textarea id="aiChatInput" placeholder="Ask about your portal data…" rows="1"></textarea>
+        <button id="aiSendBtn" title="Send">&#x27A4;</button>
+      </div>
+    </div>
+
+    <!-- ── TOAST ── -->
+    <div id="toast"></div>
+
+  </div><!-- /mainWrap -->
+
+</div><!-- /appShell -->
 
 <!-- ── ASSIGN SUBSCRIPTION MODAL ──────────────────────────────────── -->
 <div id="assignModal" class="hidden">
@@ -1343,8 +1704,6 @@ select.field-select:focus{border-color:var(--accent)}
   </div>
 </div>
 
-<div id="toast"></div>
-
 <script>
 const API = '/api/admin';
 let adminToken = sessionStorage.getItem('admin_token') || null;
@@ -1403,10 +1762,45 @@ document.getElementById('logoutBtn').onclick = () => {
   document.getElementById('loginScreen').classList.remove('hidden');
 };
 
+// ── SIDEBAR TOGGLE ───────────────────────────────────────────────────────────
+(function() {
+  const sb  = document.getElementById('sidebar');
+  const btn = document.getElementById('sidebarToggle');
+  const KEY = 'sb_collapsed';
+  if (localStorage.getItem(KEY) === '1') sb.classList.add('collapsed');
+  btn.addEventListener('click', () => {
+    sb.classList.toggle('collapsed');
+    localStorage.setItem(KEY, sb.classList.contains('collapsed') ? '1' : '0');
+  });
+})();
+
+// Live clock in topbar
+(function() {
+  const el = document.getElementById('topbarClock');
+  if (!el) return;
+  function tick() {
+    const now = new Date();
+    el.textContent = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  }
+  tick(); setInterval(tick, 1000);
+})();
+
+// Page title map
+const PAGE_TITLES = {
+  overview:'Overview', activity:'Activity', visitors:'Visitors', reactions:'Reactions',
+  feedback:'Feedback', users:'Users', subscriptions:'Subscriptions', wallet:'Wallet',
+  grant:'Grant Free Access', 'global-images':'Global Images', 'note-backgrounds':'Backgrounds',
+  'music-library':'Music Library', 'feed-generator':'Feed Generator', payments:'Payments',
+  complaints:'Complaints', settings:'Settings', profile:'My Profile',
+};
+
 async function showApp(username) {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('appShell').classList.remove('hidden');
-  document.getElementById('adminName').textContent = username || 'admin';
+  const uname = username || 'admin';
+  document.getElementById('adminName').textContent = uname;
+  const avatarEl = document.getElementById('sbAvatar');
+  if (avatarEl) avatarEl.textContent = uname.charAt(0).toUpperCase();
   await loadStats();
 }
 
@@ -1420,6 +1814,9 @@ document.getElementById('navTabs').addEventListener('click', e => {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   tab.classList.add('active');
   document.getElementById('page-' + tab.dataset.page).classList.add('active');
+  // Update topbar title
+  const titleEl = document.getElementById('topbarPageTitle');
+  if (titleEl) titleEl.textContent = PAGE_TITLES[tab.dataset.page] || tab.dataset.page;
   // Reload users table every time Users tab is opened
   if (tab.dataset.page === 'users') {
     loadStats();
@@ -3539,7 +3936,7 @@ function updateComplaintsBadge() {
   const openCount = _allComplaints.filter(c => c.status === 'open').length;
   const badge = document.getElementById('complaintsNavBadge');
   const countEl = document.getElementById('complaintsOpenCount');
-  if (badge) { badge.textContent = openCount; badge.style.display = openCount ? '' : 'none'; }
+  if (badge) { badge.textContent = openCount; openCount ? badge.classList.remove('hidden') : badge.classList.add('hidden'); }
   if (countEl) countEl.textContent = openCount ? `(${openCount} open)` : '';
 }
 
@@ -3632,6 +4029,165 @@ document.getElementById('complaintReopenBtn')?.addEventListener('click', async (
     updateComplaintsBadge();
   } catch (e) { toast('Error: ' + e.message); }
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// AI CHAT WINDOW — Ollama-backed, reads live portal data via /api/admin/ai-chat
+// ═══════════════════════════════════════════════════════════════════
+(function() {
+  const btn     = document.getElementById('aiChatBtn');
+  const win     = document.getElementById('aiChatWindow');
+  const closeBtn= document.getElementById('aiChatClose');
+  const msgWrap = document.getElementById('aiChatMessages');
+  const input   = document.getElementById('aiChatInput');
+  const sendBtn = document.getElementById('aiSendBtn');
+  const sugWrap = document.getElementById('aiSuggestions');
+
+  let chatHistory = [];
+  let isStreaming = false;
+
+  // Toggle open/close
+  function openChat()  { win.classList.add('open');    btn.classList.remove('has-unread'); }
+  function closeChat() { win.classList.remove('open'); }
+  btn.addEventListener('click',     openChat);
+  closeBtn.addEventListener('click', closeChat);
+
+  // Suggestion chips
+  sugWrap.addEventListener('click', e => {
+    const sug = e.target.closest('.aic-sug');
+    if (!sug) return;
+    input.value = sug.textContent;
+    sendMessage();
+  });
+
+  // Send on Enter (Shift+Enter = newline)
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+  sendBtn.addEventListener('click', sendMessage);
+
+  // Auto-resize textarea
+  input.addEventListener('input', () => {
+    input.style.height = '38px';
+    input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+  });
+
+  function now() {
+    return new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+  }
+
+  function addMsg(role, text, streaming = false) {
+    const div = document.createElement('div');
+    div.className = 'aic-msg ' + role;
+    const bubble = document.createElement('div');
+    bubble.className = 'aic-bubble' + (streaming ? ' streaming' : '');
+    bubble.textContent = text;
+    const time = document.createElement('div');
+    time.className = 'aic-time';
+    time.textContent = now();
+    div.appendChild(bubble);
+    div.appendChild(time);
+    msgWrap.appendChild(div);
+    msgWrap.scrollTop = msgWrap.scrollHeight;
+    return bubble;
+  }
+
+  function setThinking(show) {
+    const existing = document.getElementById('aic-thinking');
+    if (show && !existing) {
+      const div = document.createElement('div');
+      div.className = 'aic-msg ai'; div.id = 'aic-thinking';
+      div.innerHTML = '<div class="aic-bubble" style="color:var(--ink4);font-style:italic">Thinking…</div>';
+      msgWrap.appendChild(div);
+      msgWrap.scrollTop = msgWrap.scrollHeight;
+    } else if (!show && existing) {
+      existing.remove();
+    }
+  }
+
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (!text || isStreaming) return;
+    if (!adminToken) { addMsg('ai', 'Please log in first.'); return; }
+
+    // Hide suggestions after first real message
+    if (sugWrap) sugWrap.style.display = 'none';
+
+    isStreaming = true;
+    sendBtn.disabled = true;
+    input.value = '';
+    input.style.height = '38px';
+
+    addMsg('user', text);
+    chatHistory.push({ role: 'user', content: text });
+
+    setThinking(true);
+
+    let aiText = '';
+    let bubble  = null;
+
+    try {
+      const res = await fetch('/api/admin/ai-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + adminToken,
+        },
+        body: JSON.stringify({ message: text, history: chatHistory.slice(-8) }),
+      });
+
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || 'Server error ' + res.status);
+      }
+
+      setThinking(false);
+      bubble = addMsg('ai', '', true);
+
+      const reader = res.body.getReader();
+      const dec    = new TextDecoder();
+      let   buf    = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6).trim();
+          if (payload === '[DONE]') break;
+          try {
+            const obj = JSON.parse(payload);
+            if (obj.error) { bubble.textContent = '⚠ ' + obj.error; bubble.classList.remove('streaming'); break; }
+            if (obj.token) {
+              aiText += obj.token;
+              bubble.textContent = aiText;
+              bubble.classList.add('streaming');
+              msgWrap.scrollTop = msgWrap.scrollHeight;
+            }
+          } catch {}
+        }
+      }
+      if (bubble) bubble.classList.remove('streaming');
+      if (aiText) chatHistory.push({ role: 'assistant', content: aiText });
+
+    } catch (err) {
+      setThinking(false);
+      if (bubble) {
+        bubble.textContent = '⚠ ' + err.message;
+        bubble.classList.remove('streaming');
+      } else {
+        addMsg('ai', '⚠ ' + err.message);
+      }
+    } finally {
+      isStreaming = false;
+      sendBtn.disabled = false;
+      // Pulse the button if the window is closed
+      if (!win.classList.contains('open')) btn.classList.add('has-unread');
+    }
+  }
+})();
 
 </script>
 </body>
