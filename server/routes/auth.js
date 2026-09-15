@@ -4,6 +4,25 @@ const db       = require('../db');
 const { signToken, verifyToken, hashPassword, checkPassword } = require('../auth');
 const nodemailer = require('nodemailer');
 
+// ── Wallet helper: credit paise to a user (creates wallet row if missing) ────
+function creditWallet(userId, amountPaise, reason, reference = '') {
+  const now = new Date().toISOString();
+  // Upsert wallet row
+  const existing = db.prepare('SELECT balance FROM user_wallets WHERE user_id = ?').get(userId);
+  const oldBalance = existing ? existing.balance : 0;
+  const newBalance = oldBalance + amountPaise;
+  if (existing) {
+    db.prepare('UPDATE user_wallets SET balance = ?, updated_at = ? WHERE user_id = ?').run(newBalance, now, userId);
+  } else {
+    db.prepare('INSERT INTO user_wallets (user_id, balance, updated_at) VALUES (?, ?, ?)').run(userId, newBalance, now);
+  }
+  db.prepare(`
+    INSERT INTO wallet_transactions (id, user_id, type, amount, reason, reference, balance_after, created_at)
+    VALUES (?, ?, 'credit', ?, ?, ?, ?, ?)
+  `).run(uuidv4(), userId, amountPaise, reason, reference, newBalance, now);
+  return newBalance;
+}
+
 // ── Mailer (lazy-init) ────────────────────────────────────────────────────────
 let _transporter = null;
 function getTransporter() {
@@ -89,8 +108,27 @@ router.post('/signup', async (req, res) => {
   const id    = uuidv4();
   const hash  = await hashPassword(password);
   const token = genShareToken();
+  const createdAt = new Date().toISOString();
   db.prepare('INSERT INTO users (id, username, display_name, bio, password_hash, email, phone, share_token, created_at) VALUES (?,?,?,?,?,?,?,?,?)')
-    .run(id, uname, displayName?.trim() || uname, '', hash, emailClean, phoneClean, token, new Date().toISOString());
+    .run(id, uname, displayName?.trim() || uname, '', hash, emailClean, phoneClean, token, createdAt);
+
+  // ── Signup bonus: credit the current monthly plan price into the new user's wallet
+  try {
+    const monthlyPlan = db.prepare(`SELECT price_inr, discount_pct, discount_ends_at FROM subscription_plans WHERE id = 'monthly'`).get();
+    if (monthlyPlan && monthlyPlan.price_inr > 0) {
+      const now = new Date();
+      const discountActive = monthlyPlan.discount_pct > 0 &&
+        (!monthlyPlan.discount_ends_at || new Date(monthlyPlan.discount_ends_at) > now);
+      const bonusInr = discountActive
+        ? Math.round(monthlyPlan.price_inr * (1 - monthlyPlan.discount_pct / 100))
+        : monthlyPlan.price_inr;
+      const bonusPaise = bonusInr * 100;
+      creditWallet(id, bonusPaise, 'signup_bonus', 'welcome');
+    }
+  } catch (e) {
+    console.error('[auth/signup] wallet bonus failed:', e.message);
+  }
+
   const jwt = signToken(id, uname);
   res.status(201).json({ token: jwt, userId: id, username: uname, displayName: displayName?.trim() || uname, email: emailClean, phone: phoneClean, shareToken: token });
 });
@@ -256,11 +294,28 @@ router.post('/google', async (req, res) => {
       const fakePassHash = await hashPassword(uuidv4()); // Secure random placeholder password
       const displayName = name?.trim() || uname;
       const sToken = genShareToken();
+      const gCreatedAt = new Date().toISOString();
 
       db.prepare(`
         INSERT INTO users (id, username, display_name, bio, password_hash, google_id, email, avatar_url, share_token, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(id, uname, displayName, '', fakePassHash, googleId, email.toLowerCase(), picture || '', sToken, new Date().toISOString());
+      `).run(id, uname, displayName, '', fakePassHash, googleId, email.toLowerCase(), picture || '', sToken, gCreatedAt);
+
+      // ── Signup bonus for Google sign-up too
+      try {
+        const monthlyPlan = db.prepare(`SELECT price_inr, discount_pct, discount_ends_at FROM subscription_plans WHERE id = 'monthly'`).get();
+        if (monthlyPlan && monthlyPlan.price_inr > 0) {
+          const nowG = new Date();
+          const discountActive = monthlyPlan.discount_pct > 0 &&
+            (!monthlyPlan.discount_ends_at || new Date(monthlyPlan.discount_ends_at) > nowG);
+          const bonusInr = discountActive
+            ? Math.round(monthlyPlan.price_inr * (1 - monthlyPlan.discount_pct / 100))
+            : monthlyPlan.price_inr;
+          creditWallet(id, bonusInr * 100, 'signup_bonus', 'welcome');
+        }
+      } catch (e) {
+        console.error('[auth/google] wallet bonus failed:', e.message);
+      }
 
       user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
     } else {

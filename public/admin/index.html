@@ -388,6 +388,7 @@ select.field-select:focus{border-color:var(--accent)}
     <button class="nav-tab" data-page="visitors">Visitors</button>
     <button class="nav-tab" data-page="reactions">Reactions</button>
     <button class="nav-tab" data-page="subscriptions">Subscriptions</button>
+    <button class="nav-tab" data-page="wallet">Wallet</button>
     <button class="nav-tab" data-page="grant">Grant Free Access</button>
     <button class="nav-tab" data-page="global-images">Global Images</button>
     <button class="nav-tab" data-page="note-backgrounds">Note Backgrounds</button>
@@ -433,23 +434,44 @@ select.field-select:focus{border-color:var(--accent)}
 
   <!-- USERS -->
   <div class="page" id="page-users">
-    <div class="section">
-      <div class="section-title">All Users
-        <button class="btn btn-ghost" id="usersRefreshBtn" style="margin-left:auto;padding:5px 14px;font-size:12px">Refresh</button>
+    <!-- Filter & search bar -->
+    <div class="section" style="margin-bottom:0">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding-bottom:16px">
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--ink3);margin-bottom:4px">JOINED FROM</label>
+          <input type="date" id="ufFrom" class="v-select" style="padding:7px 10px">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--ink3);margin-bottom:4px">JOINED TO</label>
+          <input type="date" id="ufTo" class="v-select" style="padding:7px 10px">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--ink3);margin-bottom:4px">SEARCH</label>
+          <input type="text" id="ufSearch" class="v-select" placeholder="username / email…" style="padding:7px 10px;width:180px">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:auto">
+          <button class="btn btn-primary" id="ufApplyBtn" style="padding:7px 18px;font-size:12px">Apply</button>
+          <button class="btn btn-ghost"   id="ufResetBtn" style="padding:7px 14px;font-size:12px">Reset</button>
+          <button class="btn btn-ghost"   id="usersRefreshBtn" style="padding:7px 14px;font-size:12px">↺ Refresh</button>
+        </div>
+        <div id="ufSummary" style="align-self:center;font-size:12px;color:var(--ink3);margin-left:auto"></div>
       </div>
+    </div>
+    <div class="section">
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>#</th>
-              <th>Username</th>
+              <th class="sort-th" data-col="username" style="cursor:pointer;user-select:none">Username <span class="sort-icon"></span></th>
               <th>Display Name</th>
-              <th>Email</th>
+              <th class="sort-th" data-col="email" style="cursor:pointer;user-select:none">Email <span class="sort-icon"></span></th>
               <th>Phone</th>
-              <th>Joined</th>
-              <th>Entries</th>
+              <th class="sort-th" data-col="created_at" style="cursor:pointer;user-select:none">Joined <span class="sort-icon"></span></th>
+              <th class="sort-th" data-col="note_count" style="cursor:pointer;user-select:none">Entries <span class="sort-icon"></span></th>
               <th>Note Limit</th>
-              <th>Views</th>
+              <th class="sort-th" data-col="total_views" style="cursor:pointer;user-select:none">Views <span class="sort-icon"></span></th>
+              <th class="sort-th" data-col="wallet" style="cursor:pointer;user-select:none">Wallet <span class="sort-icon"></span></th>
               <th>Action</th>
             </tr>
           </thead>
@@ -534,6 +556,94 @@ select.field-select:focus{border-color:var(--accent)}
         </table>
       </div>
       <div id="visitorsCount" style="text-align:right;font-size:11px;color:var(--ink4);padding:8px 4px 0"></div>
+    </div>
+  </div>
+
+  <!-- WALLET PAGE -->
+  <div class="page" id="page-wallet">
+    <!-- Assign bonus to a single user -->
+    <div class="section">
+      <div class="section-title">Assign Wallet Bonus — Single User</div>
+      <div class="grant-panel">
+        <div class="grant-panel-title">💰 Credit bonus money to a specific user's wallet</div>
+        <p style="font-size:12px;color:var(--ink3);margin-bottom:16px;line-height:1.6">
+          The credited amount will be applied automatically at the user's next subscription payment,
+          reducing what they need to pay. If the wallet covers the full price, no Razorpay payment is triggered.
+        </p>
+        <div class="grant-panel-row">
+          <div class="field" style="flex:2;min-width:200px">
+            <label>User</label>
+            <select class="field-select" id="walletUserId">
+              <option value="">— select a user —</option>
+            </select>
+          </div>
+          <div class="field" style="flex:1;min-width:140px">
+            <label>Amount (&#8377; INR)</label>
+            <input type="number" id="walletBonusAmt" min="1" step="1" placeholder="e.g. 149"
+              style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r2);padding:10px 14px;font-size:14px;color:var(--ink);outline:none;font-family:var(--sans)">
+          </div>
+          <div class="field" style="flex:2;min-width:180px">
+            <label>Note <span style="color:var(--ink4);font-weight:400">(optional)</span></label>
+            <input type="text" id="walletBonusNote" placeholder="e.g. Loyalty reward"
+              style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r2);padding:10px 14px;font-size:14px;color:var(--ink);outline:none;font-family:var(--sans)">
+          </div>
+        </div>
+        <p class="err" id="walletBonusErr" style="margin-top:8px"></p>
+        <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
+          <button class="btn btn-primary" id="walletBonusBtn" style="background:var(--green)">Credit Bonus</button>
+          <span id="walletBonusOk" style="font-size:12px;color:var(--green);font-weight:600;display:none">&#10003; Bonus credited!</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assign bonus to ALL users -->
+    <div class="section">
+      <div class="section-title">Assign Wallet Bonus — All Users</div>
+      <div class="grant-panel" style="border-color:var(--blue)">
+        <div class="grant-panel-title" style="color:var(--blue)">&#128226; Bulk bonus — credit all registered users at once</div>
+        <p style="font-size:12px;color:var(--ink3);margin-bottom:16px;line-height:1.6">
+          Credits the specified amount to <b>every registered user's wallet</b> simultaneously.
+          This is useful for promotional campaigns, festivals, or system-wide rewards.
+        </p>
+        <div class="grant-panel-row">
+          <div class="field" style="flex:1;min-width:140px">
+            <label>Amount per user (&#8377; INR)</label>
+            <input type="number" id="walletAllAmt" min="1" step="1" placeholder="e.g. 50"
+              style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r2);padding:10px 14px;font-size:14px;color:var(--ink);outline:none;font-family:var(--sans)">
+          </div>
+          <div class="field" style="flex:2;min-width:200px">
+            <label>Note <span style="color:var(--ink4);font-weight:400">(optional)</span></label>
+            <input type="text" id="walletAllNote" placeholder="e.g. Diwali special offer"
+              style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r2);padding:10px 14px;font-size:14px;color:var(--ink);outline:none;font-family:var(--sans)">
+          </div>
+        </div>
+        <p class="err" id="walletAllErr" style="margin-top:8px"></p>
+        <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
+          <button class="btn btn-primary" id="walletAllBtn" style="background:var(--blue)">Credit All Users</button>
+          <span id="walletAllOk" style="font-size:12px;color:var(--green);font-weight:600;display:none"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wallet balances table -->
+    <div class="section">
+      <div class="section-title">User Wallet Balances
+        <button class="btn btn-ghost" id="walletListRefreshBtn" style="margin-left:auto;padding:5px 14px;font-size:12px">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Username</th>
+              <th>Balance (&#8377;)</th>
+              <th>Last Updated</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="walletListTable"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -1231,9 +1341,10 @@ document.getElementById('navTabs').addEventListener('click', e => {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   tab.classList.add('active');
   document.getElementById('page-' + tab.dataset.page).classList.add('active');
-  // Reload users table every time Users tab is opened
+  // Reload users table every time Users tab is opened (also refresh wallet map)
   if (tab.dataset.page === 'users') {
     loadStats();
+    loadWalletMapForUsers().then(() => applyUserFilters());
   }
   // Lazy-load subscriptions tab on first open
   if (tab.dataset.page === 'subscriptions' && !subTabLoaded) {
@@ -1246,12 +1357,20 @@ document.getElementById('navTabs').addEventListener('click', e => {
     visitorsLoaded = true;
     loadVisitors();
   }
+  // Lazy-load wallet tab on first open
+  if (tab.dataset.page === 'wallet' && !walletTabLoaded) {
+    walletTabLoaded = true;
+    populateWalletUserSelect();
+    loadWalletList();
+  }
 });
 
 // ── LOAD STATS ───────────────────────────────────────────────────────────────
 async function loadStats() {
   try {
     stats = await api('GET', '/stats');
+    // Also refresh wallet balances so the Users table column is populated
+    await loadWalletMapForUsers();
     renderOverview();
     renderActivity();
     renderUsers();
@@ -1331,20 +1450,118 @@ function renderActivityChart() {
   renderBarChart('activityChart', data, labelKey[actPeriod], 'uniq', 'Unique visitors', '#4f6ef7');
 }
 
-// ── USERS ────────────────────────────────────────────────────────────────────
+// ── WALLET API helper (hoisted here so renderUsers can call walletApi) ────────
+const WALLET_API = '/api/wallet';
+let walletTabLoaded = false;
+
+async function walletApi(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(adminToken ? { Authorization: 'Bearer ' + adminToken } : {}) },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res  = await fetch(WALLET_API + path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Error');
+  return data;
+}
+
+// ── USERS — with filtering, sorting, wallet balance ───────────────────────────
+let _allUsers   = [];   // full dataset loaded from server
+let _userSort   = { col: 'created_at', dir: 'desc' };
+let _walletMap  = {};   // userId → balancePaise
+
+async function loadWalletMapForUsers() {
+  try {
+    const data = await walletApi('GET', '/admin/list');
+    _walletMap = {};
+    data.wallets.forEach(w => { _walletMap[w.userId] = w.balancePaise; });
+  } catch { _walletMap = {}; }
+}
+
+function applyUserFilters() {
+  const from   = document.getElementById('ufFrom').value;
+  const to     = document.getElementById('ufTo').value;
+  const search = (document.getElementById('ufSearch').value || '').trim().toLowerCase();
+
+  let filtered = _allUsers.filter(u => {
+    if (from && u.created_at.slice(0,10) < from) return false;
+    if (to   && u.created_at.slice(0,10) > to)   return false;
+    if (search) {
+      const hay = ((u.username||'') + ' ' + (u.email||'') + ' ' + (u.display_name||'')).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // sort
+  const col = _userSort.col;
+  const dir = _userSort.dir;
+  filtered.sort((a, b) => {
+    let va, vb;
+    if (col === 'wallet') {
+      va = _walletMap[a.id] || 0;
+      vb = _walletMap[b.id] || 0;
+    } else {
+      va = a[col] != null ? a[col] : '';
+      vb = b[col] != null ? b[col] : '';
+    }
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return dir === 'asc' ? -1 : 1;
+    if (va > vb) return dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  // update sort icons
+  document.querySelectorAll('.sort-th').forEach(th => {
+    const ic = th.querySelector('.sort-icon');
+    if (!ic) return;
+    if (th.dataset.col === col) {
+      ic.textContent = dir === 'asc' ? ' ▲' : ' ▼';
+      ic.style.color = 'var(--accent)';
+    } else {
+      ic.textContent = ' ⇅';
+      ic.style.color = 'var(--ink4)';
+    }
+  });
+
+  const summaryEl = document.getElementById('ufSummary');
+  if (summaryEl) {
+    const newCount = filtered.filter(u => {
+      const from2 = document.getElementById('ufFrom').value;
+      const to2   = document.getElementById('ufTo').value;
+      return (from2 || to2) ? true : false;
+    }).length;
+    summaryEl.textContent = `${filtered.length} of ${_allUsers.length} users shown`;
+  }
+
+  renderUsersFiltered(filtered);
+}
+
 function renderUsers() {
+  _allUsers = (stats && stats.users) ? stats.users : [];
+  applyUserFilters();
+}
+
+function renderUsersFiltered(users) {
   const tbody = document.getElementById('usersTable');
-  if (!stats.users.length) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--ink4);padding:30px">No users yet</td></tr>';
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--ink4);padding:30px">No users match this filter</td></tr>';
     return;
   }
-  tbody.innerHTML = stats.users.map((u, i) => {
+  tbody.innerHTML = users.map((u, i) => {
     const limitVal = u.notes_limit_override != null ? u.notes_limit_override : null;
     const limitDisplay = limitVal === null
       ? '<span style="color:var(--ink4);font-size:11px">default</span>'
       : limitVal === -1
         ? '<span style="color:var(--green);font-size:11px">∞</span>'
         : `<span style="font-weight:700;color:var(--accent)">${limitVal}</span>`;
+    const walletPaise = _walletMap[u.id] || 0;
+    const walletInr   = walletPaise / 100;
+    const walletCell  = walletPaise > 0
+      ? `<span style="color:var(--green);font-weight:700">&#8377;${walletInr.toLocaleString('en-IN')}</span>`
+      : '<span style="color:var(--ink4);font-size:11px">—</span>';
     return `
     <tr>
       <td style="color:var(--ink4)">${i + 1}</td>
@@ -1360,6 +1577,7 @@ function renderUsers() {
           data-setlimit="${u.id}" data-uname="${u.username}" data-currlimit="${limitVal !== null ? limitVal : ''}">✏️</button>
       </td>
       <td>${u.total_views.toLocaleString()}</td>
+      <td>${walletCell}</td>
       <td style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px">
         <button class="btn btn-danger" style="padding:4px 10px;font-size:11px"
           data-del="${u.id}" data-uname="${u.username}">Delete</button>
@@ -1388,6 +1606,30 @@ function renderUsers() {
     btn.onclick = () => openNoteLimitModal(btn.dataset.setlimit, btn.dataset.uname, btn.dataset.currlimit);
   });
 }
+
+// Sort-header click (delegated on the page container)
+document.getElementById('page-users').addEventListener('click', e => {
+  const th = e.target.closest('.sort-th');
+  if (!th) return;
+  const col = th.dataset.col;
+  if (_userSort.col === col) {
+    _userSort.dir = _userSort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    _userSort.col = col;
+    _userSort.dir = (col === 'created_at' || col === 'note_count' || col === 'total_views' || col === 'wallet') ? 'desc' : 'asc';
+  }
+  applyUserFilters();
+});
+
+// Filter buttons
+document.getElementById('ufApplyBtn').onclick  = applyUserFilters;
+document.getElementById('ufResetBtn').onclick  = () => {
+  document.getElementById('ufFrom').value   = '';
+  document.getElementById('ufTo').value     = '';
+  document.getElementById('ufSearch').value = '';
+  applyUserFilters();
+};
+document.getElementById('ufSearch').addEventListener('keydown', e => { if (e.key === 'Enter') applyUserFilters(); });
 
 // ── Note Limit modal ──────────────────────────────────────────────────────────
 let noteLimitTargetId = null;
@@ -1597,7 +1839,10 @@ document.getElementById('vfResetBtn').onclick = () => {
   document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') loadVisitors(); });
 });
 
-document.getElementById('usersRefreshBtn').onclick = () => loadStats();
+document.getElementById('usersRefreshBtn').onclick = () => {
+  loadStats();
+  loadWalletMapForUsers().then(() => applyUserFilters());
+};
 
 // ── REACTIONS ────────────────────────────────────────────────────────────────
 function renderReactions() {
@@ -1738,6 +1983,112 @@ function renderBarChart(containerId, data, labelKey, valueKey, title = '', color
     </svg>
   `;
 }
+
+// ── WALLET TAB ────────────────────────────────────────────────────────────────
+
+async function populateWalletUserSelect() {
+  try {
+    const data = await walletApi('GET', '/admin/list');
+    const sel  = document.getElementById('walletUserId');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— select a user —</option>' +
+      data.wallets.map(w =>
+        `<option value="${w.userId}">@${w.username}${w.displayName ? ' — ' + w.displayName : ''} &nbsp;(&#8377;${(w.balancePaise / 100).toLocaleString('en-IN')})</option>`
+      ).join('');
+  } catch { /* ignore */ }
+}
+
+async function loadWalletList() {
+  const tbody = document.getElementById('walletListTable');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ink4);padding:30px">Loading…</td></tr>';
+  try {
+    const data = await walletApi('GET', '/admin/list');
+    if (!data.wallets.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ink4);padding:30px">No wallets yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.wallets.map((w, i) => `
+      <tr>
+        <td style="color:var(--ink4)">${i + 1}</td>
+        <td><span class="badge badge-gold">@${escHtml(w.username)}</span>${w.displayName ? `<span style="color:var(--ink3);margin-left:6px;font-size:11px">${escHtml(w.displayName)}</span>` : ''}</td>
+        <td style="font-weight:700;color:${w.balancePaise > 0 ? 'var(--green)' : 'var(--ink4)'}">
+          &#8377;${(w.balancePaise / 100).toLocaleString('en-IN')}
+        </td>
+        <td style="font-size:12px;color:var(--ink3)">${w.updatedAt ? fmtDate(w.updatedAt) : '—'}</td>
+        <td>
+          <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px"
+            data-walletuser="${w.userId}" data-walletname="${escHtml(w.username)}">+ Bonus</button>
+        </td>
+      </tr>
+    `).join('');
+    // Quick-assign from the list
+    tbody.querySelectorAll('[data-walletuser]').forEach(btn => {
+      btn.onclick = () => {
+        document.getElementById('walletUserId').value = btn.dataset.walletuser;
+        document.getElementById('walletBonusAmt').focus();
+        document.querySelector('[data-page="wallet"]') && document.getElementById('page-wallet').scrollTo(0, 0);
+      };
+    });
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--red);padding:20px">${escHtml(e.message)}</td></tr>`;
+  }
+}
+
+// Single-user bonus submit
+document.getElementById('walletBonusBtn').onclick = async () => {
+  const userId    = document.getElementById('walletUserId').value;
+  const amountInr = document.getElementById('walletBonusAmt').value;
+  const note      = document.getElementById('walletBonusNote').value.trim();
+  const errEl     = document.getElementById('walletBonusErr');
+  const okEl      = document.getElementById('walletBonusOk');
+  errEl.textContent = ''; okEl.style.display = 'none';
+  if (!userId)    { errEl.textContent = 'Please select a user.'; return; }
+  if (!amountInr || Number(amountInr) <= 0) { errEl.textContent = 'Enter a valid amount > 0.'; return; }
+  try {
+    const res = await walletApi('POST', '/admin/assign-bonus', { userId, amountInr: Number(amountInr), note });
+    okEl.textContent = `✓ ₹${Number(amountInr).toLocaleString('en-IN')} credited to @${res.username}`;
+    okEl.style.display = '';
+    setTimeout(() => { okEl.style.display = 'none'; }, 5000);
+    toast(`✅ Wallet bonus of ₹${Number(amountInr).toLocaleString('en-IN')} credited`);
+    document.getElementById('walletBonusAmt').value  = '';
+    document.getElementById('walletBonusNote').value = '';
+    await loadWalletList();
+    await populateWalletUserSelect();
+    // Refresh wallet map for users table
+    await loadWalletMapForUsers();
+    applyUserFilters();
+  } catch (e) { errEl.textContent = e.message; }
+};
+
+// All-users bonus submit
+document.getElementById('walletAllBtn').onclick = async () => {
+  const amountInr = document.getElementById('walletAllAmt').value;
+  const note      = document.getElementById('walletAllNote').value.trim();
+  const errEl     = document.getElementById('walletAllErr');
+  const okEl      = document.getElementById('walletAllOk');
+  errEl.textContent = ''; okEl.style.display = 'none';
+  if (!amountInr || Number(amountInr) <= 0) { errEl.textContent = 'Enter a valid amount > 0.'; return; }
+  if (!confirm(`Credit ₹${Number(amountInr).toLocaleString('en-IN')} to ALL registered users' wallets? This cannot be undone.`)) return;
+  try {
+    const res = await walletApi('POST', '/admin/assign-bonus-all', { amountInr: Number(amountInr), note });
+    okEl.textContent = `✓ ₹${Number(amountInr).toLocaleString('en-IN')} credited to ${res.credited} users`;
+    okEl.style.display = '';
+    setTimeout(() => { okEl.style.display = 'none'; }, 5000);
+    toast(`✅ Bulk bonus credited to ${res.credited} users`);
+    document.getElementById('walletAllAmt').value  = '';
+    document.getElementById('walletAllNote').value = '';
+    await loadWalletList();
+    await populateWalletUserSelect();
+    await loadWalletMapForUsers();
+    applyUserFilters();
+  } catch (e) { errEl.textContent = e.message; }
+};
+
+document.getElementById('walletListRefreshBtn').onclick = () => {
+  loadWalletList();
+  populateWalletUserSelect();
+};
 
 // ── SUBSCRIPTIONS ────────────────────────────────────────────────────────────
 const SUBS_API = '/api/subscriptions';

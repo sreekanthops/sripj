@@ -482,6 +482,34 @@ if (!hasColumn('page_views', 'utm_source'))   db.exec(`ALTER TABLE page_views AD
 if (!hasColumn('page_views', 'utm_medium'))   db.exec(`ALTER TABLE page_views ADD COLUMN utm_medium   TEXT NOT NULL DEFAULT ''`);
 if (!hasColumn('page_views', 'utm_campaign')) db.exec(`ALTER TABLE page_views ADD COLUMN utm_campaign TEXT NOT NULL DEFAULT ''`);
 
+// ── WALLET TABLES ────────────────────────────────────────────────────────────
+// user_wallets — one row per user, stores current balance in paise (INR smallest unit)
+if (!hasTable('user_wallets')) {
+  db.exec(`
+    CREATE TABLE user_wallets (
+      user_id    TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      balance    INTEGER NOT NULL DEFAULT 0,   -- balance in paise
+      updated_at TEXT NOT NULL
+    )
+  `);
+}
+
+// wallet_transactions — full audit log of every credit/debit
+if (!hasTable('wallet_transactions')) {
+  db.exec(`
+    CREATE TABLE wallet_transactions (
+      id          TEXT PRIMARY KEY,
+      user_id     TEXT NOT NULL,
+      type        TEXT NOT NULL,   -- 'credit' | 'debit'
+      amount      INTEGER NOT NULL,  -- paise, always positive
+      reason      TEXT NOT NULL DEFAULT '',   -- 'signup_bonus' | 'admin_bonus' | 'payment'
+      reference   TEXT NOT NULL DEFAULT '',   -- order_id or admin note
+      balance_after INTEGER NOT NULL DEFAULT 0,
+      created_at  TEXT NOT NULL
+    )
+  `);
+}
+
 // Re-enable FK enforcement
 db.pragma('foreign_keys = ON');
 

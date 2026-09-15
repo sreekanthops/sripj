@@ -6,6 +6,51 @@ const db       = require('../db');
 const { verifyToken, verifyAdminToken } = require('../auth');
 const { getUserPlan } = require('../subscription');
 
+// ── Wallet helpers ────────────────────────────────────────────────────────────
+function getWalletBalance(userId) {
+  const row = db.prepare('SELECT balance FROM user_wallets WHERE user_id = ?').get(userId);
+  return row ? row.balance : 0;
+}
+
+function debitWallet(userId, amountPaise, reason, reference = '') {
+  const now = new Date().toISOString();
+  const existing = db.prepare('SELECT balance FROM user_wallets WHERE user_id = ?').get(userId);
+  const oldBalance = existing ? existing.balance : 0;
+  const newBalance = Math.max(0, oldBalance - amountPaise);
+  const actualDebit = oldBalance - newBalance; // may be less if wallet runs short
+  if (existing) {
+    db.prepare('UPDATE user_wallets SET balance = ?, updated_at = ? WHERE user_id = ?').run(newBalance, now, userId);
+  } else {
+    db.prepare('INSERT INTO user_wallets (user_id, balance, updated_at) VALUES (?, ?, ?)').run(userId, 0, now);
+  }
+  if (actualDebit > 0) {
+    db.prepare(`
+      INSERT INTO wallet_transactions (id, user_id, type, amount, reason, reference, balance_after, created_at)
+      VALUES (?, ?, 'debit', ?, ?, ?, ?, ?)
+    `).run(uuidv4(), userId, actualDebit, reason, reference, newBalance, now);
+  }
+  return { actualDebit, newBalance };
+}
+
+function activateSubscription(userId, planId) {
+  const now = new Date().toISOString();
+  let expiresAt = null;
+  if (planId === 'monthly') {
+    const d = new Date(); d.setDate(d.getDate() + 31); expiresAt = d.toISOString();
+  } else if (planId === 'yearly') {
+    const d = new Date(); d.setDate(d.getDate() + 366); expiresAt = d.toISOString();
+  }
+  const existing = db.prepare('SELECT id FROM user_subscriptions WHERE user_id = ?').get(userId);
+  if (existing) {
+    db.prepare(`UPDATE user_subscriptions SET plan_id=?, starts_at=?, expires_at=?, granted_by=NULL WHERE user_id=?`)
+      .run(planId, now, expiresAt, userId);
+  } else {
+    db.prepare(`INSERT INTO user_subscriptions (id,user_id,plan_id,starts_at,expires_at,created_at) VALUES (?,?,?,?,?,?)`)
+      .run(uuidv4(), userId, planId, now, expiresAt, now);
+  }
+  return getUserPlan(userId);
+}
+
 // ── Geo-IP helper — map country code → region key ─────────────────────────────
 const COUNTRY_TO_REGION = (() => {
   const map = {};
@@ -98,7 +143,7 @@ router.get('/plans', (req, res) => {
   res.json({ plans: enriched });
 });
 
-// ── POST /api/payments/create-order  — create Razorpay order ─────────────────
+// ── POST /api/payments/create-order  — create Razorpay order (wallet-aware) ──
 router.post('/create-order', verifyToken, async (req, res) => {
   const { planId } = req.body;
   if (!planId || planId === 'free') return res.status(400).json({ error: 'Invalid planId' });
@@ -113,30 +158,67 @@ router.post('/create-order', verifyToken, async (req, res) => {
   const now = new Date();
   const discountActive = plan.discount_pct > 0 &&
     (!plan.discount_ends_at || new Date(plan.discount_ends_at) > now);
-  const priceInr   = discountActive
+  const priceInr    = discountActive
     ? Math.round(plan.price_inr * (1 - plan.discount_pct / 100))
     : plan.price_inr;
-  const amountPaise = priceInr * 100;
+  const fullAmountPaise = priceInr * 100;
 
-  if (amountPaise <= 0) return res.status(400).json({ error: 'Price not configured for this plan' });
+  if (fullAmountPaise <= 0) return res.status(400).json({ error: 'Price not configured for this plan' });
 
+  const userId = req.user.userId;
+
+  // ── Wallet deduction ─────────────────────────────────────────────────────
+  const walletBalance = getWalletBalance(userId);
+  const walletDeduct  = Math.min(walletBalance, fullAmountPaise);
+  const netAmountPaise = fullAmountPaise - walletDeduct;
+
+  // ── Zero-payment: wallet covers everything — skip Razorpay entirely ───────
+  if (netAmountPaise <= 0) {
+    // Debit wallet
+    debitWallet(userId, walletDeduct, 'payment', `wallet_cover_${planId}_${Date.now()}`);
+    // Activate subscription immediately
+    const activePlan = activateSubscription(userId, planId);
+    // Log a zero-amount "order" for audit trail
+    db.prepare(`
+      INSERT INTO razorpay_orders (id, user_id, plan_id, amount_paise, currency, status, created_at, paid_at)
+      VALUES (?, ?, ?, 0, 'INR', 'paid', ?, ?)
+    `).run('wallet_' + uuidv4().replace(/-/g,'').slice(0,16), userId, planId, new Date().toISOString(), new Date().toISOString());
+
+    return res.json({
+      walletCovered: true,
+      walletDeducted: walletDeduct,
+      plan: activePlan,
+      message: `Subscribed using wallet balance! No payment needed.`,
+    });
+  }
+
+  // ── Partial or no wallet — create Razorpay order for the net amount ───────
   try {
     const rzp   = getRazorpayInstance();
     const order = await rzp.orders.create({
-      amount:   amountPaise,
+      amount:   netAmountPaise,
       currency: 'INR',
-      receipt:  `diary_${req.user.userId.slice(0,8)}_${Date.now()}`,
-      notes:    { planId, userId: req.user.userId },
+      receipt:  `diary_${userId.slice(0,8)}_${Date.now()}`,
+      notes:    { planId, userId, walletDeducted: walletDeduct },
     });
 
-    // Persist the order
+    // Persist the order (store full amount + wallet deduction for reference)
     db.prepare(`
       INSERT INTO razorpay_orders (id, user_id, plan_id, amount_paise, currency, status, created_at)
       VALUES (?, ?, ?, ?, 'INR', 'created', ?)
-    `).run(order.id, req.user.userId, planId, amountPaise, new Date().toISOString());
+    `).run(order.id, userId, planId, netAmountPaise, new Date().toISOString());
 
     const { keyId } = getRazorpayCreds();
-    res.json({ orderId: order.id, amount: amountPaise, currency: 'INR', keyId, planName: plan.name });
+    res.json({
+      orderId:         order.id,
+      amount:          netAmountPaise,
+      currency:        'INR',
+      keyId,
+      planName:        plan.name,
+      walletDeducted:  walletDeduct,
+      originalAmount:  fullAmountPaise,
+      walletBalance,
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -144,7 +226,7 @@ router.post('/create-order', verifyToken, async (req, res) => {
 
 // ── POST /api/payments/verify  — verify Razorpay signature + activate plan ───
 router.post('/verify', verifyToken, (req, res) => {
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planId } = req.body;
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planId, walletDeducted } = req.body;
   if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature)
     return res.status(400).json({ error: 'Missing payment fields' });
 
@@ -162,31 +244,18 @@ router.post('/verify', verifyToken, (req, res) => {
     UPDATE razorpay_orders SET status='paid', payment_id=?, paid_at=? WHERE id=?
   `).run(razorpay_payment_id, new Date().toISOString(), razorpay_order_id);
 
-  // Activate subscription
   const userId = req.user.userId;
   const plan   = db.prepare('SELECT id FROM subscription_plans WHERE id = ?').get(planId);
   if (!plan) return res.status(400).json({ error: 'Unknown plan' });
 
-  const now      = new Date().toISOString();
-  const existing = db.prepare('SELECT id FROM user_subscriptions WHERE user_id = ?').get(userId);
-
-  // Expiry: monthly = 31 days, yearly = 366 days, lifetime = null
-  let expiresAt = null;
-  if (planId === 'monthly') {
-    const d = new Date(); d.setDate(d.getDate() + 31); expiresAt = d.toISOString();
-  } else if (planId === 'yearly') {
-    const d = new Date(); d.setDate(d.getDate() + 366); expiresAt = d.toISOString();
+  // Debit wallet for the portion covered by wallet (walletDeducted is in paise)
+  const walletPaise = Number(walletDeducted) || 0;
+  if (walletPaise > 0) {
+    debitWallet(userId, walletPaise, 'payment', razorpay_order_id);
   }
 
-  if (existing) {
-    db.prepare(`UPDATE user_subscriptions SET plan_id=?, starts_at=?, expires_at=?, granted_by=NULL WHERE user_id=?`)
-      .run(planId, now, expiresAt, userId);
-  } else {
-    db.prepare(`INSERT INTO user_subscriptions (id,user_id,plan_id,starts_at,expires_at,created_at) VALUES (?,?,?,?,?,?)`)
-      .run(uuidv4(), userId, planId, now, expiresAt, now);
-  }
-
-  const activePlan = getUserPlan(userId);
+  // Activate subscription
+  const activePlan = activateSubscription(userId, planId);
   res.json({ ok: true, plan: activePlan });
 });
 

@@ -65,6 +65,7 @@ app.use('/api/rephrase',          require('./routes/rephrase'));
 app.use('/api/ai',                require('./routes/ai'));
 app.use('/api/stickers',          require('./routes/stickers'));
 app.use('/api/subscriptions',     require('./routes/subscriptions'));
+app.use('/api/wallet',            require('./routes/wallet'));
 app.use('/api/global-images',     require('./routes/global-images'));
 app.use('/api/payments',          require('./routes/payments'));
 app.use('/api/note-backgrounds',  require('./routes/note-backgrounds'));
