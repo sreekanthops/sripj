@@ -950,12 +950,14 @@ async function loadProfilePlan() {
   cardsEl.classList.add('hidden');
 
   try {
-    const [subData, plansData] = await Promise.all([
+    const [subData, plansData, geoData] = await Promise.all([
       fetch('/api/subscriptions/me', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-      fetch('/api/subscriptions/plans').then(r => r.json()),
+      fetch('/api/payments/plans').then(r => r.json()),
+      fetch('/api/payments/geo-price').then(r => r.json()).catch(() => ({ prices: {} })),
     ]);
 
     const activePlanId = subData.planId || 'free';
+    const geoPrices    = geoData.prices || {};
     const plans = (plansData.plans || []).filter(p => p.id !== 'free');
 
     // ── Current plan badge ──────────────────────────────────────────────────
@@ -977,23 +979,41 @@ async function loadProfilePlan() {
     `;
 
     // ── Plan cards ──────────────────────────────────────────────────────────
+    const suffix = { monthly: '/mo', yearly: '/yr', lifetime: ' once' };
     cardsEl.classList.remove('hidden');
     cardsEl.innerHTML = plans.map(p => {
       const isCurrent = p.id === activePlanId;
-      const priceStr  = p.price_inr ? `₹${p.price_inr}` : (p.price_usd ? `${p.price_usd}` : 'Free');
-      const suffix    = p.id === 'monthly' ? '/mo' : p.id === 'yearly' ? '/yr' : '';
-      const tag       = isCurrent
+      const geo = geoPrices[p.id];
+      let priceStr;
+      if (geo) {
+        const amt = geo.amount % 1 === 0 ? geo.amount.toLocaleString('en-IN') : geo.amount.toFixed(2);
+        priceStr = `${geo.symbol}${amt}`;
+      } else {
+        const inr = p.discountActive ? p.effectivePriceInr : p.price_inr;
+        priceStr = inr ? `₹${inr.toLocaleString('en-IN')}` : '';
+      }
+      const discBadge = (!isCurrent && p.discountActive && p.discount_label)
+        ? `<span style="font-size:9px;background:rgba(184,50,50,.1);color:var(--red);border:1px solid rgba(184,50,50,.25);border-radius:99px;padding:1px 6px;font-weight:700">${p.discount_label}</span>`
+        : '';
+      const tag = isCurrent
         ? `<span class="prof-plan-card-tag active-tag">Current</span>`
-        : `<span class="prof-plan-card-tag upgrade-tag">Upgrade</span>`;
-      return `<a href="/pricing" class="prof-plan-card${isCurrent ? ' current' : ''}">
+        : `<span class="prof-plan-card-tag upgrade-tag">Upgrade →</span>`;
+      return `<div class="prof-plan-card${isCurrent ? ' current' : ''}" data-plan="${p.id}" style="cursor:${isCurrent ? 'default' : 'pointer'}">
         <div class="prof-plan-card-info">
-          <div class="prof-plan-card-name">${p.name}</div>
+          <div class="prof-plan-card-name">${p.name} ${discBadge}</div>
           <div class="prof-plan-card-desc">${p.description || ''}</div>
         </div>
-        <div class="prof-plan-card-price">${priceStr}<span>${suffix}</span></div>
+        <div class="prof-plan-card-price">${priceStr}<span>${suffix[p.id] || ''}</span></div>
         ${tag}
-      </a>`;
+      </div>`;
     }).join('');
+
+    // Click non-current cards → go to pricing page
+    cardsEl.querySelectorAll('.prof-plan-card:not(.current)').forEach(el => {
+      el.addEventListener('click', () => {
+        window.location.href = '/pricing';
+      });
+    });
 
   } catch {
     currentEl.className = 'prof-plan-loading';
