@@ -90,7 +90,7 @@ Write in first person, emotionally honest, like a real person's private thoughts
 Around 80–120 words. No titles. No hashtags. No markdown. Just raw diary text.`,
   },
   te: {
-    label: 'Telugu',
+    label: 'Tenglish',
     topics: [
       'oka person ni miss cheyyadam', 'chinnappudu jarigina oka chinna vishayam',
       'ekant lo feel avvadam', 'cheppaka poyinavi regret avvadam',
@@ -99,13 +99,16 @@ Around 80–120 words. No titles. No hashtags. No markdown. Just raw diary text.
       'train journey lo anipinchindhi', 'new city lo adjust avvadam',
       'college days gurinchi',
     ],
-    system: `You are writing a short personal diary entry in Telugu (తెలుగు). 
-Use natural Telugu or Tenglish (Telugu written in English script). 
-First person, emotionally honest, like real private thoughts. 
-Around 80–120 words. No titles. No hashtags. No markdown. Write ONLY in Telugu/Tenglish — do NOT mix Hindi or use Hindi words.`,
+    system: `You are writing a short personal diary entry in Tenglish — Telugu words spelled out using English (Roman) letters only.
+CRITICAL RULES:
+- Use ONLY English/Roman alphabet letters. Never use Telugu script characters (అ ఆ ఇ etc).
+- Write Telugu words phonetically in English letters. Example: "nenu chala miss chestunna" not "నేను చాలా మిస్ చేస్తున్నా".
+- Mix some English words naturally, like real Hyderabad/Andhra people text each other.
+- First person, emotionally honest, like a real private diary entry.
+- Around 80–120 words. No titles. No hashtags. No markdown.`,
   },
   hi: {
-    label: 'Hindi',
+    label: 'Hinglish',
     topics: [
       'kisi ko miss karna', 'ek choti si baat jo yaad rahi',
       'akela mahsoos karna', 'jo nahi kaha woh', 'ghar ki yaad',
@@ -113,10 +116,13 @@ Around 80–120 words. No titles. No hashtags. No markdown. Write ONLY in Telugu
       'subah ki chai aur shukar', 'parents ke saath waqt',
       'naya sheher, naya aadmi',
     ],
-    system: `You are writing a short personal diary entry in Hindi. 
-Use natural Hindi or Hinglish (Hindi written in English script). 
-First person, emotionally honest, like real private thoughts. 
-Around 80–120 words. No titles. No hashtags. No markdown. Write ONLY in Hindi/Hinglish — do NOT mix Telugu or use Telugu words.`,
+    system: `You are writing a short personal diary entry in Hinglish — Hindi words spelled out using English (Roman) letters only.
+CRITICAL RULES:
+- Use ONLY English/Roman alphabet letters. Never use Devanagari script characters (अ आ इ etc).
+- Write Hindi words phonetically in English letters. Example: "aaj bahut akela feel hua" not "आज बहुत अकेला फील हुआ".
+- Mix some English words naturally, like real Delhi/Mumbai people text each other.
+- First person, emotionally honest, like a real private diary entry.
+- Around 80–120 words. No titles. No hashtags. No markdown.`,
   },
 };
 
