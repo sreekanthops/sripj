@@ -1275,31 +1275,55 @@ document.getElementById('profPwdBtn')?.addEventListener('click', async () => {
 let currentShareType = 'diary'; // 'diary' | 'note'
 let currentShareNoteId = null;
 
-async function openShareModal(targetNoteId = null) {
+async function openShareModal(targetNoteId = null, noteIsPublic = false) {
+  const shareOptionsGrid = document.querySelector('.share-options-grid');
+  const saveBtn = document.getElementById('btnSaveShareSettings');
+
   if (targetNoteId) {
     currentShareType = 'note';
     currentShareNoteId = targetNoteId;
     const titleEl = document.getElementById('shareModalTitle');
     const descEl  = document.getElementById('shareModalDesc');
-    if (titleEl) titleEl.textContent = '🔗 Share Entry';
-    if (descEl)  descEl.textContent = 'Anyone with the link can view this specific entry.';
+
+    if (noteIsPublic) {
+      // Public note — no password option, just the link
+      if (titleEl) titleEl.textContent = '🔗 Share Entry';
+      if (descEl)  descEl.textContent = 'This note is public — anyone can view it with this link.';
+      if (shareOptionsGrid) shareOptionsGrid.style.display = 'none';
+      if (saveBtn) saveBtn.style.display = 'none';
+      // Show a quick-copy button instead
+      const copyOnlyBtn = document.getElementById('btnCopyShareLink');
+      if (copyOnlyBtn) copyOnlyBtn.textContent = 'Copy Link 🔗';
+    } else {
+      // Private note — show password protection options
+      if (titleEl) titleEl.textContent = '🔗 Share Entry';
+      if (descEl)  descEl.textContent = 'This note is private — choose how to share it.';
+      if (shareOptionsGrid) shareOptionsGrid.style.display = '';
+      if (saveBtn) saveBtn.style.display = '';
+      // Restore copy button label
+      const copyOnlyBtn = document.getElementById('btnCopyShareLink');
+      if (copyOnlyBtn) copyOnlyBtn.textContent = 'Copy Link';
+    }
+
     const url = `${location.origin}/entry/${targetNoteId}`;
     const urlInput = document.getElementById('shareUrlInput');
     if (urlInput) urlInput.value = url;
+
   } else {
+    // Sharing the whole diary — always show protection options
     currentShareType = 'diary';
     currentShareNoteId = null;
-    const targetUser = viewingUser || currentUser;
     const titleEl = document.getElementById('shareModalTitle');
     const descEl  = document.getElementById('shareModalDesc');
     if (titleEl) titleEl.textContent = '🔗 Share Your Stories';
     if (descEl)  descEl.textContent = 'Share this link — it works even if you change your username.';
+    if (shareOptionsGrid) shareOptionsGrid.style.display = '';
+    if (saveBtn) saveBtn.style.display = '';
     const urlInput = document.getElementById('shareUrlInput');
 
     // Always fetch fresh token — ensures we never show a stale/wrong token in the share link
-    // A valid share_token is 14 chars; a UUID (36 chars) means verify hasn't run yet
     let sToken = currentUser?.shareToken || '';
-    const looksLikeUuid = sToken.length > 20; // UUIDs are 36 chars, real tokens are 14
+    const looksLikeUuid = sToken.length > 20;
     if (!sToken || looksLikeUuid) {
       try {
         const fresh = await api('GET', '/auth/verify');
@@ -1316,16 +1340,20 @@ async function openShareModal(targetNoteId = null) {
     if (urlInput) urlInput.value = url;
   }
 
-  // Fetch current share protection status if user is owner/logged in
-  if (currentUser) {
-    try {
-      const data = await api('GET', '/auth/share-settings');
-      const isProt = !!data.shareProtected;
-      setShareOptionUI(isProt);
-    } catch {
+  // Fetch + show current share protection status only when options are visible
+  if (!noteIsPublic) {
+    if (currentUser) {
+      try {
+        const data = await api('GET', '/auth/share-settings');
+        setShareOptionUI(!!data.shareProtected);
+      } catch {
+        setShareOptionUI(false);
+      }
+    } else {
       setShareOptionUI(false);
     }
   } else {
+    // Public note — hide the password wrap
     setShareOptionUI(false);
   }
 
@@ -1334,14 +1362,16 @@ async function openShareModal(targetNoteId = null) {
   openOv('shareOverlay');
 }
 
-async function shareSingleNote(noteId) {
+async function shareSingleNote(noteId, isPublic = false) {
   const url = `${location.origin}/entry/${noteId}`;
-  const ok = await copyToClipboard(url);
-  if (ok) {
-    toast('Entry link copied! 🔗📋');
-  } else {
-    openShareModal(noteId);
+  if (isPublic) {
+    // Public note — just copy the direct link, no password option needed
+    const ok = await copyToClipboard(url);
+    toast(ok ? 'Link copied! 🔗📋' : url);
+    return;
   }
+  // Private note — open the share modal (with password protection option)
+  openShareModal(noteId, false);
 }
 
 function setShareOptionUI(isProtected) {
@@ -3289,7 +3319,7 @@ function renderDetail(note) {
         <button class="btn btn-pin   btn-sm btn-dpin"  data-id="${note.id}" data-pinned="${note.pinned?'1':'0'}">${note.pinned ? '📌 Unpin' : '📌 Pin'}</button>
         <button class="btn btn-red   btn-sm btn-ddel"  data-id="${note.id}">🗑 Delete</button>
         <button class="btn btn-public btn-sm btn-dpublic" data-id="${note.id}" data-public="${note.isPublic?'1':'0'}">${note.isPublic ? '🔒 Make Private' : '🌍 Make Public'}</button>` : ''}
-        <button class="btn btn-share-action btn-sm btn-dshare" data-id="${note.id}" title="Share this note">
+        <button class="btn btn-share-action btn-sm btn-dshare" data-id="${note.id}" data-public="${note.isPublic?'1':'0'}" title="Share this note">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="share-btn-icon">
             <circle cx="18" cy="5" r="3"></circle>
             <circle cx="6" cy="12" r="3"></circle>
@@ -3322,6 +3352,9 @@ function renderDetail(note) {
       note.isPublic = isPublic;
       btn.dataset.public = isPublic ? '1' : '0';
       btn.textContent = isPublic ? '🔒 Make Private' : '🌍 Make Public';
+      // Keep share button data-public in sync so the share modal knows the current state
+      const shareBtn = cont.querySelector('.btn-dshare');
+      if (shareBtn) shareBtn.dataset.public = isPublic ? '1' : '0';
       toast(isPublic ? '🌍 Note is now public!' : '🔒 Note is now private');
       renderGrid();
     } catch (err) { toast('Error: ' + err.message); }
@@ -3329,7 +3362,9 @@ function renderDetail(note) {
 
   cont.querySelector('.btn-dshare')?.addEventListener('click', e => {
     e.stopPropagation();
-    shareSingleNote(note.id);
+    const shareBtn = e.currentTarget;
+    const isPublic = shareBtn.dataset.public === '1';
+    shareSingleNote(note.id, isPublic);
   });
   cont.querySelector('.btn-dedit')?.addEventListener('click', e => {
     e.stopPropagation();
