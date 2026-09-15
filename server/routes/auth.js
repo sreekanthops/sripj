@@ -310,7 +310,7 @@ function runMigrationOnce() { if (!_migrated) { ensureUserColumns(); _migrated =
 // GET /api/auth/verify  — validate token
 router.get('/verify', verifyToken, (req, res) => {
   runMigrationOnce();
-  const user = db.prepare('SELECT id, username, display_name, email, bio, avatar_url, phone, share_protected, share_token, (password_hash != "") as has_password FROM users WHERE id = ?').get(req.user.userId);
+  const user = db.prepare("SELECT id, username, display_name, email, bio, avatar_url, phone, share_protected, share_token, (password_hash != '') as has_password FROM users WHERE id = ?").get(req.user.userId);
   if (!user) return res.status(401).json({ error: 'User not found' });
   // ensure every user has a share_token (back-fill if missing)
   let shareToken = user.share_token || '';
