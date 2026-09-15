@@ -523,6 +523,22 @@ if (!hasTable('wallet_engagement_ledger')) {
   `);
 }
 
+// ── COMPLAINTS ────────────────────────────────────────────────────────────────
+if (!hasTable('complaints')) {
+  db.exec(`
+    CREATE TABLE complaints (
+      id          TEXT PRIMARY KEY,
+      user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      subject     TEXT NOT NULL DEFAULT '',
+      body        TEXT NOT NULL,
+      status      TEXT NOT NULL DEFAULT 'open',   -- 'open' | 'resolved'
+      admin_reply TEXT NOT NULL DEFAULT '',
+      replied_at  TEXT,
+      created_at  TEXT NOT NULL
+    )
+  `);
+}
+
 // Re-enable FK enforcement
 db.pragma('foreign_keys = ON');
 

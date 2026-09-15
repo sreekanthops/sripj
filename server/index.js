@@ -79,6 +79,7 @@ app.use('/api/messages',          require('./routes/messages'));
 app.use('/api/notifications',     require('./routes/notifications'));
 app.use('/api/feedback',          require('./routes/feedback'));
 app.use('/api/diary-access',      require('./routes/diary-access'));
+app.use('/api/complaints',        require('./routes/complaints'));
 
 // Admin portal — noindex + explicit route before SPA fallback
 app.get('/admin', (req, res) => {

@@ -396,6 +396,7 @@ select.field-select:focus{border-color:var(--accent)}
     <button class="nav-tab" data-page="payments">Payments</button>
     <button class="nav-tab" data-page="feed-generator">Feed Generator</button>
     <button class="nav-tab" data-page="feedback">Feedback</button>
+    <button class="nav-tab" data-page="complaints" id="complaintsNavTab">🚨 Complaints <span id="complaintsNavBadge" style="display:none;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px;margin-left:4px">0</span></button>
     <button class="nav-tab" data-page="settings">Settings</button>
     <button class="nav-tab" data-page="profile">My Profile</button>
   </nav>
@@ -1083,6 +1084,53 @@ select.field-select:focus{border-color:var(--accent)}
 
   </div>
 
+  <!-- COMPLAINTS -->
+  <div class="page" id="page-complaints">
+    <div class="section">
+      <div class="section-title">User Complaints
+        <span id="complaintsOpenCount" style="font-size:11px;color:var(--red);font-weight:600;margin-left:6px"></span>
+        <button class="btn btn-ghost" id="complaintsRefreshBtn" style="margin-left:auto;padding:5px 14px;font-size:12px">↺ Refresh</button>
+      </div>
+
+      <!-- Filter bar -->
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+        <select id="complaintsStatusFilter" class="v-select">
+          <option value="all">All Complaints</option>
+          <option value="open">Open Only</option>
+          <option value="resolved">Resolved Only</option>
+        </select>
+      </div>
+
+      <!-- Chat-style complaints list -->
+      <div id="complaintsListWrap" style="display:flex;gap:16px;min-height:400px">
+        <!-- Left: list of complaints -->
+        <div id="complaintsList" style="width:320px;flex-shrink:0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:var(--surface);display:flex;flex-direction:column">
+          <div id="complaintsListInner" style="flex:1;overflow-y:auto">
+            <div style="padding:20px;text-align:center;color:var(--ink4);font-size:12px">Loading…</div>
+          </div>
+        </div>
+        <!-- Right: reply thread -->
+        <div id="complaintThread" style="flex:1;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);display:flex;flex-direction:column;min-height:400px">
+          <div id="complaintThreadHeader" style="padding:14px 18px;border-bottom:1px solid var(--border);background:var(--surface2)">
+            <div style="font-size:13px;font-weight:600;color:var(--ink)" id="complaintThreadTitle">Select a complaint</div>
+            <div style="font-size:11px;color:var(--ink4);margin-top:2px" id="complaintThreadMeta"></div>
+          </div>
+          <div id="complaintThreadBody" style="flex:1;padding:16px 18px;overflow-y:auto;font-size:13px;color:var(--ink2);line-height:1.7;font-family:var(--sans)">
+            <div style="color:var(--ink4);font-size:12px">← Select a complaint from the list</div>
+          </div>
+          <div id="complaintReplyArea" style="padding:12px 16px;border-top:1px solid var(--border);background:var(--surface2);display:none">
+            <textarea id="complaintReplyInput" placeholder="Type your reply…" style="width:100%;min-height:70px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r2);padding:10px 12px;font-size:13px;color:var(--ink);font-family:var(--sans);outline:none;resize:vertical"></textarea>
+            <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+              <button class="btn btn-primary" id="complaintReplySendBtn">Send Reply &amp; Resolve</button>
+              <button class="btn btn-ghost" id="complaintReopenBtn" style="display:none">Re-open</button>
+              <span id="complaintReplyStatus" style="font-size:12px;color:var(--green);font-weight:600"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- SETTINGS -->
   <div class="page" id="page-settings">
 
@@ -1393,6 +1441,9 @@ document.getElementById('navTabs').addEventListener('click', e => {
     populateWalletUserSelect();
     loadWalletList();
     loadEngagementLedger();
+  }
+  if (tab.dataset.page === 'complaints') {
+    loadAdminComplaints();
   }
 });
 
@@ -3457,6 +3508,131 @@ document.getElementById('navTabs').addEventListener('click', e => {
     }
   };
 })();
+// ── COMPLAINTS DASHBOARD ─────────────────────────────────────────────────────
+const COMPLAINTS_API = '/api/complaints';
+let _allComplaints    = [];
+let _activeComplaint  = null;
+
+async function complaintsApi(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminToken } };
+  if (body) opts.body = JSON.stringify(body);
+  const res  = await fetch(COMPLAINTS_API + path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Error');
+  return data;
+}
+
+function escC(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function loadAdminComplaints() {
+  const inner = document.getElementById('complaintsListInner');
+  if (inner) inner.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink4);font-size:12px">Loading…</div>';
+  try {
+    const data = await complaintsApi('GET', '/admin');
+    _allComplaints = data.complaints || [];
+    renderComplaintsList();
+    updateComplaintsBadge();
+  } catch (e) { if (inner) inner.innerHTML = `<div style="padding:20px;text-align:center;color:var(--red);font-size:12px">${e.message}</div>`; }
+}
+
+function updateComplaintsBadge() {
+  const openCount = _allComplaints.filter(c => c.status === 'open').length;
+  const badge = document.getElementById('complaintsNavBadge');
+  const countEl = document.getElementById('complaintsOpenCount');
+  if (badge) { badge.textContent = openCount; badge.style.display = openCount ? '' : 'none'; }
+  if (countEl) countEl.textContent = openCount ? `(${openCount} open)` : '';
+}
+
+function renderComplaintsList() {
+  const inner = document.getElementById('complaintsListInner');
+  if (!inner) return;
+  const filter = document.getElementById('complaintsStatusFilter')?.value || 'all';
+  const list = _allComplaints.filter(c => filter === 'all' || c.status === filter);
+  if (!list.length) { inner.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink4);font-size:12px">No complaints found.</div>'; return; }
+  inner.innerHTML = list.map(c => {
+    const isActive  = _activeComplaint?.id === c.id;
+    const dateStr   = fmtDate(c.createdAt);
+    const statusCls = c.status === 'open' ? 'color:var(--amber)' : 'color:var(--green)';
+    return `<div class="complaint-list-item${isActive ? ' active' : ''}" data-cid="${c.id}"
+      style="padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;background:${isActive ? 'var(--accent-bg)' : 'transparent'};transition:background .12s">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+        <span style="font-size:12px;font-weight:600;color:var(--ink)">${escC(c.user.username)}</span>
+        <span style="font-size:10px;font-weight:700;${statusCls}">${c.status.toUpperCase()}</span>
+      </div>
+      <div style="font-size:12px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escC(c.subject || c.body.slice(0,60))}</div>
+      <div style="font-size:10px;color:var(--ink4);margin-top:3px">${dateStr}</div>
+    </div>`;
+  }).join('');
+  inner.querySelectorAll('.complaint-list-item').forEach(el => {
+    el.onclick = () => openComplaintThread(el.dataset.cid);
+  });
+}
+
+function openComplaintThread(cid) {
+  _activeComplaint = _allComplaints.find(c => c.id === cid);
+  if (!_activeComplaint) return;
+  renderComplaintsList();
+  const c = _activeComplaint;
+  document.getElementById('complaintThreadTitle').textContent = c.subject || '(no subject)';
+  document.getElementById('complaintThreadMeta').textContent  = `From: @${c.user.username}  ·  ${fmtDate(c.createdAt)}  ·  ${c.status}`;
+  document.getElementById('complaintThreadBody').innerHTML = `
+    <div style="margin-bottom:18px;padding:14px;background:var(--surface2);border-radius:var(--r);border:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">User's complaint</div>
+      <div style="white-space:pre-wrap">${escC(c.body)}</div>
+    </div>
+    ${c.adminReply ? `<div style="padding:14px;background:var(--blue-bg);border-radius:var(--r);border:1px solid var(--blue)">
+      <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Admin reply · ${fmtDate(c.repliedAt)}</div>
+      <div style="white-space:pre-wrap;color:var(--ink2)">${escC(c.adminReply)}</div>
+    </div>` : ''}
+  `;
+  const replyArea   = document.getElementById('complaintReplyArea');
+  const reopenBtn   = document.getElementById('complaintReopenBtn');
+  const replyInput  = document.getElementById('complaintReplyInput');
+  const statusSpan  = document.getElementById('complaintReplyStatus');
+  replyArea.style.display = '';
+  statusSpan.textContent  = '';
+  if (c.status === 'resolved') {
+    replyInput.placeholder = 'Add another reply…';
+    reopenBtn.style.display = '';
+  } else {
+    replyInput.placeholder = 'Type your reply…';
+    reopenBtn.style.display = 'none';
+  }
+}
+
+document.getElementById('complaintsRefreshBtn')?.addEventListener('click', loadAdminComplaints);
+document.getElementById('complaintsStatusFilter')?.addEventListener('change', renderComplaintsList);
+
+document.getElementById('complaintReplySendBtn')?.addEventListener('click', async () => {
+  if (!_activeComplaint) return;
+  const reply = document.getElementById('complaintReplyInput')?.value?.trim();
+  const statusSpan = document.getElementById('complaintReplyStatus');
+  statusSpan.textContent = '';
+  if (!reply) { toast('Please type a reply first'); return; }
+  try {
+    await complaintsApi('POST', `/admin/${_activeComplaint.id}/reply`, { reply });
+    toast('Reply sent & complaint resolved ✓');
+    _activeComplaint.adminReply = reply;
+    _activeComplaint.status     = 'resolved';
+    document.getElementById('complaintReplyInput').value = '';
+    openComplaintThread(_activeComplaint.id);
+    updateComplaintsBadge();
+    renderComplaintsList();
+  } catch (e) { toast('Error: ' + e.message); }
+});
+
+document.getElementById('complaintReopenBtn')?.addEventListener('click', async () => {
+  if (!_activeComplaint) return;
+  try {
+    await complaintsApi('PUT', `/admin/${_activeComplaint.id}/status`, { status: 'open' });
+    _activeComplaint.status = 'open';
+    toast('Complaint re-opened');
+    openComplaintThread(_activeComplaint.id);
+    renderComplaintsList();
+    updateComplaintsBadge();
+  } catch (e) { toast('Error: ' + e.message); }
+});
+
 </script>
 </body>
 </html>

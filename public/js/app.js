@@ -4793,3 +4793,101 @@ document.getElementById('resetSubmitBtn')?.addEventListener('click', async () =>
     showInsta('appInstaLink',      'appInstaWrap');     // app footer
   } catch(e) { console.warn('[insta]', e); }
 })();
+
+// ── COMPLAINT MODAL ──────────────────────────────────────────────────────────
+(function () {
+  function openComplaintModal() {
+    if (!token) { toast('Please sign in to raise a complaint'); return; }
+    document.getElementById('complaintOverlay')?.classList.add('open');
+    switchComplaintTab('new');
+  }
+
+  function closeComplaintModal() {
+    document.getElementById('complaintOverlay')?.classList.remove('open');
+  }
+
+  function switchComplaintTab(tab) {
+    document.querySelectorAll('.complaint-tab').forEach(b => {
+      b.classList.toggle('active', b.dataset.ctab === tab);
+    });
+    document.getElementById('complaintPanelNew')?.classList.toggle('hidden', tab !== 'new');
+    document.getElementById('complaintPanelMine')?.classList.toggle('hidden', tab !== 'mine');
+    if (tab === 'mine') loadMyComplaints();
+  }
+
+  async function loadMyComplaints() {
+    const list = document.getElementById('myComplaintsList');
+    if (!list) return;
+    list.innerHTML = '<div style="text-align:center;color:var(--ink4);font-size:12px;font-family:var(--sans);padding:20px 0">Loading…</div>';
+    try {
+      const res = await fetch('/api/complaints/mine', { headers: { Authorization: 'Bearer ' + token } });
+      const data = await res.json();
+      const complaints = data.complaints || [];
+      if (!complaints.length) {
+        list.innerHTML = '<div style="text-align:center;color:var(--ink4);font-size:12px;font-family:var(--sans);padding:20px 0">No complaints yet.</div>';
+        return;
+      }
+      list.innerHTML = complaints.map(c => {
+        const date = new Date(c.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' });
+        const replyHtml = c.admin_reply ? `<div class="complaint-card-reply"><strong>Admin replied:</strong>${escHtml(c.admin_reply)}</div>` : '';
+        return `<div class="complaint-card">
+          ${c.subject ? `<div class="complaint-card-subject">${escHtml(c.subject)}</div>` : ''}
+          <div class="complaint-card-body">${escHtml(c.body)}</div>
+          <span class="complaint-card-status ${c.status}">${c.status}</span>
+          <span style="font-size:10px;color:var(--ink5);margin-left:8px;font-family:var(--sans)">${date}</span>
+          ${replyHtml}
+        </div>`;
+      }).join('');
+    } catch {
+      list.innerHTML = '<div style="text-align:center;color:var(--red);font-size:12px;font-family:var(--sans);padding:20px 0">Could not load complaints.</div>';
+    }
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('complaintNavBtn')?.addEventListener('click', openComplaintModal);
+    document.getElementById('complaintClose')?.addEventListener('click', closeComplaintModal);
+    document.getElementById('complaintOverlay')?.addEventListener('click', e => {
+      if (e.target === document.getElementById('complaintOverlay')) closeComplaintModal();
+    });
+
+    // Tab switching
+    document.querySelectorAll('.complaint-tab').forEach(btn => {
+      btn.addEventListener('click', () => switchComplaintTab(btn.dataset.ctab));
+    });
+
+    // Submit
+    document.getElementById('complaintSubmitBtn')?.addEventListener('click', async () => {
+      const subject = document.getElementById('complaintSubject')?.value?.trim() || '';
+      const body    = document.getElementById('complaintBody')?.value?.trim() || '';
+      const errEl   = document.getElementById('complaintErr');
+      errEl.textContent = '';
+      if (!body) { errEl.textContent = 'Please describe your issue.'; return; }
+      const btn = document.getElementById('complaintSubmitBtn');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/complaints', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ subject, body }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        document.getElementById('complaintSubject').value = '';
+        document.getElementById('complaintBody').value    = '';
+        toast('Complaint submitted! We\'ll get back to you soon 🙏');
+        switchComplaintTab('mine');
+      } catch (e) {
+        errEl.textContent = e.message;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+
+  // Make openComplaintModal accessible globally (e.g. from notification click)
+  window.openComplaintModal = openComplaintModal;
+})();

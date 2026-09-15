@@ -28,7 +28,8 @@
 
   function typeIcon(type) {
     const icons = { follow: '👤', reaction: '❤️', reply: '💬', message: '✉️',
-                    tagged_post: '🏷️', tagged_seen: '👁️', tagged_no_response: '📭' };
+                    tagged_post: '🏷️', tagged_seen: '👁️', tagged_no_response: '📭',
+                    complaint_reply: '🚨' };
     return icons[type] || '🔔';
   }
 
@@ -41,6 +42,7 @@
     if (n.type === 'tagged_post')        return `${name} posted something just for you 🏷️`;
     if (n.type === 'tagged_seen')        return `${name} saw your tagged post ✅ (5+ seconds)`;
     if (n.type === 'tagged_no_response') return `${name} skipped your tagged post twice without reading 📭`;
+    if (n.type === 'complaint_reply')    return `Admin responded to your complaint — tap to view`;
     return 'New notification';
   }
 
@@ -91,7 +93,9 @@
         const msgId   = el.dataset.msgId;
         const actorId = el.dataset.actorId;
         closeDropdown();
-        if (type === 'message' && actorId) {
+        if (type === 'complaint_reply') {
+          window.openComplaintModal?.();
+        } else if (type === 'message' && actorId) {
           // Open chat with this user directly
           window.Chat?.startConversation?.(actorId);
         } else if (type === 'follow' && actorId) {

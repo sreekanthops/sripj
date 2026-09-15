@@ -62,11 +62,28 @@
       _conversations = data.conversations || [];
       _unread = _conversations.reduce((s, c) => s + (c.unreadCount || 0), 0);
       updateChatBadge();
-      if (!_conversations.length) {
+
+      // ── Admin pinned entry (always at top) ──────────────────────────────────
+      const adminPin = await api('GET', '/api/complaints/admin-user').catch(() => null);
+      const adminPinHtml = adminPin?.userId ? (() => {
+        const adminConv = _conversations.find(c => c.other?.id === adminPin.userId);
+        const unread = adminConv?.unreadCount > 0 ? `<span class="chat-unread-badge">${adminConv.unreadCount}</span>` : '';
+        const last   = adminConv?.lastMessage?.body || 'Chat with Support';
+        return `<div class="chat-conv-item chat-conv-admin-pin" data-admin-uid="${adminPin.userId}" style="border-bottom:1.5px solid var(--border2)">
+          <div class="chat-av" style="background:rgba(184,50,50,.1);border:1.5px solid rgba(184,50,50,.3);display:flex;align-items:center;justify-content:center;font-size:14px">🛡️</div>
+          <div class="chat-conv-info">
+            <div class="chat-conv-name" style="color:var(--red)">Support / Admin${unread}</div>
+            <div class="chat-conv-last">${escHtml(last.slice(0, 40))}</div>
+          </div>
+          <span style="font-size:9px;font-weight:700;letter-spacing:.5px;color:var(--red);background:rgba(184,50,50,.08);border:1px solid rgba(184,50,50,.2);border-radius:99px;padding:2px 7px;flex-shrink:0">PINNED</span>
+        </div>`;
+      })() : '';
+
+      if (!_conversations.length && !adminPinHtml) {
         list.innerHTML = '<div class="chat-empty">No conversations yet.<br>Open a profile and tap Message.</div>';
         return;
       }
-      list.innerHTML = _conversations.map(c => {
+      list.innerHTML = adminPinHtml + _conversations.map(c => {
         const name  = c.other?.displayName || c.other?.username || 'Unknown';
         const uid   = c.other?.id || '';
         const last  = c.lastMessage?.body || (c.lastMessage?.mediaType ? '📎 Media' : '');
@@ -91,6 +108,11 @@
           }
           openConversation(el.dataset.conv);
         });
+      });
+      // Admin pinned item click — start or open conversation
+      list.querySelector('.chat-conv-admin-pin')?.addEventListener('click', () => {
+        const uid = list.querySelector('.chat-conv-admin-pin').dataset.adminUid;
+        if (uid) startConversation(uid);
       });
     } catch (e) {
       list.innerHTML = `<div class="chat-empty">Error: ${e.message}</div>`;
