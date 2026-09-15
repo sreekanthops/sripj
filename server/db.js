@@ -282,7 +282,7 @@ if (!hasTable('geo_pricing')) {
   const { v4: uuid } = require('uuid');
   const geoDefaults = [
     // India
-    ['IN','monthly','INR','₹',129], ['IN','yearly','INR','₹',999], ['IN','lifetime','INR','₹',2499],
+    ['IN','monthly','INR','₹',129], ['IN','yearly','INR','₹',1199], ['IN','lifetime','INR','₹',4999],
     // US/Canada
     ['US','monthly','USD','$',4.99], ['US','yearly','USD','$',39.99], ['US','lifetime','USD','$',79.99],
     // UK
@@ -547,8 +547,8 @@ db.pragma('foreign_keys = ON');
 //  Pricing strategy:
 //   Free        — ₹0     · up to 5 diary entries, uploads allowed, no canvas stickers
 //   Pro Monthly — ₹129   · unlimited entries, uploads, canvas stickers. Billed monthly.
-//   Pro Yearly  — ₹999   · same as monthly (save 36%). Billed yearly.
-//   Lifetime    — ₹2499  · unlimited everything, forever. One-time payment.
+//   Pro Yearly  — ₹1199  · same as monthly (save 23%). Billed yearly.
+//   Lifetime    — ₹4999  · unlimited everything, forever. One-time payment.
 //
 const seedPlan = db.prepare(`
   INSERT OR IGNORE INTO subscription_plans (id, name, price_usd, price_inr, notes_limit, uploads, canvas, description)
@@ -556,20 +556,21 @@ const seedPlan = db.prepare(`
 `);
 seedPlan.run('free',     'Free',          0,      0,     5,  1, 0, 'Up to 5 diary entries. Photos & videos allowed. No canvas stickers.');
 seedPlan.run('monthly',  'Pro Monthly',   1.99,   129,  -1,  1, 1, 'Unlimited entries, media uploads & canvas stickers. Billed monthly.');
-seedPlan.run('yearly',   'Pro Yearly',    9.99,   999,  -1,  1, 1, 'Unlimited entries, media uploads & canvas stickers. Billed yearly (save 36%).');
-seedPlan.run('lifetime', 'Lifetime',     29.99,  2499,  -1,  1, 1, 'Unlimited everything. One-time payment, never expires.');
+seedPlan.run('yearly',   'Pro Yearly',   11.99,  1199,  -1,  1, 1, 'Unlimited entries, media uploads & canvas stickers. Billed yearly (save 23%).');
+seedPlan.run('lifetime', 'Lifetime',     49.99,  4999,  -1,  1, 1, 'Unlimited everything. One-time payment, never expires.');
 
 // ── Live migration: update the free plan's uploads flag to 1 if it was 0 ─────
 // (INSERT OR IGNORE above won't update existing rows, so we patch it here)
 db.prepare(`UPDATE subscription_plans SET uploads = 1, description = 'Up to 5 diary entries. Photos & videos allowed. No canvas stickers.' WHERE id = 'free' AND uploads = 0`).run();
 
-// ── Live migration: fix India geo pricing monthly to 129 ──────────────────────
-db.prepare(`UPDATE geo_pricing SET amount = 129 WHERE region = 'IN' AND plan_id = 'monthly'`).run();
-
 // ── Live migration: correct plan prices to current values (always enforce) ────
-db.prepare(`UPDATE subscription_plans SET price_inr = 129,  price_usd = 1.99, description = 'Unlimited entries, media uploads & canvas stickers. Billed monthly.'   WHERE id = 'monthly'`).run();
-db.prepare(`UPDATE subscription_plans SET price_inr = 999,  price_usd = 9.99, description = 'Unlimited entries, media uploads & canvas stickers. Billed yearly (save 36%).' WHERE id = 'yearly'`).run();
-db.prepare(`UPDATE subscription_plans SET price_inr = 2499, price_usd = 29.99, description = 'Unlimited everything. One-time payment, never expires.'               WHERE id = 'lifetime'`).run();
+db.prepare(`UPDATE subscription_plans SET price_inr = 129,  price_usd = 1.99, description = 'Unlimited entries, media uploads & canvas stickers. Billed monthly.'    WHERE id = 'monthly'`).run();
+db.prepare(`UPDATE subscription_plans SET price_inr = 1199, price_usd = 11.99, description = 'Unlimited entries, media uploads & canvas stickers. Billed yearly (save 23%).' WHERE id = 'yearly'`).run();
+db.prepare(`UPDATE subscription_plans SET price_inr = 4999, price_usd = 49.99, description = 'Unlimited everything. One-time payment, never expires.'                WHERE id = 'lifetime'`).run();
+// ── Live migration: fix India geo pricing to match ────────────────────────────
+db.prepare(`UPDATE geo_pricing SET amount = 129  WHERE region = 'IN' AND plan_id = 'monthly'`).run();
+db.prepare(`UPDATE geo_pricing SET amount = 1199 WHERE region = 'IN' AND plan_id = 'yearly'`).run();
+db.prepare(`UPDATE geo_pricing SET amount = 4999 WHERE region = 'IN' AND plan_id = 'lifetime'`).run();
 
 // ── Seed default app_settings (idempotent) ────────────────────────────────────
 const seedSetting = db.prepare(`
