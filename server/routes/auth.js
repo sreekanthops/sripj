@@ -112,19 +112,9 @@ router.post('/signup', async (req, res) => {
   db.prepare('INSERT INTO users (id, username, display_name, bio, password_hash, email, phone, share_token, created_at) VALUES (?,?,?,?,?,?,?,?,?)')
     .run(id, uname, displayName?.trim() || uname, '', hash, emailClean, phoneClean, token, createdAt);
 
-  // ── Signup bonus: credit the current monthly plan price into the new user's wallet
+  // ── Signup bonus: ₹129 credited to every new user's wallet ──────────────────
   try {
-    const monthlyPlan = db.prepare(`SELECT price_inr, discount_pct, discount_ends_at FROM subscription_plans WHERE id = 'monthly'`).get();
-    if (monthlyPlan && monthlyPlan.price_inr > 0) {
-      const now = new Date();
-      const discountActive = monthlyPlan.discount_pct > 0 &&
-        (!monthlyPlan.discount_ends_at || new Date(monthlyPlan.discount_ends_at) > now);
-      const bonusInr = discountActive
-        ? Math.round(monthlyPlan.price_inr * (1 - monthlyPlan.discount_pct / 100))
-        : monthlyPlan.price_inr;
-      const bonusPaise = bonusInr * 100;
-      creditWallet(id, bonusPaise, 'signup_bonus', 'welcome');
-    }
+    creditWallet(id, 12900, 'signup_bonus', 'welcome');
   } catch (e) {
     console.error('[auth/signup] wallet bonus failed:', e.message);
   }
@@ -303,16 +293,7 @@ router.post('/google', async (req, res) => {
 
       // ── Signup bonus for Google sign-up too
       try {
-        const monthlyPlan = db.prepare(`SELECT price_inr, discount_pct, discount_ends_at FROM subscription_plans WHERE id = 'monthly'`).get();
-        if (monthlyPlan && monthlyPlan.price_inr > 0) {
-          const nowG = new Date();
-          const discountActive = monthlyPlan.discount_pct > 0 &&
-            (!monthlyPlan.discount_ends_at || new Date(monthlyPlan.discount_ends_at) > nowG);
-          const bonusInr = discountActive
-            ? Math.round(monthlyPlan.price_inr * (1 - monthlyPlan.discount_pct / 100))
-            : monthlyPlan.price_inr;
-          creditWallet(id, bonusInr * 100, 'signup_bonus', 'welcome');
-        }
+        creditWallet(id, 12900, 'signup_bonus', 'welcome');
       } catch (e) {
         console.error('[auth/google] wallet bonus failed:', e.message);
       }
