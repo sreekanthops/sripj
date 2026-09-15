@@ -1341,10 +1341,9 @@ document.getElementById('navTabs').addEventListener('click', e => {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   tab.classList.add('active');
   document.getElementById('page-' + tab.dataset.page).classList.add('active');
-  // Reload users table every time Users tab is opened (also refresh wallet map)
+  // Reload users table every time Users tab is opened
   if (tab.dataset.page === 'users') {
     loadStats();
-    loadWalletMapForUsers().then(() => applyUserFilters());
   }
   // Lazy-load subscriptions tab on first open
   if (tab.dataset.page === 'subscriptions' && !subTabLoaded) {
@@ -1839,10 +1838,7 @@ document.getElementById('vfResetBtn').onclick = () => {
   document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') loadVisitors(); });
 });
 
-document.getElementById('usersRefreshBtn').onclick = () => {
-  loadStats();
-  loadWalletMapForUsers().then(() => applyUserFilters());
-};
+document.getElementById('usersRefreshBtn').onclick = () => loadStats();
 
 // ── REACTIONS ────────────────────────────────────────────────────────────────
 function renderReactions() {
