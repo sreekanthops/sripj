@@ -173,16 +173,10 @@ async function loadPublicDiary(req, res, user) {
     ? !!db.prepare('SELECT id FROM diary_access WHERE owner_id=? AND grantee_id=?').get(user.id, viewerId)
     : false;
 
-  // Visitors see: public notes + (if access-granted) private notes too
-  // Owner sees all notes
-  let sql;
-  if (isOwner) {
-    sql = 'SELECT * FROM notes WHERE user_id = ?';
-  } else if (hasAccessGrant) {
-    sql = 'SELECT * FROM notes WHERE user_id = ?';
-  } else {
-    sql = 'SELECT * FROM notes WHERE user_id = ? AND is_public = 1';
-  }
+  // Everyone who reaches this point (owner, access-granted user, or share-link visitor)
+  // sees all notes — the share link itself is the access control.
+  // is_public=1 notes are also visible on the public feed; private notes only via this link.
+  let sql = 'SELECT * FROM notes WHERE user_id = ?';
   const params = [user.id];
   if (from) { sql += ' AND DATE(created_at) >= ?'; params.push(from); }
   if (to)   { sql += ' AND DATE(created_at) <= ?'; params.push(to); }
