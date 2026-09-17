@@ -236,7 +236,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
   const row = db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Not found' });
 
-  const author = db.prepare('SELECT id, username, display_name, bio, avatar_url, share_protected, share_password_hash FROM users WHERE id = ?').get(row.user_id);
+  const author = db.prepare('SELECT id, username, display_name, bio, avatar_url, share_protected, share_password_hash, share_token FROM users WHERE id = ?').get(row.user_id);
   const isOwner = req.user && req.user.userId === row.user_id;
 
   // Check password protection if enabled and visitor is not the owner
@@ -250,7 +250,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
       return res.status(403).json({
         isProtected: true,
         error: 'Password required to view this entry',
-        user: { id: author.id, username: author.username, displayName: author.display_name, bio: author.bio, avatarUrl: author.avatar_url || '' }
+        user: { id: author.id, username: author.username, displayName: author.display_name, bio: author.bio, avatarUrl: author.avatar_url || '', shareToken: author.share_token || '' }
       });
     }
   }

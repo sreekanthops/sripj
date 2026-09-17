@@ -1403,25 +1403,16 @@ async function openShareModal(targetNoteId = null, noteIsPublic = false) {
     const titleEl = document.getElementById('shareModalTitle');
     const descEl  = document.getElementById('shareModalDesc');
 
-    if (noteIsPublic) {
-      // Public note — no password option, just the link
-      if (titleEl) titleEl.textContent = '🔗 Share Entry';
-      if (descEl)  descEl.textContent = 'This note is public — anyone can view it with this link.';
-      if (shareOptionsGrid) shareOptionsGrid.style.display = 'none';
-      if (saveBtn) saveBtn.style.display = 'none';
-      // Show a quick-copy button instead
-      const copyOnlyBtn = document.getElementById('btnCopyShareLink');
-      if (copyOnlyBtn) copyOnlyBtn.textContent = 'Copy Link 🔗';
-    } else {
-      // Private note — show password protection options
-      if (titleEl) titleEl.textContent = '🔗 Share Entry';
-      if (descEl)  descEl.textContent = 'This note is private — choose how to share it.';
-      if (shareOptionsGrid) shareOptionsGrid.style.display = '';
-      if (saveBtn) saveBtn.style.display = '';
-      // Restore copy button label
-      const copyOnlyBtn = document.getElementById('btnCopyShareLink');
-      if (copyOnlyBtn) copyOnlyBtn.textContent = 'Copy Link';
-    }
+    // Both public and private notes: just copy the direct link — no diary-level
+    // password options apply to single-note links (/entry/:id is always accessible).
+    if (titleEl) titleEl.textContent = '🔗 Share Entry';
+    if (descEl)  descEl.textContent = noteIsPublic
+      ? 'This note is public — anyone can view it with this link.'
+      : 'Copy this link to share this entry directly.';
+    if (shareOptionsGrid) shareOptionsGrid.style.display = 'none';
+    if (saveBtn) saveBtn.style.display = 'none';
+    const copyOnlyBtn = document.getElementById('btnCopyShareLink');
+    if (copyOnlyBtn) copyOnlyBtn.textContent = 'Copy Link 🔗';
 
     const url = `${location.origin}/entry/${targetNoteId}`;
     const urlInput = document.getElementById('shareUrlInput');
@@ -1458,8 +1449,8 @@ async function openShareModal(targetNoteId = null, noteIsPublic = false) {
     if (urlInput) urlInput.value = url;
   }
 
-  // Fetch + show current share protection status only when options are visible
-  if (!noteIsPublic) {
+  // Fetch + show share protection status — only needed for whole-diary shares
+  if (!targetNoteId) {
     if (currentUser) {
       try {
         const data = await api('GET', '/auth/share-settings');
@@ -1471,7 +1462,7 @@ async function openShareModal(targetNoteId = null, noteIsPublic = false) {
       setShareOptionUI(false);
     }
   } else {
-    // Public note — hide the password wrap
+    // Single-note share — no diary-level password options
     setShareOptionUI(false);
   }
 
@@ -3299,7 +3290,9 @@ async function openDetail(id) {
   document.getElementById('detailBars').innerHTML = '';
   openOv('detailOverlay');
   try {
-    const note = await api('GET', `/notes/${id}`);
+    const headers = {};
+    if (currentEnteredPassword) headers['x-share-password'] = currentEnteredPassword;
+    const note = await api('GET', `/notes/${id}`, null, headers);
     const i = notes.findIndex(n => n.id === id);
     if (i !== -1) { notes[i] = note; detailIdx = i; }
     renderDetail(note);
